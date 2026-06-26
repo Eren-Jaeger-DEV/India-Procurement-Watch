@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>India Procurement Watch — Analytics Dashboard</title>
+  <meta name="description" content="Open-source analytics dashboard for India's public procurement data from CPPP. Explore contract awards, vendor patterns, and anomalies." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<!-- ── HEADER ── -->
+<header class="header">
+  <div class="header-inner">
+    <div class="header-brand">
+      <div class="brand-icon">🏛️</div>
+      <div>
+        <h1 class="brand-title">India Procurement Watch</h1>
+        <p class="brand-sub">CPPP · Central &amp; State Tenders · Open Data</p>
+      </div>
+    </div>
+    <div class="header-meta" id="headerMeta">
+      <span class="status-dot" id="statusDot"></span>
+      <span id="headerLastUpdated">Loading…</span>
+    </div>
+  </div>
+</header>
+
+<!-- ── LOADING OVERLAY ── -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loader-box">
+    <div class="spinner"></div>
+    <p>Loading procurement data…</p>
+  </div>
+</div>
+
+<!-- ── MAIN CONTENT ── -->
+<main class="main" id="mainContent" style="display:none">
+
+  <!-- KPI CARDS -->
+  <section class="section">
+    <div class="kpi-grid">
+      <div class="kpi-card kpi-contracts">
+        <div class="kpi-icon"><i data-lucide="file-check-2"></i></div>
+        <div class="kpi-body">
+          <div class="kpi-value" id="kpiContracts">—</div>
+          <div class="kpi-label">Awarded Contracts</div>
+          <div class="kpi-sub" id="kpiContractsValued">— with value data</div>
+        </div>
+      </div>
+      <div class="kpi-card kpi-value">
+        <div class="kpi-icon"><i data-lucide="indian-rupee"></i></div>
+        <div class="kpi-body">
+          <div class="kpi-value" id="kpiValue">—</div>
+          <div class="kpi-label">Total Contract Value</div>
+          <div class="kpi-sub">₹ Crore (awarded)</div>
+        </div>
+      </div>
+      <div class="kpi-card kpi-orgs">
+        <div class="kpi-icon"><i data-lucide="building-2"></i></div>
+        <div class="kpi-body">
+          <div class="kpi-value" id="kpiOrgs">—</div>
+          <div class="kpi-label">Unique Organisations</div>
+          <div class="kpi-sub">Awarding contracts</div>
+        </div>
+      </div>
+      <div class="kpi-card kpi-published">
+        <div class="kpi-icon"><i data-lucide="bell"></i></div>
+        <div class="kpi-body">
+          <div class="kpi-value" id="kpiPublished">—</div>
+          <div class="kpi-label">Published Tenders</div>
+          <div class="kpi-sub" id="kpiYearRange">—</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TREND CHARTS -->
+  <section class="section">
+    <div class="section-header">
+      <h2 class="section-title">Procurement Trends</h2>
+      <div class="btn-group">
+        <button class="btn-pill active" id="btnYearly" onclick="switchTrend('yearly')">Yearly</button>
+        <button class="btn-pill" id="btnMonthly" onclick="switchTrend('monthly')">Monthly</button>
+        <button class="btn-pill" id="btnPublished" onclick="switchTrend('published')">Published</button>
+      </div>
+    </div>
+    <div class="chart-card wide">
+      <canvas id="trendChart" height="90"></canvas>
+    </div>
+  </section>
+
+  <!-- ORG + TYPE + PORTAL CHARTS -->
+  <section class="section">
+    <div class="charts-grid-3">
+
+      <!-- Top Orgs -->
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <h3 class="chart-title">Top Organisations</h3>
+          <div class="btn-group">
+            <button class="btn-mini active" id="orgByCount" onclick="switchOrgs('count')">Count</button>
+            <button class="btn-mini" id="orgByValue" onclick="switchOrgs('value')">Value</button>
+          </div>
+        </div>
+        <canvas id="orgsChart" height="260"></canvas>
+      </div>
+
+      <!-- Tender Type -->
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <h3 class="chart-title">Tender Type Breakdown</h3>
+        </div>
+        <canvas id="typeChart" height="260"></canvas>
+      </div>
+
+      <!-- Value Distribution -->
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <h3 class="chart-title">Contract Value Distribution</h3>
+        </div>
+        <canvas id="valueBracketChart" height="260"></canvas>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- PORTAL & STATE BREAKDOWN -->
+  <section class="section">
+    <div class="charts-grid-2">
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <h3 class="chart-title">Central vs State Portal Split</h3>
+        </div>
+        <canvas id="portalChart" height="200"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <h3 class="chart-title">Top Published-Tender Organisations</h3>
+        </div>
+        <canvas id="pubOrgsChart" height="200"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <!-- ANOMALY SECTION -->
+  <section class="section anomaly-section">
+    <div class="section-header">
+      <h2 class="section-title">
+        <span class="pulse-dot"></span>
+        Procurement Anomaly Signals
+      </h2>
+      <div class="btn-group">
+        <button class="btn-pill active" id="btnRound" onclick="switchAnomalyType('round_number')">Round Numbers</button>
+        <button class="btn-pill" id="btnQuick" onclick="switchAnomalyType('quick_award')">Quick Awards</button>
+        <button class="btn-pill" id="btnHvState" onclick="switchAnomalyType('high_value_state')">High-Value State</button>
+      </div>
+    </div>
+    <div class="anomaly-desc" id="anomalyDesc">
+      Contracts where the value is an exact multiple of ₹1 Lakh — often a signal of estimated rather than market-competitive pricing.
+    </div>
+    <div class="anomaly-table-wrap">
+      <table class="anomaly-table" id="anomalyTable">
+        <thead>
+          <tr>
+            <th>Organisation</th>
+            <th>Tender Title</th>
+            <th>Contract Value</th>
+            <th>Award Date</th>
+            <th>Portal</th>
+            <th>Info</th>
+          </tr>
+        </thead>
+        <tbody id="anomalyBody">
+          <tr><td colspan="6" class="table-empty">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="pagination" id="anomalyPagination"></div>
+  </section>
+
+  <!-- SEARCH SECTION -->
+  <section class="section search-section">
+    <div class="section-header">
+      <h2 class="section-title">Search Tenders &amp; Awards</h2>
+      <span id="searchIndexNote" class="search-index-note" style="display:none">
+        ⚡ Full-text search ready
+      </span>
+    </div>
+    <div class="search-bar-wrap">
+      <div class="search-icon"><i data-lucide="search"></i></div>
+      <input
+        type="text"
+        id="searchInput"
+        class="search-input"
+        placeholder="Search by title, organisation, tender ID…"
+        autocomplete="off"
+      />
+      <div class="search-filters">
+        <select id="filterYear" class="filter-select">
+          <option value="">All Years</option>
+        </select>
+        <select id="filterPortal" class="filter-select">
+          <option value="">All Portals</option>
+          <option value="central">Central</option>
+          <option value="state">State</option>
+          <option value="org">Org</option>
+        </select>
+        <button class="btn-search" onclick="doSearch(1)">Search</button>
+      </div>
+    </div>
+
+    <div class="search-results" id="searchResults" style="display:none">
+      <div class="results-meta" id="resultsMeta"></div>
+      <div class="results-table-wrap">
+        <table class="results-table">
+          <thead>
+            <tr>
+              <th>Organisation</th>
+              <th>Title</th>
+              <th>Year</th>
+              <th>Portal</th>
+              <th>Award Date</th>
+              <th>Detail</th>
+            </tr>
+          </thead>
+          <tbody id="resultsBody"></tbody>
+        </table>
+      </div>
+      <div class="pagination" id="searchPagination"></div>
+    </div>
+  </section>
+
+  <!-- TENDER DETAIL MODAL -->
+  <div class="modal-backdrop" id="modalBackdrop" style="display:none" onclick="closeModal()"></div>
+  <div class="modal" id="tenderModal" style="display:none">
+    <button class="modal-close" onclick="closeModal()"><i data-lucide="x"></i></button>
+    <h2 class="modal-title" id="modalTitle">Tender Detail</h2>
+    <div id="modalBody"></div>
+  </div>
+
+</main>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <p>Data sourced from <a href="https://eprocure.gov.in/cppp/" target="_blank">CPPP (eprocure.gov.in)</a> via open scraping. Public data for public scrutiny.</p>
+  <p>Mirror: <a href="https://tender.sarthaksidhant.com" target="_blank">tender.sarthaksidhant.com</a></p>
+</footer>
+
+<script src="js/charts.js"></script>
+<script src="js/search.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

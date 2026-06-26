@@ -1,0 +1,34 @@
+# ── Large data files (never commit these) ──
+*.db
+*.db-wal
+*.db-shm
+
+# ── Python ──
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.env
+*.egg-info/
+dist/
+build/
+
+# ── OS ──
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── IDE ──
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ── Scratch / investigation scripts ──
+inspect_schema.py
+investigate_ferozepur.py
+test_search.py
+optimize_fts.py

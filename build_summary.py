@@ -34,12 +34,13 @@ MONTH_MAP = {
 
 # Value brackets (in rupees)
 BRACKETS = [
-    ("< ₹1 Lakh",      0,          100_000),
-    ("₹1L – ₹10L",     100_000,    1_000_000),
-    ("₹10L – ₹1 Cr",   1_000_000,  10_000_000),
-    ("₹1Cr – ₹10 Cr",  10_000_000, 100_000_000),
-    ("₹10Cr – ₹100 Cr",100_000_000,1_000_000_000),
-    ("> ₹100 Cr",       1_000_000_000, float('inf')),
+    ("Zero / Undisclosed", -1,         0),
+    ("< ₹1 Lakh",          0,          100_000),
+    ("₹1L – ₹10L",         100_000,    1_000_000),
+    ("₹10L – ₹1 Cr",       1_000_000,  10_000_000),
+    ("₹1Cr – ₹10 Cr",      10_000_000, 100_000_000),
+    ("₹10Cr – ₹100 Cr",    100_000_000,1_000_000_000),
+    ("> ₹100 Cr",          1_000_000_000, float('inf')),
 ]
 
 TOP_ORGS_LIMIT = 100
@@ -68,7 +69,7 @@ def parse_contract_value(val_str):
         if not cleaned:
             return None
         v = float(cleaned)
-        return v if v > 0 else None
+        return v if v >= 0 else None
     except (ValueError, TypeError):
         return None
 
@@ -111,8 +112,10 @@ def days_between(date_str_a, date_str_b):
     return None
 
 def bracket_index(value):
-    for i, (_, lo, hi) in enumerate(BRACKETS):
-        if lo <= value < hi:
+    if value is None or value <= 0:
+        return 0
+    for i, (_, lo, hi) in enumerate(BRACKETS[1:], start=1):
+        if lo < value <= hi:
             return i
     return len(BRACKETS) - 1
 
@@ -328,12 +331,13 @@ def aggregate_aoc_data(aoc_conn, sum_conn):
         if ptype and not org_stats[org]['portal']:
             org_stats[org]['portal'] = ptype
 
+        type_counts[tt]['count'] += 1
+        bracket_counts[bracket_index(cv)] += 1
+
         if cv is not None:
             portal_counts[ptype]['value'] += cv
             org_stats[org]['value'] += cv
-            type_counts[tt]['count'] += 1
             type_counts[tt]['value'] += cv
-            bracket_counts[bracket_index(cv)] += 1
             total_value += cv
             valued_count += 1
 

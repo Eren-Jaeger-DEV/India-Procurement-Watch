@@ -5,6 +5,8 @@ One-time pre-aggregation script for the India Procurement Analytics Dashboard.
 Reads both SQLite databases (~12 GB total), computes aggregates, and writes
 results to a compact summary.db (~50 MB) for fast dashboard queries.
 
+**Includes deduplication and outlier filtering** to fix scraper noise.
+
 Estimated runtime: 10–25 minutes on first run.
 """
 
@@ -218,253 +220,207 @@ def create_summary_db(conn):
 
 
 # ─────────────────────────────────────────────
-# PHASE 1: aoc_tenders.db — Count-only SQL aggregates
+# PHASE 1: aoc_tenders.db — Full In-Memory Deduplication Pass
 # ─────────────────────────────────────────────
 
-def aggregate_aoc_counts(aoc_conn, sum_conn):
-    """Run pure SQL aggregations that don't need JSON parsing."""
-    log("Phase 1a: Yearly + portal counts from aoc_tenders...")
-    cur = aoc_conn.cursor()
-
-    # Yearly counts (SQL-only, year column available directly)
-    cur.execute("""
-        SELECT year, portal_type, COUNT(*) as cnt
-        FROM aoc_tenders
-        WHERE year IS NOT NULL AND year BETWEEN 2010 AND 2030
-        GROUP BY year, portal_type
-        ORDER BY year
-    """)
-    yearly_rows = cur.fetchall()
-
-    log(f"  → {len(yearly_rows)} year/portal combinations.")
-    sum_conn.executemany(
-        "INSERT INTO yearly_trends(year, portal_type, count) VALUES (?,?,?)",
-        yearly_rows
-    )
-    sum_conn.commit()
-
-    # Portal breakdown (count only — values added in phase 2)
-    log("Phase 1b: Portal breakdown...")
-    cur.execute("""
-        SELECT portal_type, COUNT(*) as cnt
-        FROM aoc_tenders
-        GROUP BY portal_type
-    """)
-    portal_rows = cur.fetchall()
-    sum_conn.executemany(
-        "INSERT INTO portal_breakdown(portal_type, count) VALUES (?,?)",
-        portal_rows
-    )
-    sum_conn.commit()
-
-    # Top orgs by count (count only — values added in phase 2)
-    log(f"Phase 1c: Top {TOP_ORGS_LIMIT} orgs by count...")
-    cur.execute(f"""
-        SELECT org_name, portal_type, COUNT(*) as cnt
-        FROM aoc_tenders
-        WHERE org_name IS NOT NULL AND org_name != ''
-        GROUP BY org_name
-        ORDER BY cnt DESC
-        LIMIT {TOP_ORGS_LIMIT}
-    """)
-    org_rows = [(i+1, r[0], r[1], r[2]) for i, r in enumerate(cur.fetchall())]
-    sum_conn.executemany(
-        "INSERT INTO top_orgs(rank_n, org_name, portal_type, count) VALUES (?,?,?,?)",
-        org_rows
-    )
-    sum_conn.commit()
-    log(f"  → Inserted {len(org_rows)} top orgs.")
-
-
-# ─────────────────────────────────────────────
-# PHASE 2: aoc_tenders.db — JSON-based aggregation
-# ─────────────────────────────────────────────
-
-def aggregate_aoc_details(aoc_conn, sum_conn):
+def aggregate_aoc_data(aoc_conn, sum_conn):
     """
-    Stream aoc_details, parse JSON, build in-memory accumulators,
-    then join with aoc_tenders for org-level and monthly value stats.
+    Stream aoc_details for lookup, then stream aoc_tenders to compute
+    fully deduplicated metrics in memory before writing to summary.db.
     """
     # ── Step A: Build lookup dict from aoc_details ──
-    log("Phase 2a: Loading details_json lookup (this may take a while)...")
+    log("Phase 1a: Loading details_json lookup (this may take a while)...")
     cur = aoc_conn.cursor()
     cur.execute("SELECT internal_id, details_json FROM aoc_details")
 
-    lookup = {}  # internal_id → (contract_value_float | None, tender_type_str)
-    type_counts   = defaultdict(lambda: {'count': 0, 'value': 0.0})
-    bracket_counts= defaultdict(int)
-    total_value   = 0.0
-    valued_count  = 0
-    json_errors   = 0
+    lookup = {}  # internal_id → (contract_value_float, tender_type_str, tender_ref_no_str)
+    json_errors = 0
 
     t0 = time.time()
-    i  = 0
+    i = 0
     for row in cur:
         iid, djson = row
-        cv, tt = None, "Unknown"
+        cv, tt, ref = None, "Unknown", ""
         if djson:
             try:
                 data = json.loads(djson)
                 cv   = parse_contract_value(data.get("Contract Value"))
                 tt   = (data.get("Tender Type") or "Unknown").strip() or "Unknown"
+                ref  = str(data.get("Tender Ref. No.", "")).strip()
             except (json.JSONDecodeError, Exception):
                 json_errors += 1
 
-        lookup[iid] = (cv, tt)
-
-        if cv is not None:
-            type_counts[tt]['count'] += 1
-            type_counts[tt]['value'] += cv
-            bracket_counts[bracket_index(cv)] += 1
-            total_value += cv
-            valued_count += 1
+        lookup[iid] = (cv, tt, ref)
 
         i += 1
         if i % 500_000 == 0:
             elapsed = time.time() - t0
-            log(f"  Loaded {i:,} detail records ({elapsed:.0f}s)... json_errors={json_errors}")
+            log(f"  Loaded {i:,} detail records ({elapsed:.0f}s)...")
 
-    log(f"  ✓ Loaded {i:,} detail records. Valued: {valued_count:,}. JSON errors: {json_errors}.")
+    log(f"  ✓ Loaded {i:,} detail records.")
 
-    # ── Step B: Write tender_type_dist ──
-    log("Phase 2b: Writing tender_type_dist...")
-    type_rows = sorted(type_counts.items(), key=lambda x: -x[1]['count'])
-    sum_conn.executemany(
-        "INSERT INTO tender_type_dist(tender_type, count, total_value_crore) VALUES (?,?,?)",
-        [(tt, v['count'], round(v['value'] / 1e7, 4)) for tt, v in type_rows]
-    )
-
-    # ── Step C: Write value_brackets ──
-    log("Phase 2c: Writing value_brackets...")
-    bracket_rows = [
-        (BRACKETS[i][0], BRACKETS[i][1], BRACKETS[i][2], bracket_counts[i])
-        for i in range(len(BRACKETS))
-    ]
-    sum_conn.executemany(
-        "INSERT INTO value_brackets(bracket, min_val, max_val, count) VALUES (?,?,?,?)",
-        bracket_rows
-    )
-    sum_conn.commit()
-
-    # ── Step D: Stream aoc_tenders, combine with lookup ──
-    log("Phase 2d: Streaming aoc_tenders to compute monthly trends + org values + anomalies...")
+    # ── Step B: Stream aoc_tenders, deduplicate, and aggregate ──
+    log("Phase 1b: Streaming aoc_tenders for deduplicated aggregation...")
     cur2 = aoc_conn.cursor()
     cur2.execute("""
         SELECT internal_id, org_name, year, portal_type, aoc_date, closing_date, title
         FROM aoc_tenders
     """)
 
-    monthly = defaultdict(lambda: {'count': 0, 'value': 0.0})
-    org_values = defaultdict(float)  # org_name → total value
+    # Accumulators
+    yearly        = defaultdict(lambda: {'count': 0, 'value': 0.0}) # (year, portal_type)
+    monthly       = defaultdict(lambda: {'count': 0, 'value': 0.0}) # (year, month)
+    org_stats     = defaultdict(lambda: {'count': 0, 'value': 0.0, 'portal': ''})
+    portal_counts = defaultdict(lambda: {'count': 0, 'value': 0.0})
+    type_counts   = defaultdict(lambda: {'count': 0, 'value': 0.0})
+    bracket_counts= defaultdict(int)
+    
+    total_value   = 0.0
+    valued_count  = 0
+    dedup_count   = 0
 
-    # Anomaly accumulators
-    anom_round   = []
-    anom_quick   = []
-    anom_hv_state= []
+    seen_sigs = set()
+
+    anom_round    = []
+    anom_quick    = []
+    anom_hv_state = []
 
     t1 = time.time()
-    j  = 0
+    j = 0
+    duplicates = 0
+    outliers = 0
+
     for row in cur2:
         iid, org, year, ptype, aoc_date, closing_date, title = row
-        cv, tt = lookup.get(iid, (None, "Unknown"))
+        cv, tt, ref = lookup.get(iid, (None, "Unknown", ""))
+        org = org or ""
 
-        # Monthly trend
+        # ── DEDUPLICATION ──
+        # Same org, same ref number, same award date, same value = duplicate scraper noise
+        sig = (ref, org, aoc_date, cv)
+        if sig in seen_sigs:
+            duplicates += 1
+            j += 1
+            continue
+        seen_sigs.add(sig)
+
+        # ── OUTLIER TRIMMING ──
+        # If contract is > ₹10,000 Crore, it's almost certainly a data entry typo.
+        if cv is not None and cv > 100_000_000_000:
+            cv = None
+            outliers += 1
+
+        dedup_count += 1
+        ptype = ptype or "unknown"
+
+        # Monthly & Yearly trends
         yr, mon = parse_aoc_date(aoc_date)
         if yr and mon:
-            key = (yr, mon)
-            monthly[key]['count'] += 1
+            yearly[(yr, ptype)]['count'] += 1
+            monthly[(yr, mon)]['count'] += 1
             if cv is not None:
-                monthly[key]['value'] += cv
+                yearly[(yr, ptype)]['value'] += cv
+                monthly[(yr, mon)]['value'] += cv
 
-        # Org values
-        if org and cv is not None:
-            org_values[org] += cv
+        # Portal & Org
+        portal_counts[ptype]['count'] += 1
+        org_stats[org]['count'] += 1
+        if ptype and not org_stats[org]['portal']:
+            org_stats[org]['portal'] = ptype
+
+        if cv is not None:
+            portal_counts[ptype]['value'] += cv
+            org_stats[org]['value'] += cv
+            type_counts[tt]['count'] += 1
+            type_counts[tt]['value'] += cv
+            bracket_counts[bracket_index(cv)] += 1
+            total_value += cv
+            valued_count += 1
 
         # ── Anomaly: round numbers ──
         if cv and is_round_number(cv) and cv >= 1_000_000 and len(anom_round) < ANOMALY_LIMIT:
             anom_round.append((
-                'round_number', iid, org or '', (title or '')[:200], cv,
-                aoc_date or '', ptype or '', json.dumps({'tender_type': tt})
+                'round_number', iid, org, (title or '')[:200], cv,
+                aoc_date or '', ptype, json.dumps({'tender_type': tt})
             ))
 
-        # ── Anomaly: quick award (awarded before or same day as closing) ──
+        # ── Anomaly: quick award ──
         if aoc_date and closing_date and len(anom_quick) < ANOMALY_LIMIT:
             d = days_between(aoc_date, closing_date)
             if d is not None and d <= 1:
                 anom_quick.append((
-                    'quick_award', iid, org or '', (title or '')[:200],
-                    cv or 0, aoc_date or '', ptype or '',
+                    'quick_award', iid, org, (title or '')[:200],
+                    cv or 0, aoc_date, ptype,
                     json.dumps({'closing_date': closing_date, 'days_to_award': d})
                 ))
 
         # ── Anomaly: high-value state contracts (> ₹10 Cr) ──
         if ptype == 'state' and cv and cv >= 100_000_000 and len(anom_hv_state) < ANOMALY_LIMIT:
             anom_hv_state.append((
-                'high_value_state', iid, org or '', (title or '')[:200],
-                cv, aoc_date or '', ptype or '',
+                'high_value_state', iid, org, (title or '')[:200],
+                cv, aoc_date, ptype,
                 json.dumps({'contract_value_crore': round(cv/1e7, 2)})
             ))
 
         j += 1
         if j % 500_000 == 0:
             elapsed = time.time() - t1
-            log(f"  Processed {j:,} tender records ({elapsed:.0f}s)...")
+            log(f"  Processed {j:,} raw tender records ({elapsed:.0f}s)...")
 
-    log(f"  ✓ Processed {j:,} tender records.")
+    log(f"  ✓ Processed {j:,} raw records.")
+    log(f"  ✓ Filtered {duplicates:,} duplicates and trimmed {outliers:,} extreme outliers.")
+    log(f"  ✓ Final unique AOC count: {dedup_count:,}")
 
-    # ── Step E: Write monthly trends ──
-    log("Phase 2e: Writing monthly_trends...")
-    monthly_rows = [
-        (yr, mon, v['count'], round(v['value'] / 1e7, 4))
-        for (yr, mon), v in sorted(monthly.items())
-    ]
+    # ── Write to Database ──
+    log("Phase 1c: Writing aggregated results to summary.db...")
+    
+    # Yearly
+    sum_conn.executemany(
+        "INSERT INTO yearly_trends(year, portal_type, count, total_value_crore) VALUES (?,?,?,?)",
+        [(yr, ptype, d['count'], round(d['value']/1e7, 4)) for (yr, ptype), d in yearly.items()]
+    )
+    # Monthly
     sum_conn.executemany(
         "INSERT INTO monthly_trends(year, month, count, total_value_crore) VALUES (?,?,?,?)",
-        monthly_rows
+        [(yr, mon, d['count'], round(d['value']/1e7, 4)) for (yr, mon), d in monthly.items()]
     )
-
-    # ── Step F: Update top_orgs with value ──
-    log("Phase 2f: Updating top_orgs with values...")
-    cur_sum = sum_conn.cursor()
-    cur_sum.execute("SELECT org_name FROM top_orgs")
-    for (org_name,) in cur_sum.fetchall():
-        val = org_values.get(org_name, 0.0)
-        sum_conn.execute(
-            "UPDATE top_orgs SET total_value_crore=? WHERE org_name=?",
-            (round(val / 1e7, 4), org_name)
-        )
-
-    # ── Step G: Update portal_breakdown with values ──
-    log("Phase 2g: Updating portal_breakdown with values...")
-    portal_val = defaultdict(float)
-    for iid, (cv, _) in lookup.items():
-        pass  # Can't get portal_type from lookup alone; use org_values approach
-
-    # Better: stream once more but it's expensive. Instead compute from yearly_trends values
-    # We'll compute portal values by summing monthly_trends filtered by portal — not directly possible.
-    # Use a simpler approach: update portal_breakdown from sum of (aoc_tenders × details join)
-    # Since we already computed total_value above, let's at least set total from sum of monthly
-    total_crore = round(total_value / 1e7, 4)
-
-    # ── Step H: Write anomalies ──
-    log(f"Phase 2h: Writing anomalies ({len(anom_round)} round, {len(anom_quick)} quick, {len(anom_hv_state)} hv_state)...")
-    all_anomalies = anom_round + anom_quick + anom_hv_state
+    # Portals
+    sum_conn.executemany(
+        "INSERT INTO portal_breakdown(portal_type, count, total_value_crore) VALUES (?,?,?)",
+        [(ptype, d['count'], round(d['value']/1e7, 4)) for ptype, d in portal_counts.items()]
+    )
+    # Top Orgs
+    sorted_orgs = sorted(org_stats.items(), key=lambda x: -x[1]['count'])[:TOP_ORGS_LIMIT]
+    sum_conn.executemany(
+        "INSERT INTO top_orgs(rank_n, org_name, portal_type, count, total_value_crore) VALUES (?,?,?,?,?)",
+        [(i+1, org, d['portal'], d['count'], round(d['value']/1e7, 4)) for i, (org, d) in enumerate(sorted_orgs)]
+    )
+    # Tender Types
+    sum_conn.executemany(
+        "INSERT INTO tender_type_dist(tender_type, count, total_value_crore) VALUES (?,?,?)",
+        [(tt, d['count'], round(d['value']/1e7, 4)) for tt, d in type_counts.items()]
+    )
+    # Brackets
+    sum_conn.executemany(
+        "INSERT INTO value_brackets(bracket, min_val, max_val, count) VALUES (?,?,?,?)",
+        [(BRACKETS[i][0], BRACKETS[i][1], BRACKETS[i][2], bracket_counts[i]) for i in range(len(BRACKETS))]
+    )
+    # Anomalies
     sum_conn.executemany(
         "INSERT INTO anomalies(anom_type, internal_id, org_name, title, contract_value, aoc_date, portal_type, extra_info) VALUES (?,?,?,?,?,?,?,?)",
-        all_anomalies
+        anom_round + anom_quick + anom_hv_state
     )
     sum_conn.commit()
-
-    log(f"  ✓ Phase 2 complete. Total contract value: ₹{total_crore:.2f} Cr")
-    return total_value, valued_count
+    
+    return dedup_count, total_value, valued_count
 
 
 # ─────────────────────────────────────────────
-# PHASE 3: tenders_vps.db
+# PHASE 2: tenders_vps.db
 # ─────────────────────────────────────────────
 
 def aggregate_vps(vps_conn, sum_conn):
-    log("Phase 3a: tenders status breakdown...")
+    log("Phase 2a: tenders status breakdown...")
     cur = vps_conn.cursor()
 
     cur.execute("SELECT status, COUNT(*) FROM tenders GROUP BY status")
@@ -474,7 +430,7 @@ def aggregate_vps(vps_conn, sum_conn):
         status_rows
     )
 
-    log("Phase 3b: Top published orgs...")
+    log("Phase 2b: Top published orgs...")
     cur.execute("""
         SELECT organisation_name, COUNT(*) as cnt
         FROM tenders
@@ -489,12 +445,7 @@ def aggregate_vps(vps_conn, sum_conn):
         pub_org_rows
     )
 
-    log("Phase 3c: Monthly published tenders...")
-    cur.execute("SELECT e_published_date FROM tenders WHERE e_published_date IS NOT NULL LIMIT 3")
-    sample = cur.fetchall()
-    log(f"  Sample e_published_date: {sample}")
-
-    # e_published_date format: "11-Jun-2026 11:59 AM"
+    log("Phase 2c: Monthly published tenders...")
     cur.execute("SELECT e_published_date FROM tenders WHERE e_published_date IS NOT NULL")
 
     pub_monthly = defaultdict(int)
@@ -519,36 +470,29 @@ def aggregate_vps(vps_conn, sum_conn):
 
     cur.execute("SELECT COUNT(*) FROM tenders")
     total_pub = cur.fetchone()[0]
-    log(f"  ✓ Phase 3 complete. Total published tenders: {total_pub:,}")
+    log(f"  ✓ Phase 2 complete. Total published tenders: {total_pub:,}")
     return total_pub
 
 
 # ─────────────────────────────────────────────
-# PHASE 4: Write KPI stats
+# PHASE 3: Write KPI stats
 # ─────────────────────────────────────────────
 
-def write_kpi_stats(aoc_conn, sum_conn, total_value, valued_count, total_pub):
-    log("Phase 4: Writing KPI stats...")
-    cur = aoc_conn.cursor()
-
-    cur.execute("SELECT COUNT(*) FROM aoc_tenders")
-    total_aoc = cur.fetchone()[0]
-
-    cur.execute("SELECT COUNT(DISTINCT org_name) FROM aoc_tenders WHERE org_name != ''")
-    unique_orgs = cur.fetchone()[0]
-
-    cur.execute("SELECT MIN(year), MAX(year) FROM aoc_tenders WHERE year BETWEEN 2010 AND 2030")
-    min_yr, max_yr = cur.fetchone()
+def write_kpi_stats(sum_conn, dedup_count, total_value, valued_count, total_pub):
+    log("Phase 3: Writing KPI stats...")
+    
+    cur = sum_conn.cursor()
+    cur.execute("SELECT COUNT(DISTINCT org_name) FROM top_orgs")
+    unique_orgs = cur.fetchone()[0] # This is just top 100 now, which is wrong. 
+    # Let's count unique orgs directly from raw if we want accuracy. But actually we can just use len(org_stats)
 
     kpi_data = [
-        ("total_aoc_tenders",       str(total_aoc)),
+        ("total_aoc_tenders",       str(dedup_count)),
         ("total_contracts_valued",  str(valued_count)),
         ("total_value_crore",       str(round(total_value / 1e7, 2))),
         ("avg_value_crore",         str(round(total_value / max(valued_count, 1) / 1e7, 4))),
-        ("unique_aoc_orgs",         str(unique_orgs)),
+        # "unique_aoc_orgs" is handled below
         ("total_published_tenders", str(total_pub)),
-        ("min_year",                str(min_yr or '')),
-        ("max_year",                str(max_yr or '')),
         ("last_updated",            datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
     ]
 
@@ -594,10 +538,22 @@ def main():
     sum_conn.execute("PRAGMA synchronous=NORMAL")
 
     create_summary_db(sum_conn)
-    aggregate_aoc_counts(aoc_conn, sum_conn)
-    total_value, valued_count = aggregate_aoc_details(aoc_conn, sum_conn)
+    dedup_count, total_value, valued_count = aggregate_aoc_data(aoc_conn, sum_conn)
+    
+    # We need unique orgs count, easiest to just query raw DB since we didn't track it
+    cur = aoc_conn.cursor()
+    cur.execute("SELECT COUNT(DISTINCT org_name) FROM aoc_tenders WHERE org_name != ''")
+    unique_orgs = cur.fetchone()[0]
+    sum_conn.execute("INSERT INTO kpi_stats(key, value) VALUES ('unique_aoc_orgs', ?)", (str(unique_orgs),))
+
+    cur.execute("SELECT MIN(year), MAX(year) FROM aoc_tenders WHERE year BETWEEN 2010 AND 2030")
+    min_yr, max_yr = cur.fetchone()
+    sum_conn.execute("INSERT INTO kpi_stats(key, value) VALUES ('min_year', ?)", (str(min_yr or ''),))
+    sum_conn.execute("INSERT INTO kpi_stats(key, value) VALUES ('max_year', ?)", (str(max_yr or ''),))
+    sum_conn.commit()
+    
     total_pub = aggregate_vps(vps_conn, sum_conn)
-    write_kpi_stats(aoc_conn, sum_conn, total_value, valued_count, total_pub)
+    write_kpi_stats(sum_conn, dedup_count, total_value, valued_count, total_pub)
 
     # Final indexes for fast API queries
     log("Creating indexes on summary.db...")

@@ -264,3 +264,51 @@ function renderGraph(focusId, rawNodes, rawEdges) {
     }
   });
 }
+
+// Global helper to open a vendor's network neighborhood directly from other dashboard lists
+window.openNetworkEntity = async function(label) {
+  if (window.switchView) switchView('view-network');
+
+  const input = document.getElementById('networkSearchInput');
+  if (input) input.value = label;
+
+  const resultsDiv = document.getElementById('networkSearchResults');
+  const listEl     = document.getElementById('networkSearchResultsList');
+
+  try {
+    const res = await fetch(`/api/network/search?q=${encodeURIComponent(label)}`);
+    const data = await res.json();
+
+    if (res.ok && data.results && data.results.length > 0) {
+      // Prioritize exact match, default to first candidate
+      const exact = data.results.find(r => r.label.toLowerCase() === label.toLowerCase()) || data.results[0];
+      loadNetworkEntity(exact.id, exact.label, exact.kind);
+
+      if (resultsDiv && listEl) {
+        listEl.innerHTML = data.results.map(r => {
+          const typeLabel = r.kind === 'company' ? 'Company (CIN matched)' : 'Department / Buyer';
+          const detail = r.kind === 'company' ? `${r.state || 'Unknown state'} · ${r.email || 'No email'}` : `${r.state || 'Central/State'}`;
+          const activeCls = r.id === exact.id ? 'active' : '';
+          return `
+            <div class="report-card-item ${activeCls}" style="padding:8px 10px;margin-bottom:4px;border-radius:6px;border:1px solid var(--border)"
+                 onclick="loadNetworkEntity('${r.id}', '${r.label.replace(/'/g, "\\'")}', '${r.kind}')">
+              <div class="rc-org" style="font-size:12px">${r.label}</div>
+              <div class="rc-stat" style="font-size:10px;color:var(--text-muted)">${typeLabel} (${detail})</div>
+            </div>`;
+        }).join('');
+        resultsDiv.style.display = 'block';
+      }
+    } else {
+      if (listEl) {
+        listEl.innerHTML = '<div style="color:var(--text-muted);font-size:12px">No network matches found for this name. Only companies matched to the MCA company registry appear in this view.</div>';
+      }
+      if (resultsDiv) resultsDiv.style.display = 'block';
+      
+      // Hide workspace, show empty state
+      document.getElementById('networkGraphWorkspace').style.display = 'none';
+      document.getElementById('networkEmptyState').style.display = 'block';
+    }
+  } catch (e) {
+    console.warn("Failed to automatically load network entity:", e);
+  }
+};

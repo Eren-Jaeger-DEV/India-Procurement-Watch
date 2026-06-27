@@ -125,6 +125,28 @@ def is_round_number(value):
         return False
     return value % 100_000 == 0
 
+
+SECTORS = {
+    "Roads & Highways": ["road", "highway", "bypass", "flyover", "pavement", "bituminous", "asphalt", "road safety", "overbridge"],
+    "Water & Sewage": ["water supply", "pipeline", "sewerage", "drainage", "borewell", "drinking water", "jal jeevan", "canal", "irrigation"],
+    "Buildings & Civil": ["building", "construction of school", "construction of hospital", "renovation", "quarters", "boundary wall", "civil works"],
+    "Power & Electrical": ["electrical", "solar", "transformer", "substation", "street light", "transmission", "cabling", "electrification", "power supply"],
+    "IT & Telecom": ["computer", "software", "cctv", "networking", "server", "telecom", "biometric", "hardware", "printer"],
+    "Healthcare & Medical": ["medical", "medicine", "hospital supply", "surgical", "pharmaceutical", "vaccine", "clinical"],
+    "Services & Manpower": ["manpower", "security service", "housekeeping", "cleaning", "hiring of vehicle", "consultancy"]
+}
+
+def classify_sector(title):
+    """Classify tender title into a sector category based on search keywords."""
+    if not title:
+        return "Other Works"
+    title_lower = title.lower()
+    for sector, keywords in SECTORS.items():
+        for kw in keywords:
+            if kw in title_lower:
+                return sector
+    return "Other Works"
+
 # ─────────────────────────────────────────────
 # SUMMARY DB SETUP
 # ─────────────────────────────────────────────
@@ -258,6 +280,13 @@ def create_summary_db(conn):
             total_contracts     INTEGER,
             total_value_crore   REAL
         );
+
+        DROP TABLE IF EXISTS sector_distribution;
+        CREATE TABLE sector_distribution (
+            sector              TEXT PRIMARY KEY,
+            count               INTEGER,
+            total_value_crore   REAL DEFAULT 0
+        );
     """)
     conn.commit()
     log("Summary DB tables created.")
@@ -326,6 +355,7 @@ def aggregate_aoc_data(aoc_conn, sum_conn):
     portal_counts = defaultdict(lambda: {'count': 0, 'value': 0.0})
     type_counts   = defaultdict(lambda: {'count': 0, 'value': 0.0})
     bracket_counts= defaultdict(int)
+    sector_stats  = defaultdict(lambda: {'count': 0, 'value': 0.0})
     
     total_value   = 0.0
     valued_count  = 0
@@ -393,10 +423,15 @@ def aggregate_aoc_data(aoc_conn, sum_conn):
         type_counts[tt]['count'] += 1
         bracket_counts[bracket_index(cv)] += 1
 
+        # Sector Classification & Accumulation
+        sec = classify_sector(title)
+        sector_stats[sec]['count'] += 1
+
         if cv is not None:
             portal_counts[ptype]['value'] += cv
             org_stats[org]['value'] += cv
             type_counts[tt]['value'] += cv
+            sector_stats[sec]['value'] += cv
             total_value += cv
             valued_count += 1
 
@@ -486,6 +521,11 @@ def aggregate_aoc_data(aoc_conn, sum_conn):
         "INSERT INTO tender_type_dist(tender_type, count, total_value_crore) VALUES (?,?,?)",
         [(tt, d['count'], round(d['value']/1e7, 4)) for tt, d in type_counts.items()]
     )
+    # Sectors
+    sum_conn.executemany(
+        "INSERT INTO sector_distribution(sector, count, total_value_crore) VALUES (?,?,?)",
+        [(sec, d['count'], round(d['value']/1e7, 4)) for sec, d in sector_stats.items()]
+    )
     # Brackets
     sum_conn.executemany(
         "INSERT INTO value_brackets(bracket, min_val, max_val, count) VALUES (?,?,?,?)",
@@ -567,55 +607,85 @@ def aggregate_vps(vps_conn, sum_conn):
     log("Phase 2a: tenders status breakdown...")
     cur = vps_conn.cursor()
 
-    cur.execute("SELECT status, COUNT(*) FROM tenders GROUP BY status")
-    status_rows = cur.fetchall()
-    sum_conn.executemany(
-        "INSERT INTO tenders_status(status, count) VALUES (?,?)",
-        status_rows
-    )
+    # Check what columns exist in the tenders table
+    cur.execute("PRAGMA table_info(tenders)")
+    cols = {row[1] for row in cur.fetchall()}
+    log(f"  VPS tenders columns: {cols}")
+
+    # Status breakdown (only if status column exists)
+    if 'status' in cols:
+        cur.execute("SELECT status, COUNT(*) FROM tenders GROUP BY status")
+        status_rows = cur.fetchall()
+        sum_conn.executemany(
+            "INSERT INTO tenders_status(status, count) VALUES (?,?)",
+            status_rows
+        )
+    else:
+        log("  (no 'status' column — skipping status breakdown)")
 
     log("Phase 2b: Top published orgs...")
-    cur.execute("""
-        SELECT organisation_name, COUNT(*) as cnt
-        FROM tenders
-        WHERE organisation_name IS NOT NULL AND organisation_name != ''
-        GROUP BY organisation_name
-        ORDER BY cnt DESC
-        LIMIT 100
-    """)
-    pub_org_rows = [(i+1, r[0], r[1]) for i, r in enumerate(cur.fetchall())]
-    sum_conn.executemany(
-        "INSERT INTO top_published_orgs(rank_n, org_name, count) VALUES (?,?,?)",
-        pub_org_rows
-    )
+    # Detect org name column
+    org_col = None
+    for candidate in ['organisation_name', 'org_name', 'organization_name']:
+        if candidate in cols:
+            org_col = candidate
+            break
+
+    if org_col:
+        cur.execute(f"""
+            SELECT {org_col}, COUNT(*) as cnt
+            FROM tenders
+            WHERE {org_col} IS NOT NULL AND {org_col} != ''
+            GROUP BY {org_col}
+            ORDER BY cnt DESC
+            LIMIT 100
+        """)
+        pub_org_rows = [(i+1, r[0], r[1]) for i, r in enumerate(cur.fetchall())]
+        sum_conn.executemany(
+            "INSERT INTO top_published_orgs(rank_n, org_name, count) VALUES (?,?,?)",
+            pub_org_rows
+        )
+    else:
+        log("  (no recognised org name column in tenders table — skipping top orgs)")
 
     log("Phase 2c: Monthly published tenders...")
-    cur.execute("SELECT e_published_date FROM tenders WHERE e_published_date IS NOT NULL")
+    # Detect date column
+    date_col = None
+    for candidate in ['e_published_date', 'published_date', 'pub_date', 'date']:
+        if candidate in cols:
+            date_col = candidate
+            break
 
-    pub_monthly = defaultdict(int)
-    pk = 0
-    for (dpub,) in cur:
-        yr, mon = parse_aoc_date(dpub)
-        if yr and mon:
-            pub_monthly[(yr, mon)] += 1
-        pk += 1
-        if pk % 500_000 == 0:
-            log(f"  Processed {pk:,} published dates...")
+    if date_col:
+        cur.execute(f"SELECT {date_col} FROM tenders WHERE {date_col} IS NOT NULL")
+        pub_monthly = defaultdict(int)
+        pk = 0
+        for (dpub,) in cur:
+            yr, mon = parse_aoc_date(dpub)
+            if yr and mon:
+                pub_monthly[(yr, mon)] += 1
+            pk += 1
+            if pk % 500_000 == 0:
+                log(f"  Processed {pk:,} published dates...")
 
-    pub_rows = [
-        (yr, mon, cnt)
-        for (yr, mon), cnt in sorted(pub_monthly.items())
-    ]
-    sum_conn.executemany(
-        "INSERT INTO published_monthly(year, month, count) VALUES (?,?,?)",
-        pub_rows
-    )
+        pub_rows = [
+            (yr, mon, cnt)
+            for (yr, mon), cnt in sorted(pub_monthly.items())
+        ]
+        sum_conn.executemany(
+            "INSERT INTO published_monthly(year, month, count) VALUES (?,?,?)",
+            pub_rows
+        )
+    else:
+        log("  (no recognised date column — skipping monthly published)")
+
     sum_conn.commit()
 
     cur.execute("SELECT COUNT(*) FROM tenders")
     total_pub = cur.fetchone()[0]
-    log(f"  ✓ Phase 2 complete. Total published tenders: {total_pub:,}")
+    log(f"  OK Phase 2 complete. Total published tenders: {total_pub:,}")
     return total_pub
+
 
 
 # ─────────────────────────────────────────────
@@ -667,10 +737,30 @@ def main():
         print(f"ERROR: {VPS_DB} not found.", file=sys.stderr)
         sys.exit(1)
 
-    # Remove old summary DB
+    # Remove old summary DB with retry for lock conflicts on Windows
     if os.path.exists(SUM_DB):
         log(f"Removing old {SUM_DB}...")
-        os.remove(SUM_DB)
+        for attempt in range(5):
+            try:
+                os.remove(SUM_DB)
+                break
+            except PermissionError:
+                if attempt == 4:
+                    log("  WARN: summary.db locked by another process. Clearing tables instead of deleting...")
+                    try:
+                        temp_conn = sqlite3.connect(SUM_DB)
+                        cur = temp_conn.cursor()
+                        cur.execute("SELECT name FROM sqlite_master WHERE type='table'")
+                        for table in [r[0] for r in cur.fetchall()]:
+                            if not table.startswith("sqlite_"):
+                                cur.execute(f"DROP TABLE IF EXISTS [{table}]")
+                        temp_conn.commit()
+                        temp_conn.close()
+                        break
+                    except Exception as e:
+                        print(f"ERROR: Cannot clear summary.db: {e}", file=sys.stderr)
+                        raise
+                time.sleep(0.5)
 
     log("Opening databases...")
     aoc_conn = sqlite3.connect(f"file:{AOC_DB}?mode=ro", uri=True)
@@ -698,6 +788,85 @@ def main():
     
     total_pub = aggregate_vps(vps_conn, sum_conn)
     write_kpi_stats(sum_conn, dedup_count, total_value, valued_count, total_pub)
+
+    # Ingest company-director network files if present
+    import csv
+    nodes_path = os.path.join(BASE_DIR, "data_dump", "nodes.csv")
+    edges_path = os.path.join(BASE_DIR, "data_dump", "edges.csv")
+    if not os.path.exists(nodes_path) or not os.path.exists(edges_path):
+        nodes_path = os.path.join(BASE_DIR, "nodes.csv")
+        edges_path = os.path.join(BASE_DIR, "edges.csv")
+
+    if os.path.exists(nodes_path) and os.path.exists(edges_path):
+        log("Phase 4: Ingesting company-director network tables...")
+        sum_cur = sum_conn.cursor()
+        sum_cur.execute("DROP TABLE IF EXISTS network_nodes")
+        sum_cur.execute("""
+            CREATE TABLE network_nodes (
+                id TEXT PRIMARY KEY,
+                label TEXT,
+                kind TEXT,
+                state TEXT,
+                email TEXT,
+                value REAL,
+                n_contracts INTEGER,
+                n_buyers INTEGER
+            )
+        """)
+        
+        with open(nodes_path, "r", encoding="utf-8") as f:
+            reader = csv.reader(f)
+            next(reader, None)
+            rows = []
+            for r in reader:
+                if not r: continue
+                while len(r) < 8: r.append(None)
+                rows.append((r[0], r[1], r[2], r[3], r[4], 
+                             float(r[5]) if r[5] else None, 
+                             int(r[6]) if r[6] else None, 
+                             int(r[7]) if r[7] else None))
+            sum_cur.executemany("INSERT OR REPLACE INTO network_nodes VALUES (?,?,?,?,?,?,?,?)", rows)
+        
+        sum_cur.execute("DROP TABLE IF EXISTS network_edges")
+        sum_cur.execute("""
+            CREATE TABLE network_edges (
+                source TEXT,
+                target TEXT,
+                relationship TEXT,
+                weight REAL,
+                total_value REAL,
+                label TEXT
+            )
+        """)
+        
+        with open(edges_path, "r", encoding="utf-8") as f:
+            reader = csv.reader(f)
+            next(reader, None)
+            rows = []
+            for r in reader:
+                if not r: continue
+                while len(r) < 6: r.append(None)
+                rows.append((r[0], r[1], r[2], 
+                             float(r[3]) if r[3] else None, 
+                             float(r[4]) if r[4] else None, 
+                             r[5]))
+            sum_cur.executemany("INSERT INTO network_edges VALUES (?,?,?,?,?,?)", rows)
+        
+        sum_conn.commit()
+        sum_cur.execute("CREATE INDEX IF NOT EXISTS idx_net_nodes_kind ON network_nodes(kind)")
+        sum_cur.execute("CREATE INDEX IF NOT EXISTS idx_net_edges_src ON network_edges(source)")
+        sum_cur.execute("CREATE INDEX IF NOT EXISTS idx_net_edges_dst ON network_edges(target)")
+        sum_conn.commit()
+        log(f"  ✓ Ingested network nodes and edges successfully.")
+        
+        # Add KPI metadata for network status
+        sum_cur.execute("INSERT OR REPLACE INTO kpi_stats(key, value) VALUES ('has_network_data', 'true')")
+        sum_conn.commit()
+    else:
+        log("Phase 4: Skipping network ingestion (nodes.csv / edges.csv not found)")
+        sum_cur = sum_conn.cursor()
+        sum_cur.execute("INSERT OR REPLACE INTO kpi_stats(key, value) VALUES ('has_network_data', 'false')")
+        sum_conn.commit()
 
     # Final indexes for fast API queries
     log("Creating indexes on summary.db...")

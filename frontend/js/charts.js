@@ -422,3 +422,187 @@ async function createIndiaMap(canvasId, stateData, mode = 'count') {
     }
   });
 }
+
+// ── HORIZONTAL BAR CHART (Sector Distribution) ──
+function createSectorChart(canvasId, labels, values, byValue) {
+  const ctx = document.getElementById(canvasId).getContext('2d');
+  const bgColors = labels.map((_, i) => hexToRgba(PALETTE[i % PALETTE.length], 0.75));
+  const brColors = labels.map((_, i) => hexToRgba(PALETTE[i % PALETTE.length], 0.4));
+
+  return new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: byValue ? 'Contract Value (₹ Cr)' : 'Contracts Count',
+        data: values,
+        backgroundColor: bgColors,
+        borderColor: brColors,
+        borderWidth: 1.5,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: 'rgba(14,18,32,0.95)',
+          borderColor: 'rgba(255,255,255,0.1)',
+          borderWidth: 1,
+          callbacks: {
+            label: ctx => {
+              const v = ctx.parsed.x;
+              return byValue ? ` ₹${fmtNum(v)} Cr` : ` ${fmtNum(v)} contracts`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: 'rgba(255,255,255,0.04)' },
+          ticks: { callback: v => fmtNum(v) }
+        },
+        y: {
+          grid: { display: false },
+          ticks: { font: { size: 9, weight: 'bold' } }
+        }
+      }
+    }
+  });
+}
+
+// ── CHART INIT ORCHESTRATOR ──
+let _currentTrendGrain   = 'yearly';
+let _currentTrendDataset = 'aoc';
+let _currentOrgsBy       = 'count';
+let _currentMapMode      = 'count';
+let _currentSectorBy     = 'count';
+let _stateDataCache      = null;
+
+async function initCharts() {
+  await loadTrend('yearly', 'aoc');
+  await loadTopOrgs('count');
+  await loadSectorDistribution('count');
+
+  try {
+    const res  = await fetch('/api/tender-types');
+    const data = await res.json();
+    if (chartInstances['typeChart']) chartInstances['typeChart'].destroy();
+    chartInstances['typeChart'] = createDonutChart('typeChart', data.labels, data.counts);
+  } catch (e) { console.warn('tender-types:', e); }
+
+  try {
+    const res  = await fetch('/api/value-distribution');
+    const data = await res.json();
+    if (chartInstances['valueBracketChart']) chartInstances['valueBracketChart'].destroy();
+    chartInstances['valueBracketChart'] = createBarChart('valueBracketChart', data.labels, data.counts, 'contracts', COLORS.violet);
+  } catch (e) { console.warn('value-dist:', e); }
+
+  try {
+    const res  = await fetch('/api/portal-breakdown');
+    const data = await res.json();
+    if (chartInstances['portalChart']) chartInstances['portalChart'].destroy();
+    chartInstances['portalChart'] = createPieChart('portalChart', data.labels, data.counts);
+  } catch (e) { console.warn('portal-breakdown:', e); }
+
+  try {
+    const res  = await fetch('/api/top-orgs?dataset=published&limit=10');
+    const data = await res.json();
+    if (chartInstances['pubOrgsChart']) chartInstances['pubOrgsChart'].destroy();
+    chartInstances['pubOrgsChart'] = createBarChart('pubOrgsChart', data.labels, data.values, 'tenders', COLORS.emerald);
+  } catch (e) { console.warn('pub-orgs:', e); }
+
+  await loadIndiaMap('count');
+}
+
+async function loadSectorDistribution(by) {
+  _currentSectorBy = by;
+  try {
+    const res  = await fetch('/api/sector-distribution');
+    const data = await res.json();
+    
+    // Combine for sorting
+    const items = data.labels.map((l, idx) => ({
+      label: l,
+      count: data.counts[idx],
+      value: data.values[idx]
+    }));
+    
+    if (by === 'value') {
+      items.sort((a, b) => b.value - a.value);
+    } else {
+      items.sort((a, b) => b.count - a.count);
+    }
+    
+    const labels = items.map(x => x.label);
+    const values = items.map(x => by === 'value' ? x.value : x.count);
+
+    if (chartInstances['sectorChart']) chartInstances['sectorChart'].destroy();
+    chartInstances['sectorChart'] = createSectorChart('sectorChart', labels, values, by === 'value');
+  } catch (e) { console.warn('sector-distribution:', e); }
+}
+
+async function loadTrend(grain, dataset) {
+  _currentTrendGrain   = grain;
+  _currentTrendDataset = dataset;
+  try {
+    const res  = await fetch(`/api/trends?grain=${grain}&dataset=${dataset}`);
+    const data = await res.json();
+    if (chartInstances['trendChart']) chartInstances['trendChart'].destroy();
+    chartInstances['trendChart'] = createTrendChart('trendChart', data.labels, data.counts, data.values || []);
+  } catch (e) { console.warn('trends:', e); }
+}
+
+async function loadTopOrgs(by) {
+  _currentOrgsBy = by;
+  try {
+    const res  = await fetch(`/api/top-orgs?by=${by}&limit=15`);
+    const data = await res.json();
+    if (chartInstances['orgsChart']) chartInstances['orgsChart'].destroy();
+    chartInstances['orgsChart'] = createBarChart(
+      'orgsChart', data.labels, data.values,
+      data.metric || 'contracts',
+      by === 'value' ? COLORS.amber : COLORS.blue
+    );
+  } catch (e) { console.warn('top-orgs:', e); }
+}
+
+async function loadIndiaMap(mode) {
+  _currentMapMode = mode;
+  try {
+    if (!_stateDataCache) {
+      const res = await fetch('/api/state-stats');
+      _stateDataCache = await res.json();
+    }
+    if (chartInstances['indiaMapChart']) chartInstances['indiaMapChart'].destroy();
+    chartInstances['indiaMapChart'] = await createIndiaMap('indiaMapChart', _stateDataCache, mode);
+  } catch (e) { console.warn('india-map:', e); }
+}
+
+window.switchTrend = function(type) {
+  ['btnYearly','btnMonthly','btnPublished'].forEach(id => document.getElementById(id)?.classList.remove('active'));
+  if (type === 'yearly')      { document.getElementById('btnYearly')?.classList.add('active');    loadTrend('yearly',  'aoc');       }
+  else if (type === 'monthly')    { document.getElementById('btnMonthly')?.classList.add('active');   loadTrend('monthly', 'aoc');       }
+  else if (type === 'published')  { document.getElementById('btnPublished')?.classList.add('active'); loadTrend('monthly', 'published'); }
+};
+
+window.switchOrgs = function(by) {
+  document.getElementById('orgByCount')?.classList.toggle('active', by === 'count');
+  document.getElementById('orgByValue')?.classList.toggle('active', by === 'value');
+  loadTopOrgs(by);
+};
+
+window.switchMap = function(mode) {
+  document.getElementById('btnMapCount')?.classList.toggle('active', mode === 'count');
+  document.getElementById('btnMapValue')?.classList.toggle('active', mode === 'value');
+  loadIndiaMap(mode);
+};
+
+window.switchSector = function(by) {
+  document.getElementById('sectorByCount')?.classList.toggle('active', by === 'count');
+  document.getElementById('sectorByValue')?.classList.toggle('active', by === 'value');
+  loadSectorDistribution(by);
+};

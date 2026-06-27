@@ -1,110 +1,75 @@
-# 🇮🇳 India Procurement Watch Dashboard
+# India Procurement Watch — Power Analysis Tool
 
-A fast, interactive dashboard for digging through India's public procurement data. 
+This is a fast, offline-first analysis tool and dashboard for exploring public procurement data in India. 
 
-I built this to take massive, gigabyte-sized SQLite data dumps from government e-procurement portals and turn them into something you can actually explore in your browser without your computer catching on fire.
+It takes large SQLite database dumps from government e-procurement portals and processes them into a local dashboard, allowing journalists, researchers, and citizens to analyze public spending without needing database expertise.
 
-**Perfect for data journalists, researchers, or anyone curious about where government money goes.**
+## Key Features
 
----
+*   **Offline Data Ingestion**: Place database files in the `data_dump/` directory and trigger the aggregation directly from your browser.
+*   **Narrative Analysis Reports**: An automated rules engine highlights unusual patterns, explains their implications, and suggests specific follow-up actions.
+*   **Risk Grading**: Assigns risk grades (A to F) to departments based on the percentage of single-bid awards and round-number contracts.
+*   **Investigation Desk**: Dedicated tabular views to filter potential red flags:
+    *   **Round-Number Contracts**: Awards ending in exact Lakh or Crore multiples.
+    *   **Quick-Award Notices**: Contracts awarded within 24 hours of the bidding deadline.
+    *   **Single-Bid Contracts**: Awards where only one bidder participated.
+    *   **Repeat Winners**: Vendors winning multiple contracts from the same department.
+*   **Full-Text Search**: Instantly query tender titles and departments using an optimized SQLite FTS5 index.
+*   **Geographical Heatmap**: View contract distributions and total spending mapped across states.
 
-## Where's the data from?
+## Quick Start (with Mock Data)
 
-This project was built to analyze data scraped by [Sarthak Sidhant's India Procurement Watch](https://tender.sarthaksidhant.com). The dataset covers millions of Award of Contract (AOC) notices and published tenders from central and state portals.
+If you don't have the real dataset, you can generate mock data to test the workflow:
 
----
+1.  **Clone and Install**:
+    ```bash
+    git clone https://github.com/Eren-Jaeger-DEV/India-Procurement-Watch.git
+    cd India-Procurement-Watch
+    pip install -r requirements.txt
+    ```
 
-## What's in the box?
+2.  **Generate Test Data**:
+    ```bash
+    python create_sample_data.py
+    ```
+    This writes mock databases into the `data_dump/` folder.
 
-- **Big numbers:** Total contracts, total ₹ value, unique orgs.
-- **Trends:** Yearly and monthly spending charts.
-- **Top spenders:** See which organizations award the most contracts.
-- **Red flags (Anomalies):** 
-  - Contracts awarded at suspiciously round numbers (e.g. exactly ₹10,000,000)
-  - Super fast awards (awarded within a day of bidding closing)
-  - Massive state contracts over ₹100 Crore.
-- **Instant search:** Full-text search across ~5 million tender titles and orgs.
+3.  **Run the Server**:
+    ```bash
+    python app.py
+    ```
 
----
+4.  **Process and View**:
+    *   Open `http://localhost:5000` in your browser.
+    *   The app will open to the **Data Import** screen showing the mock files.
+    *   Click **Analyse Data** to run the aggregation pipeline. Once finished, the dashboard will populate.
 
-## Try it out right now (with fake data)
+## Project Structure
 
-Don't have the 12GB data dump? No worries. I wrote a script that generates a bunch of synthetic data so you can test drive the dashboard immediately.
+*   `app.py` — Flask API server that serves aggregate data and searches. Uses request-scoped connections to avoid database file locks.
+*   `analyse.py` — Pipeline orchestrator that coordinates schema checks, aggregation, indexing, and report generation.
+*   `build_summary.py` — Processes raw scraper logs to populate statistical tables.
+*   `build_search_index.py` — Builds the full-text search database.
+*   `data_dump/` — The directory where you drop new SQLite files.
+*   `src/analysis/` — Contains anomaly logic and narrative engines.
+*   `frontend/` — HTML, CSS, and JS dashboard files.
 
-```bash
-git clone https://github.com/Eren-Jaeger-DEV/India-Procurement-Watch.git
-cd India-Procurement-Watch
+## Technical Details
 
-pip install -r requirements.txt
+The tool runs a preprocessing step to avoid querying the giant raw databases directly:
+1.  It compiles raw records into a structured `summary.db` (usually under 50 MB).
+2.  It copies text values to a separate `search.db` utilizing SQLite FTS5 virtual tables.
+3.  The Flask backend accesses these compiled databases read-only during active dashboard requests.
 
-# Create 5,000 fake records
-python create_sample_data.py
+## Offline Privacy
 
-# Crunch the numbers
-python build_summary.py
+All processing is done locally on your machine. No search queries or database files are uploaded to external servers.
 
-# Build the search engine
-python build_search_index.py
+## Credits & Contributions
 
-# Fire up the dashboard
-python app.py
-```
-Now just open **http://localhost:5000** in your browser.
+The **Director Networks** graph feature matches bidder names to official corporate profiles (CIN) and extracts connections such as shared registration emails or physical addresses.
 
----
+This dataset mapping, name normalization, and record-linkage architecture was designed and developed by:
+*   [fireboy-dev/india-procurement-company-director](https://github.com/fireboy-dev/india-procurement-company-director)
 
-## Plugging in the real data
-
-Got the real SQLite data dump? Awesome. 
-Check out the **[Data Guide](DATA_GUIDE.md)** for a step-by-step walkthrough on how to hook it up.
-
-If you're building your own scraper, the dashboard expects two SQLite databases in the project folder:
-
-### `aoc_tenders.db` (Awarded Contracts)
-Need tables:
-- `aoc_tenders`: `internal_id TEXT PK`, `tender_id TEXT`, `org_name TEXT`, `title TEXT`, `year INTEGER`, `portal_type TEXT`, `tender_type TEXT`, `aoc_date TEXT`, `closing_date TEXT`
-- `aoc_details`: `internal_id TEXT PK`, `details_json TEXT`
-
-### `tenders_vps.db` (Published Tenders)
-Need tables:
-- `tenders`: `tender_id TEXT PK`, `org_name TEXT`, `title TEXT`, `portal_type TEXT`, `tender_type TEXT`, `e_published_date TEXT`, `tender_value TEXT`
-- `tender_details`: `tender_id TEXT PK`, `details_json TEXT`
-
-*(Pro tip: If you only have `aoc_tenders.db`, that's fine. The dashboard handles missing data gracefully.)*
-
----
-
-## How it works under the hood
-
-Loading 12GB of raw SQL data on every page load would be terrible. Instead, we do the heavy lifting once:
-
-1. `build_summary.py` scans the giant databases and spits out a tiny `summary.db` (~50 MB).
-2. `build_search_index.py` builds an optimized SQLite FTS5 index into `search.db`.
-3. The Flask app (`app.py`) only ever reads from the small `summary.db` and the optimized search index.
-
-Result? Every chart loads instantly, no matter how big the source data gets.
-
----
-
-## What are all these files?
-
-- **`create_sample_data.py`** — Spits out fake data for testing.
-- **`build_summary.py`** — The number cruncher. Run this when you get new data.
-- **`build_search_index.py`** — Builds the search engine.
-- **`optimize_fts.py`** — Makes the search engine faster.
-- **`app.py`** — The web server.
-- **`frontend/`** — All the HTML, CSS, and JS for the dashboard.
-
----
-
-## Built with
-
-- **Backend:** Python, Flask, SQLite (with FTS5 for search)
-- **Frontend:** Vanilla HTML/CSS/JS, Chart.js for graphs
-- No Node.js, no crazy build steps, no bloat.
-
----
-
-## Want to contribute?
-
-Feel free to open a PR! Just please keep it dependency-light. The goal is to keep this thing easy to run for anyone without a complex setup.
+If you run their matching pipeline, you can drop the generated `nodes.csv` and `edges.csv` files into the `data_dump/` folder. This tool will automatically detect and import them, allowing you to explore company and buyer connections directly in your browser.

@@ -189,9 +189,14 @@
       <div id="view-report" class="view-panel">
         <div class="section-header">
           <h2 class="section-title"><span class="pulse-dot"></span> Analysis Report</h2>
-          <a class="btn-export" href="/api/export/html" id="exportBtnReport" style="display:none">
-            <i data-lucide="download"></i> Download Report
-          </a>
+          <div style="display:flex;gap:10px">
+            <a class="btn-export" href="/api/export/print" target="_blank" id="exportBtnPrint" style="display:none;background:var(--accent);border-color:var(--accent)">
+              <i data-lucide="printer"></i> Print / PDF
+            </a>
+            <a class="btn-export" href="/api/export/html" id="exportBtnReport" style="display:none">
+              <i data-lucide="download"></i> Download HTML
+            </a>
+          </div>
         </div>
         <div id="reportContent">
           <div class="empty-state">

@@ -182,8 +182,10 @@ async function loadNarrativeReport() {
 
     // Show export button
     const expBtn = document.getElementById('exportBtn');
+    const expBtnPrint = document.getElementById('exportBtnPrint');
     const expBtnReport = document.getElementById('exportBtnReport');
     if (expBtn) expBtn.style.display = 'flex';
+    if (expBtnPrint) expBtnPrint.style.display = 'flex';
     if (expBtnReport) expBtnReport.style.display = 'flex';
 
     // Show badge on nav

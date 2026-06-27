@@ -567,55 +567,85 @@ def aggregate_vps(vps_conn, sum_conn):
     log("Phase 2a: tenders status breakdown...")
     cur = vps_conn.cursor()
 
-    cur.execute("SELECT status, COUNT(*) FROM tenders GROUP BY status")
-    status_rows = cur.fetchall()
-    sum_conn.executemany(
-        "INSERT INTO tenders_status(status, count) VALUES (?,?)",
-        status_rows
-    )
+    # Check what columns exist in the tenders table
+    cur.execute("PRAGMA table_info(tenders)")
+    cols = {row[1] for row in cur.fetchall()}
+    log(f"  VPS tenders columns: {cols}")
+
+    # Status breakdown (only if status column exists)
+    if 'status' in cols:
+        cur.execute("SELECT status, COUNT(*) FROM tenders GROUP BY status")
+        status_rows = cur.fetchall()
+        sum_conn.executemany(
+            "INSERT INTO tenders_status(status, count) VALUES (?,?)",
+            status_rows
+        )
+    else:
+        log("  (no 'status' column — skipping status breakdown)")
 
     log("Phase 2b: Top published orgs...")
-    cur.execute("""
-        SELECT organisation_name, COUNT(*) as cnt
-        FROM tenders
-        WHERE organisation_name IS NOT NULL AND organisation_name != ''
-        GROUP BY organisation_name
-        ORDER BY cnt DESC
-        LIMIT 100
-    """)
-    pub_org_rows = [(i+1, r[0], r[1]) for i, r in enumerate(cur.fetchall())]
-    sum_conn.executemany(
-        "INSERT INTO top_published_orgs(rank_n, org_name, count) VALUES (?,?,?)",
-        pub_org_rows
-    )
+    # Detect org name column
+    org_col = None
+    for candidate in ['organisation_name', 'org_name', 'organization_name']:
+        if candidate in cols:
+            org_col = candidate
+            break
+
+    if org_col:
+        cur.execute(f"""
+            SELECT {org_col}, COUNT(*) as cnt
+            FROM tenders
+            WHERE {org_col} IS NOT NULL AND {org_col} != ''
+            GROUP BY {org_col}
+            ORDER BY cnt DESC
+            LIMIT 100
+        """)
+        pub_org_rows = [(i+1, r[0], r[1]) for i, r in enumerate(cur.fetchall())]
+        sum_conn.executemany(
+            "INSERT INTO top_published_orgs(rank_n, org_name, count) VALUES (?,?,?)",
+            pub_org_rows
+        )
+    else:
+        log("  (no recognised org name column in tenders table — skipping top orgs)")
 
     log("Phase 2c: Monthly published tenders...")
-    cur.execute("SELECT e_published_date FROM tenders WHERE e_published_date IS NOT NULL")
+    # Detect date column
+    date_col = None
+    for candidate in ['e_published_date', 'published_date', 'pub_date', 'date']:
+        if candidate in cols:
+            date_col = candidate
+            break
 
-    pub_monthly = defaultdict(int)
-    pk = 0
-    for (dpub,) in cur:
-        yr, mon = parse_aoc_date(dpub)
-        if yr and mon:
-            pub_monthly[(yr, mon)] += 1
-        pk += 1
-        if pk % 500_000 == 0:
-            log(f"  Processed {pk:,} published dates...")
+    if date_col:
+        cur.execute(f"SELECT {date_col} FROM tenders WHERE {date_col} IS NOT NULL")
+        pub_monthly = defaultdict(int)
+        pk = 0
+        for (dpub,) in cur:
+            yr, mon = parse_aoc_date(dpub)
+            if yr and mon:
+                pub_monthly[(yr, mon)] += 1
+            pk += 1
+            if pk % 500_000 == 0:
+                log(f"  Processed {pk:,} published dates...")
 
-    pub_rows = [
-        (yr, mon, cnt)
-        for (yr, mon), cnt in sorted(pub_monthly.items())
-    ]
-    sum_conn.executemany(
-        "INSERT INTO published_monthly(year, month, count) VALUES (?,?,?)",
-        pub_rows
-    )
+        pub_rows = [
+            (yr, mon, cnt)
+            for (yr, mon), cnt in sorted(pub_monthly.items())
+        ]
+        sum_conn.executemany(
+            "INSERT INTO published_monthly(year, month, count) VALUES (?,?,?)",
+            pub_rows
+        )
+    else:
+        log("  (no recognised date column — skipping monthly published)")
+
     sum_conn.commit()
 
     cur.execute("SELECT COUNT(*) FROM tenders")
     total_pub = cur.fetchone()[0]
-    log(f"  ✓ Phase 2 complete. Total published tenders: {total_pub:,}")
+    log(f"  OK Phase 2 complete. Total published tenders: {total_pub:,}")
     return total_pub
+
 
 
 # ─────────────────────────────────────────────
@@ -667,10 +697,30 @@ def main():
         print(f"ERROR: {VPS_DB} not found.", file=sys.stderr)
         sys.exit(1)
 
-    # Remove old summary DB
+    # Remove old summary DB with retry for lock conflicts on Windows
     if os.path.exists(SUM_DB):
         log(f"Removing old {SUM_DB}...")
-        os.remove(SUM_DB)
+        for attempt in range(5):
+            try:
+                os.remove(SUM_DB)
+                break
+            except PermissionError:
+                if attempt == 4:
+                    log("  WARN: summary.db locked by another process. Clearing tables instead of deleting...")
+                    try:
+                        temp_conn = sqlite3.connect(SUM_DB)
+                        cur = temp_conn.cursor()
+                        cur.execute("SELECT name FROM sqlite_master WHERE type='table'")
+                        for table in [r[0] for r in cur.fetchall()]:
+                            if not table.startswith("sqlite_"):
+                                cur.execute(f"DROP TABLE IF EXISTS [{table}]")
+                        temp_conn.commit()
+                        temp_conn.close()
+                        break
+                    except Exception as e:
+                        print(f"ERROR: Cannot clear summary.db: {e}", file=sys.stderr)
+                        raise
+                time.sleep(0.5)
 
     log("Opening databases...")
     aoc_conn = sqlite3.connect(f"file:{AOC_DB}?mode=ro", uri=True)

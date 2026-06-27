@@ -287,14 +287,24 @@
           </div>
         </section>
 
-        <!-- PORTAL & PUBLISHED -->
+        <!-- PORTAL & PUBLISHED & SECTOR -->
         <section class="section">
-          <div class="charts-grid-2">
+          <div class="charts-grid-3">
             <div class="chart-card">
               <div class="chart-card-header">
                 <h3 class="chart-title">Central vs State Portal Split</h3>
               </div>
               <canvas id="portalChart" height="200"></canvas>
+            </div>
+            <div class="chart-card">
+              <div class="chart-card-header">
+                <h3 class="chart-title">Sector Distribution</h3>
+                <div class="btn-group">
+                  <button class="btn-mini active" id="sectorByCount" onclick="switchSector('count')">Count</button>
+                  <button class="btn-mini" id="sectorByValue" onclick="switchSector('value')">Value</button>
+                </div>
+              </div>
+              <canvas id="sectorChart" height="200"></canvas>
             </div>
             <div class="chart-card">
               <div class="chart-card-header">

@@ -329,6 +329,23 @@ def api_tender_types():
                     "counts": [r["count"] for r in rows],
                     "values": [round(r["total_value_crore"] or 0, 2) for r in rows]})
 
+
+# ─────────────────────────────────────────────
+# API: SECTOR DISTRIBUTION
+# ─────────────────────────────────────────────
+
+@app.route("/api/sector-distribution")
+def api_sector_distribution():
+    conn = get_sum_conn()
+    cur  = conn.cursor()
+    cur.execute("SELECT sector, count, total_value_crore FROM sector_distribution ORDER BY count DESC")
+    rows = cur.fetchall()
+    return jsonify({
+        "labels": [r["sector"] for r in rows],
+        "counts": [r["count"] for r in rows],
+        "values": [round(r["total_value_crore"] or 0, 2) for r in rows]
+    })
+
 # ─────────────────────────────────────────────
 # API: PORTAL BREAKDOWN
 # ─────────────────────────────────────────────

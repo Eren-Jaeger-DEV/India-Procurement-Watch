@@ -125,6 +125,28 @@ def is_round_number(value):
         return False
     return value % 100_000 == 0
 
+
+SECTORS = {
+    "Roads & Highways": ["road", "highway", "bypass", "flyover", "pavement", "bituminous", "asphalt", "road safety", "overbridge"],
+    "Water & Sewage": ["water supply", "pipeline", "sewerage", "drainage", "borewell", "drinking water", "jal jeevan", "canal", "irrigation"],
+    "Buildings & Civil": ["building", "construction of school", "construction of hospital", "renovation", "quarters", "boundary wall", "civil works"],
+    "Power & Electrical": ["electrical", "solar", "transformer", "substation", "street light", "transmission", "cabling", "electrification", "power supply"],
+    "IT & Telecom": ["computer", "software", "cctv", "networking", "server", "telecom", "biometric", "hardware", "printer"],
+    "Healthcare & Medical": ["medical", "medicine", "hospital supply", "surgical", "pharmaceutical", "vaccine", "clinical"],
+    "Services & Manpower": ["manpower", "security service", "housekeeping", "cleaning", "hiring of vehicle", "consultancy"]
+}
+
+def classify_sector(title):
+    """Classify tender title into a sector category based on search keywords."""
+    if not title:
+        return "Other Works"
+    title_lower = title.lower()
+    for sector, keywords in SECTORS.items():
+        for kw in keywords:
+            if kw in title_lower:
+                return sector
+    return "Other Works"
+
 # ─────────────────────────────────────────────
 # SUMMARY DB SETUP
 # ─────────────────────────────────────────────
@@ -258,6 +280,13 @@ def create_summary_db(conn):
             total_contracts     INTEGER,
             total_value_crore   REAL
         );
+
+        DROP TABLE IF EXISTS sector_distribution;
+        CREATE TABLE sector_distribution (
+            sector              TEXT PRIMARY KEY,
+            count               INTEGER,
+            total_value_crore   REAL DEFAULT 0
+        );
     """)
     conn.commit()
     log("Summary DB tables created.")
@@ -326,6 +355,7 @@ def aggregate_aoc_data(aoc_conn, sum_conn):
     portal_counts = defaultdict(lambda: {'count': 0, 'value': 0.0})
     type_counts   = defaultdict(lambda: {'count': 0, 'value': 0.0})
     bracket_counts= defaultdict(int)
+    sector_stats  = defaultdict(lambda: {'count': 0, 'value': 0.0})
     
     total_value   = 0.0
     valued_count  = 0
@@ -393,10 +423,15 @@ def aggregate_aoc_data(aoc_conn, sum_conn):
         type_counts[tt]['count'] += 1
         bracket_counts[bracket_index(cv)] += 1
 
+        # Sector Classification & Accumulation
+        sec = classify_sector(title)
+        sector_stats[sec]['count'] += 1
+
         if cv is not None:
             portal_counts[ptype]['value'] += cv
             org_stats[org]['value'] += cv
             type_counts[tt]['value'] += cv
+            sector_stats[sec]['value'] += cv
             total_value += cv
             valued_count += 1
 
@@ -485,6 +520,11 @@ def aggregate_aoc_data(aoc_conn, sum_conn):
     sum_conn.executemany(
         "INSERT INTO tender_type_dist(tender_type, count, total_value_crore) VALUES (?,?,?)",
         [(tt, d['count'], round(d['value']/1e7, 4)) for tt, d in type_counts.items()]
+    )
+    # Sectors
+    sum_conn.executemany(
+        "INSERT INTO sector_distribution(sector, count, total_value_crore) VALUES (?,?,?)",
+        [(sec, d['count'], round(d['value']/1e7, 4)) for sec, d in sector_stats.items()]
     )
     # Brackets
     sum_conn.executemany(

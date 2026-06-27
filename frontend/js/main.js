@@ -238,8 +238,10 @@ async function initDashboard() {
       loadPubOrgsChart(),
     ]);
 
-    // Load anomalies
+    // Load anomalies and new panels
     loadAnomalies('round_number', 1);
+    loadSingleBid(1);
+    loadRepeatWinners(1);
 
     // Lucide icons
     if (window.lucide) lucide.createIcons();

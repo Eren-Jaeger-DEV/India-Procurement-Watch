@@ -313,6 +313,82 @@ def api_anomalies():
     })
 
 # ─────────────────────────────────────────────
+# API: SINGLE-BID CONTRACTS
+# ─────────────────────────────────────────────
+
+@app.route("/api/single-bid-contracts")
+def api_single_bid():
+    page     = max(1, int(request.args.get("page", 1)))
+    per_page = 20
+    offset   = (page - 1) * per_page
+    min_val  = float(request.args.get("min_val", 0))
+
+    conn = get_sum_conn()
+    cur  = conn.cursor()
+
+    cur.execute(
+        "SELECT COUNT(*) as cnt FROM single_bid_contracts WHERE contract_value >= ?",
+        (min_val,)
+    )
+    total = cur.fetchone()["cnt"]
+
+    cur.execute("""
+        SELECT internal_id, org_name, title, contract_value,
+               aoc_date, portal_type, bidder_name, ref_no
+        FROM single_bid_contracts
+        WHERE contract_value >= ?
+        ORDER BY contract_value DESC
+        LIMIT ? OFFSET ?
+    """, (min_val, per_page, offset))
+
+    rows = [dict(r) for r in cur.fetchall()]
+    conn.close()
+    return jsonify({
+        "total": total,
+        "page": page,
+        "per_page": per_page,
+        "results": rows
+    })
+
+# ─────────────────────────────────────────────
+# API: REPEAT WINNERS
+# ─────────────────────────────────────────────
+
+@app.route("/api/repeat-winners")
+def api_repeat_winners():
+    page     = max(1, int(request.args.get("page", 1)))
+    per_page = 20
+    offset   = (page - 1) * per_page
+    min_wins = int(request.args.get("min_wins", 3))
+
+    conn = get_sum_conn()
+    cur  = conn.cursor()
+
+    cur.execute(
+        "SELECT COUNT(*) as cnt FROM repeat_winners WHERE wins >= ?",
+        (min_wins,)
+    )
+    total = cur.fetchone()["cnt"]
+
+    cur.execute("""
+        SELECT rank_n, bidder_name, org_name, wins, total_value_crore,
+               first_win, last_win
+        FROM repeat_winners
+        WHERE wins >= ?
+        ORDER BY wins DESC
+        LIMIT ? OFFSET ?
+    """, (min_wins, per_page, offset))
+
+    rows = [dict(r) for r in cur.fetchall()]
+    conn.close()
+    return jsonify({
+        "total": total,
+        "page": page,
+        "per_page": per_page,
+        "results": rows
+    })
+
+# ─────────────────────────────────────────────
 # HELPERS
 # ─────────────────────────────────────────────
 

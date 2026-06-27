@@ -184,6 +184,78 @@
     <div class="pagination" id="anomalyPagination"></div>
   </section>
 
+  <!-- SINGLE-BID CONTRACTS SECTION -->
+  <section class="section anomaly-section" id="singleBidSection">
+    <div class="section-header">
+      <h2 class="section-title">
+        <span class="pulse-dot" style="background:#f59e0b"></span>
+        Single-Bid Contracts
+      </h2>
+      <div class="btn-group">
+        <button class="btn-pill active" onclick="filterSingleBid(1000000)">≥ ₹10 Lakh</button>
+        <button class="btn-pill" onclick="filterSingleBid(10000000)">≥ ₹1 Crore</button>
+        <button class="btn-pill" onclick="filterSingleBid(100000000)">≥ ₹10 Crore</button>
+      </div>
+    </div>
+    <div class="anomaly-desc">
+      Contracts where only <strong>one bid was received</strong> — a major red flag. Either the tender was designed for a pre-selected vendor, or it was so poorly publicised that no competitors knew about it. Sorted by value descending.
+    </div>
+    <div class="anomaly-table-wrap">
+      <table class="anomaly-table" id="singleBidTable">
+        <thead>
+          <tr>
+            <th>Organisation</th>
+            <th>Tender Title</th>
+            <th>Contract Value</th>
+            <th>Award Date</th>
+            <th>Winner</th>
+            <th>Portal</th>
+          </tr>
+        </thead>
+        <tbody id="singleBidBody">
+          <tr><td colspan="6" class="table-empty">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="pagination" id="singleBidPagination"></div>
+  </section>
+
+  <!-- REPEAT WINNERS SECTION -->
+  <section class="section anomaly-section" id="repeatWinnersSection">
+    <div class="section-header">
+      <h2 class="section-title">
+        <span class="pulse-dot" style="background:#a855f7"></span>
+        Repeat Winners
+      </h2>
+      <div class="btn-group">
+        <button class="btn-pill active" onclick="filterRepeatWinners(3)">≥ 3 wins</button>
+        <button class="btn-pill" onclick="filterRepeatWinners(10)">≥ 10 wins</button>
+        <button class="btn-pill" onclick="filterRepeatWinners(25)">≥ 25 wins</button>
+      </div>
+    </div>
+    <div class="anomaly-desc">
+      Vendors who won <strong>multiple contracts from the same organisation</strong>. A vendor winning 10+ contracts from one dept. repeatedly warrants a closer look — is this competitive procurement or a preferred vendor arrangement?
+    </div>
+    <div class="anomaly-table-wrap">
+      <table class="anomaly-table" id="repeatWinnersTable">
+        <thead>
+          <tr>
+            <th>Vendor / Bidder</th>
+            <th>Organisation</th>
+            <th>Wins</th>
+            <th>Total Value (Cr)</th>
+            <th>First Win</th>
+            <th>Last Win</th>
+          </tr>
+        </thead>
+        <tbody id="repeatWinnersBody">
+          <tr><td colspan="6" class="table-empty">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="pagination" id="repeatWinnersPagination"></div>
+  </section>
+
   <!-- SEARCH SECTION -->
   <section class="section search-section">
     <div class="section-header">

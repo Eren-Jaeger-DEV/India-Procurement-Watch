@@ -168,6 +168,90 @@ function renderAnomalies(data) {
   renderPagination(pagination, data.page, totalPages, (p) => loadAnomalies(currentAnomalyType, p));
 }
 
+// ── SINGLE-BID CONTRACTS ──
+let currentSingleBidMin = 1000000;
+function filterSingleBid(minVal) {
+  currentSingleBidMin = minVal;
+  // Update buttons
+  const section = document.getElementById('singleBidSection');
+  section.querySelectorAll('.btn-pill').forEach(b => {
+    b.classList.toggle('active', parseInt(b.getAttribute('onclick').match(/\d+/)[0]) === minVal);
+  });
+  loadSingleBid(1);
+}
+
+function loadSingleBid(page = 1) {
+  fetch(`/api/single-bid-contracts?min_val=${currentSingleBidMin}&page=${page}`)
+    .then(r => r.json())
+    .then(data => {
+      const tbody = document.getElementById('singleBidBody');
+      const pagination = document.getElementById('singleBidPagination');
+      
+      if (!data.results || data.results.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="table-empty">No single-bid contracts found in this range.</td></tr>`;
+        pagination.innerHTML = '';
+        return;
+      }
+      
+      tbody.innerHTML = data.results.map(row => `
+        <tr>
+          <td class="org-cell" title="${esc(row.org_name)}">${esc(truncate(row.org_name, 30))}</td>
+          <td class="title-cell" title="${esc(row.title)}">${esc(truncate(row.title, 45))}</td>
+          <td class="value-cell">${fmtCrore((row.contract_value || 0) / 1e7)}</td>
+          <td style="font-size:12px; white-space:nowrap">${formatDateStr(row.aoc_date)}</td>
+          <td title="${esc(row.bidder_name)}">${esc(truncate(row.bidder_name, 30))}</td>
+          <td><span class="portal-badge portal-${row.portal_type}">${row.portal_type || '—'}</span></td>
+        </tr>
+      `).join('');
+      
+      const totalPages = Math.ceil(data.total / data.per_page);
+      renderPagination(pagination, data.page, totalPages, (p) => loadSingleBid(p));
+    })
+    .catch(err => console.error('Single bid error:', err));
+}
+
+// ── REPEAT WINNERS ──
+let currentRepeatMin = 3;
+function filterRepeatWinners(minWins) {
+  currentRepeatMin = minWins;
+  // Update buttons
+  const section = document.getElementById('repeatWinnersSection');
+  section.querySelectorAll('.btn-pill').forEach(b => {
+    b.classList.toggle('active', parseInt(b.getAttribute('onclick').match(/\d+/)[0]) === minWins);
+  });
+  loadRepeatWinners(1);
+}
+
+function loadRepeatWinners(page = 1) {
+  fetch(`/api/repeat-winners?min_wins=${currentRepeatMin}&page=${page}`)
+    .then(r => r.json())
+    .then(data => {
+      const tbody = document.getElementById('repeatWinnersBody');
+      const pagination = document.getElementById('repeatWinnersPagination');
+      
+      if (!data.results || data.results.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="table-empty">No repeat winners found with this criteria.</td></tr>`;
+        pagination.innerHTML = '';
+        return;
+      }
+      
+      tbody.innerHTML = data.results.map(row => `
+        <tr>
+          <td class="title-cell" style="font-weight:600" title="${esc(row.bidder_name)}">${esc(truncate(row.bidder_name, 40))}</td>
+          <td class="org-cell" title="${esc(row.org_name)}">${esc(truncate(row.org_name, 35))}</td>
+          <td style="text-align:right; font-weight:600; color:var(--text-primary)">${row.wins}</td>
+          <td class="value-cell">${row.total_value_crore ? '₹' + fmtNum(Math.round(row.total_value_crore)) + ' Cr' : '—'}</td>
+          <td style="font-size:12px; white-space:nowrap; color:var(--text-muted)">${formatDateStr(row.first_win)}</td>
+          <td style="font-size:12px; white-space:nowrap">${formatDateStr(row.last_win)}</td>
+        </tr>
+      `).join('');
+      
+      const totalPages = Math.ceil(data.total / data.per_page);
+      renderPagination(pagination, data.page, totalPages, (p) => loadRepeatWinners(p));
+    })
+    .catch(err => console.error('Repeat winners error:', err));
+}
+
 // ── TENDER DETAIL MODAL ──
 function loadTenderDetail(internalId, title) {
   document.getElementById('modalTitle').textContent = title || 'Tender Detail';

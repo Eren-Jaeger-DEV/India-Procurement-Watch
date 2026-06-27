@@ -217,6 +217,29 @@ def create_summary_db(conn):
             org_name  TEXT,
             count     INTEGER
         );
+
+        DROP TABLE IF EXISTS single_bid_contracts;
+        CREATE TABLE single_bid_contracts (
+            internal_id     TEXT,
+            org_name        TEXT,
+            title           TEXT,
+            contract_value  REAL,
+            aoc_date        TEXT,
+            portal_type     TEXT,
+            bidder_name     TEXT,
+            ref_no          TEXT
+        );
+
+        DROP TABLE IF EXISTS repeat_winners;
+        CREATE TABLE repeat_winners (
+            rank_n          INTEGER,
+            bidder_name     TEXT,
+            org_name        TEXT,
+            wins            INTEGER,
+            total_value_crore REAL,
+            first_win       TEXT,
+            last_win        TEXT
+        );
     """)
     conn.commit()
     log("Summary DB tables created.")
@@ -236,24 +259,31 @@ def aggregate_aoc_data(aoc_conn, sum_conn):
     cur = aoc_conn.cursor()
     cur.execute("SELECT internal_id, details_json FROM aoc_details")
 
-    lookup = {}  # internal_id → (contract_value_float, tender_type_str, tender_ref_no_str)
+    # internal_id → (contract_value, tender_type, ref_no, bids_count, bidder_name)
+    lookup = {}
     json_errors = 0
 
     t0 = time.time()
     i = 0
     for row in cur:
         iid, djson = row
-        cv, tt, ref = None, "Unknown", ""
+        cv, tt, ref, bids, bidder = None, "Unknown", "", None, ""
         if djson:
             try:
-                data = json.loads(djson)
-                cv   = parse_contract_value(data.get("Contract Value"))
-                tt   = (data.get("Tender Type") or "Unknown").strip() or "Unknown"
-                ref  = str(data.get("Tender Ref. No.", "")).strip()
+                data   = json.loads(djson)
+                cv     = parse_contract_value(data.get("Contract Value"))
+                tt     = (data.get("Tender Type") or "Unknown").strip() or "Unknown"
+                ref    = str(data.get("Tender Ref. No.", "")).strip()
+                bids_raw = data.get("Number of bids received", "")
+                try:
+                    bids = int(str(bids_raw).strip())
+                except (ValueError, TypeError):
+                    bids = None
+                bidder = str(data.get("Name of the selected bidder(s)", "") or "").strip()[:200]
             except (json.JSONDecodeError, Exception):
                 json_errors += 1
 
-        lookup[iid] = (cv, tt, ref)
+        lookup[iid] = (cv, tt, ref, bids, bidder)
 
         i += 1
         if i % 500_000 == 0:
@@ -288,6 +318,12 @@ def aggregate_aoc_data(aoc_conn, sum_conn):
     anom_quick    = []
     anom_hv_state = []
 
+    # Repeat winner: (bidder_name, org_name) → {wins, value, first, last}
+    winner_stats = defaultdict(lambda: {'wins': 0, 'value': 0.0, 'first': '', 'last': ''})
+    # Single-bid accumulator (store up to 2000, filter later)
+    single_bid_rows = []
+    SINGLE_BID_LIMIT = 2000
+
     t1 = time.time()
     j = 0
     duplicates = 0
@@ -295,7 +331,7 @@ def aggregate_aoc_data(aoc_conn, sum_conn):
 
     for row in cur2:
         iid, org, year, ptype, aoc_date, closing_date, title = row
-        cv, tt, ref = lookup.get(iid, (None, "Unknown", ""))
+        cv, tt, ref, bids, bidder = lookup.get(iid, (None, "Unknown", "", None, ""))
         org = org or ""
 
         # ── DEDUPLICATION ──
@@ -340,6 +376,25 @@ def aggregate_aoc_data(aoc_conn, sum_conn):
             type_counts[tt]['value'] += cv
             total_value += cv
             valued_count += 1
+
+        # ── Single-bid contracts (≥ ₹10 Lakh, only 1 bidder) ──
+        if bids == 1 and cv and cv >= 1_000_000 and len(single_bid_rows) < SINGLE_BID_LIMIT:
+            single_bid_rows.append((
+                iid, org or '', (title or '')[:200], cv,
+                aoc_date or '', ptype or '', bidder, ref
+            ))
+
+        # ── Repeat winner tracking ──
+        if bidder and org:
+            key = (bidder, org)
+            winner_stats[key]['wins'] += 1
+            if cv:
+                winner_stats[key]['value'] += cv
+            if aoc_date:
+                if not winner_stats[key]['first'] or aoc_date < winner_stats[key]['first']:
+                    winner_stats[key]['first'] = aoc_date
+                if not winner_stats[key]['last'] or aoc_date > winner_stats[key]['last']:
+                    winner_stats[key]['last'] = aoc_date
 
         # ── Anomaly: round numbers ──
         if cv and is_round_number(cv) and cv >= 1_000_000 and len(anom_round) < ANOMALY_LIMIT:
@@ -414,8 +469,31 @@ def aggregate_aoc_data(aoc_conn, sum_conn):
         "INSERT INTO anomalies(anom_type, internal_id, org_name, title, contract_value, aoc_date, portal_type, extra_info) VALUES (?,?,?,?,?,?,?,?)",
         anom_round + anom_quick + anom_hv_state
     )
+
+    # Single-bid contracts — sort by value descending
+    single_bid_rows.sort(key=lambda x: -(x[3] or 0))
+    sum_conn.executemany(
+        "INSERT INTO single_bid_contracts(internal_id, org_name, title, contract_value, aoc_date, portal_type, bidder_name, ref_no) VALUES (?,?,?,?,?,?,?,?)",
+        single_bid_rows
+    )
+    log(f"  OK Stored {len(single_bid_rows):,} single-bid contracts.")
+
+    # Repeat winners — filter to those with >= 3 wins, sort by wins desc
+    rw_rows = [
+        (bidder, org, stats['wins'], round(stats['value']/1e7, 4), stats['first'], stats['last'])
+        for (bidder, org), stats in winner_stats.items()
+        if stats['wins'] >= 3
+    ]
+    rw_rows.sort(key=lambda x: -x[2])  # sort by wins desc
+    rw_rows = [(i+1,) + r for i, r in enumerate(rw_rows[:2000])]
+    sum_conn.executemany(
+        "INSERT INTO repeat_winners(rank_n, bidder_name, org_name, wins, total_value_crore, first_win, last_win) VALUES (?,?,?,?,?,?,?)",
+        rw_rows
+    )
+    log(f"  OK Stored {len(rw_rows):,} repeat winners (>= 3 wins from same org).")
+
     sum_conn.commit()
-    
+
     return dedup_count, total_value, valued_count
 
 

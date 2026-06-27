@@ -244,7 +244,9 @@ async function loadSingleBid(minVal, page) {
       <td class="td-title" title="${r.title || ''}">${(r.title || '—').substring(0, 60)}${(r.title || '').length > 60 ? '…' : ''}</td>
       <td class="td-value">₹${fmtNum(r.contract_value)}</td>
       <td class="td-date">${r.aoc_date || '—'}</td>
-      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px" title="${r.bidder_name || ''}">${r.bidder_name || '—'}</td>
+      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px" title="${r.bidder_name || ''}">
+        <a href="#" onclick="openNetworkEntity('${(r.bidder_name || '').replace(/'/g, "\\'")}')" style="color:var(--accent);text-decoration:underline">${r.bidder_name || '—'}</a>
+      </td>
       <td>${portalBadge(r.portal_type)}</td>
     </tr>`).join('');
     const totalPages = Math.ceil(data.total / data.per_page);
@@ -275,7 +277,9 @@ async function loadRepeatWinners(minWins, page) {
       return;
     }
     body.innerHTML = data.results.map(r => `<tr>
-      <td style="font-weight:600;color:var(--text-primary);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.bidder_name || ''}">${r.bidder_name || '—'}</td>
+      <td style="font-weight:600;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.bidder_name || ''}">
+        <a href="#" onclick="openNetworkEntity('${(r.bidder_name || '').replace(/'/g, "\\'")}')" style="color:var(--accent);text-decoration:underline;font-weight:600">${r.bidder_name || '—'}</a>
+      </td>
       <td class="td-org">${r.org_name || '—'}</td>
       <td style="font-weight:700;color:var(--accent);font-family:monospace">${r.wins}</td>
       <td class="td-value">₹${r.total_value_crore ? r.total_value_crore.toFixed(1) : '—'} Cr</td>
@@ -363,9 +367,13 @@ window.openTenderDetail = async function(id) {
     ];
     for (const [label, val] of fields) {
       if (val) {
+        let valueHtml = val;
+        if (label === 'Selected Bidder') {
+          valueHtml = `<a href="#" onclick="closeModal(); openNetworkEntity('${String(val).replace(/'/g, "\\'")}')" style="color:var(--accent);text-decoration:underline">${val}</a>`;
+        }
         html += `<div class="modal-body-field">
           <div class="modal-field-label">${label}</div>
-          <div class="modal-field-value">${val}</div>
+          <div class="modal-field-value">${valueHtml}</div>
         </div>`;
       }
     }

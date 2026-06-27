@@ -1,8 +1,8 @@
 {
-  "stage": "error",
-  "progress": 0,
-  "message": "No .db file found. Drop your file in the data_dump/ folder.",
-  "error": "No data found",
+  "stage": "done",
+  "progress": 100,
+  "message": "Analysis complete in 12.4 minutes.",
+  "error": null,
   "done": true,
-  "timestamp": "2026-06-27T21:06:48.853288"
+  "timestamp": "2026-06-27T21:54:58.704861"
 }

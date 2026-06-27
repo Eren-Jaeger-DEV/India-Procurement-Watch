@@ -10,6 +10,8 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
   <script src="https://unpkg.com/chartjs-chart-geo@4.2.8/build/index.umd.min.js"></script>
   <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/lucide@latest"></script>
   <link rel="stylesheet" href="css/style.css" />
 </head>
@@ -309,7 +311,9 @@
                   <button class="btn-mini" id="sectorByValue" onclick="switchSector('value')">Value</button>
                 </div>
               </div>
-              <canvas id="sectorChart" height="200"></canvas>
+              <div style="position: relative; height: 300px; width: 100%;">
+                <canvas id="sectorChart"></canvas>
+              </div>
             </div>
             <div class="chart-card">
               <div class="chart-card-header">
@@ -334,7 +338,7 @@
                 <button class="btn-mini" id="btnMapValue" onclick="switchMap('value')">Value</button>
               </div>
             </div>
-            <canvas id="indiaMapChart" height="400"></canvas>
+            <div id="indiaMapChart" style="height: 500px; width: 100%; border-radius: var(--radius-lg); border: 1px solid var(--border); z-index: 1;"></div>
           </div>
         </section>
       </div>

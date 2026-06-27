@@ -9,41 +9,67 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <script src="https://unpkg.com/chartjs-chart-geo@4.2.8/build/index.umd.min.js"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
 
-<!-- ── HEADER ── -->
-<header class="header">
-  <div class="header-inner">
-    <div class="header-brand">
-      <div class="brand-icon">🏛️</div>
-      <div>
-        <h1 class="brand-title">India Procurement Watch</h1>
-        <p class="brand-sub">CPPP · Central &amp; State Tenders · Open Data</p>
+<div class="app-layout" id="appLayout">
+  
+  <!-- ── SIDEBAR ── -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="header-brand">
+        <div class="brand-icon">🏛️</div>
+        <div class="brand-text">
+          <h1 class="brand-title">India Procurement</h1>
+          <p class="brand-sub">Open Data Dashboard</p>
+        </div>
+      </div>
+      <button class="sidebar-toggle" onclick="toggleSidebar()" id="sidebarToggleBtn">
+        <i data-lucide="chevron-left"></i>
+      </button>
+    </div>
+    <div class="sidebar-nav">
+      <a class="nav-item active" id="nav-view-overview" onclick="switchView('view-overview')"><i data-lucide="layout-dashboard"></i> <span>Overview</span></a>
+      <a class="nav-item" id="nav-view-geo" onclick="switchView('view-geo')"><i data-lucide="map"></i> <span>Geographical</span></a>
+      <a class="nav-item" id="nav-view-redflags" onclick="switchView('view-redflags')"><i data-lucide="flag"></i> <span>Risk Grades</span></a>
+      <a class="nav-item" id="nav-view-investigation" onclick="switchView('view-investigation')"><i data-lucide="shield-alert"></i> <span>Investigation Desk</span></a>
+      <a class="nav-item" id="nav-view-search" onclick="switchView('view-search')"><i data-lucide="search"></i> <span>Search Database</span></a>
+    </div>
+    <div class="sidebar-footer">
+      <button class="theme-toggle" id="themeToggleBtn" onclick="toggleTheme()"><i data-lucide="sun"></i> <span id="themeToggleText">Light Mode</span></button>
+    </div>
+  </aside>
+
+  <!-- ── MAIN WRAPPER ── -->
+  <div class="main-wrapper">
+
+    <!-- ── HEADER ── -->
+    <header class="header">
+      <div><!-- Left empty, brand moved to sidebar --></div>
+      <div class="header-meta" id="headerMeta">
+        <span class="status-dot" id="statusDot"></span>
+        <span id="headerLastUpdated">Loading…</span>
+      </div>
+    </header>
+
+    <!-- ── LOADING OVERLAY ── -->
+    <div class="loading-overlay" id="loadingOverlay">
+      <div class="loader-box">
+        <div class="spinner"></div>
+        <p>Loading procurement data…</p>
       </div>
     </div>
-    <div class="header-meta" id="headerMeta">
-      <span class="status-dot" id="statusDot"></span>
-      <span id="headerLastUpdated">Loading…</span>
-    </div>
-  </div>
-</header>
 
-<!-- ── LOADING OVERLAY ── -->
-<div class="loading-overlay" id="loadingOverlay">
-  <div class="loader-box">
-    <div class="spinner"></div>
-    <p>Loading procurement data…</p>
-  </div>
-</div>
-
-<!-- ── MAIN CONTENT ── -->
-<main class="main" id="mainContent" style="display:none">
-
-  <!-- KPI CARDS -->
-  <section class="section">
+    <!-- ── MAIN CONTENT ── -->
+    <main class="main" id="mainContent" style="display:none">
+      
+      <!-- ── VIEW: OVERVIEW ── -->
+      <div id="view-overview" class="view-panel active">
+        <!-- KPI CARDS -->
+        <section class="section">
     <div class="kpi-grid">
       <div class="kpi-card kpi-contracts">
         <div class="kpi-icon"><i data-lucide="file-check-2"></i></div>
@@ -130,26 +156,72 @@
     </div>
   </section>
 
-  <!-- PORTAL & STATE BREAKDOWN -->
-  <section class="section">
-    <div class="charts-grid-2">
-      <div class="chart-card">
-        <div class="chart-card-header">
-          <h3 class="chart-title">Central vs State Portal Split</h3>
+        <!-- PORTAL & STATE BREAKDOWN -->
+      <section class="section">
+        <div class="charts-grid-2">
+          <div class="chart-card">
+            <div class="chart-card-header">
+              <h3 class="chart-title">Central vs State Portal Split</h3>
+            </div>
+            <canvas id="portalChart" height="200"></canvas>
+          </div>
+          <div class="chart-card">
+            <div class="chart-card-header">
+              <h3 class="chart-title">Top Published-Tender Organisations</h3>
+            </div>
+            <canvas id="pubOrgsChart" height="200"></canvas>
+          </div>
         </div>
-        <canvas id="portalChart" height="200"></canvas>
-      </div>
-      <div class="chart-card">
-        <div class="chart-card-header">
-          <h3 class="chart-title">Top Published-Tender Organisations</h3>
-        </div>
-        <canvas id="pubOrgsChart" height="200"></canvas>
-      </div>
-    </div>
-  </section>
+      </section>
 
-  <!-- ANOMALY SECTION -->
-  <section class="section anomaly-section">
+    </div> <!-- End view-overview -->
+
+    <div id="view-geo" class="view-panel">
+      <!-- INDIA HEATMAP -->
+      <section class="section">
+        <div class="chart-card">
+          <div class="chart-card-header">
+            <h3 class="chart-title">State-by-State Heatmap</h3>
+            <div class="btn-group">
+              <button class="btn-mini active" id="btnMapCount" onclick="switchMap('count')">Volume</button>
+              <button class="btn-mini" id="btnMapValue" onclick="switchMap('value')">Value</button>
+            </div>
+          </div>
+          <canvas id="indiaMapChart" height="400"></canvas>
+        </div>
+      </section>
+    </div> <!-- End view-geo -->
+
+    <!-- ── VIEW: RISK GRADES ── -->
+    <div id="view-redflags" class="view-panel">
+      <!-- DEPARTMENT REPORT CARDS -->
+      <section class="section">
+        <div class="chart-card report-cards-card" style="display:flex;flex-direction:column;height:calc(100vh - 120px);">
+          <div class="chart-card-header">
+            <h3 class="chart-title">Department Risk Grades</h3>
+            <div class="btn-group">
+              <button class="btn-mini active" id="btnGradeScore" onclick="switchReportCardSort('score_asc')">Highest Risk</button>
+              <button class="btn-mini" id="btnGradeValue" onclick="switchReportCardSort('value_desc')">Largest Orgs</button>
+            </div>
+          </div>
+          <div class="report-cards-container" id="reportCardsContainer" style="flex:1;overflow-y:auto;padding-right:10px;">
+            <div style="text-align:center;padding:40px;color:var(--text-muted)">Loading...</div>
+          </div>
+        </div>
+      </section>
+    </div> <!-- End view-geo -->
+
+      <!-- ── VIEW: INVESTIGATION DESK ── -->
+      <div id="view-investigation" class="view-panel">
+        
+        <div class="investigation-tabs">
+          <button class="inv-tab-btn active" id="btn-inv-anomaly" onclick="switchInvTab('inv-anomaly')">General Anomalies</button>
+          <button class="inv-tab-btn" id="btn-inv-single" onclick="switchInvTab('inv-single')">Single-Bid Contracts</button>
+          <button class="inv-tab-btn" id="btn-inv-repeat" onclick="switchInvTab('inv-repeat')">Repeat Winners</button>
+        </div>
+
+        <!-- ANOMALY SECTION -->
+        <section class="section anomaly-section inv-tab-content active" id="inv-anomaly">
     <div class="section-header">
       <h2 class="section-title">
         <span class="pulse-dot"></span>
@@ -185,7 +257,7 @@
   </section>
 
   <!-- SINGLE-BID CONTRACTS SECTION -->
-  <section class="section anomaly-section" id="singleBidSection">
+  <section class="section anomaly-section inv-tab-content" id="inv-single">
     <div class="section-header">
       <h2 class="section-title">
         <span class="pulse-dot" style="background:#f59e0b"></span>
@@ -221,7 +293,7 @@
   </section>
 
   <!-- REPEAT WINNERS SECTION -->
-  <section class="section anomaly-section" id="repeatWinnersSection">
+  <section class="section anomaly-section inv-tab-content" id="inv-repeat">
     <div class="section-header">
       <h2 class="section-title">
         <span class="pulse-dot" style="background:#a855f7"></span>
@@ -256,8 +328,12 @@
     <div class="pagination" id="repeatWinnersPagination"></div>
   </section>
 
-  <!-- SEARCH SECTION -->
-  <section class="section search-section">
+      </div> <!-- End view-investigation -->
+
+      <!-- ── VIEW: SEARCH DATABASE ── -->
+      <div id="view-search" class="view-panel">
+        <!-- SEARCH SECTION -->
+        <section class="section search-section">
     <div class="section-header">
       <h2 class="section-title">Search Tenders &amp; Awards</h2>
       <span id="searchIndexNote" class="search-index-note" style="display:none">
@@ -308,23 +384,29 @@
     </div>
   </section>
 
-  <!-- TENDER DETAIL MODAL -->
-  <div class="modal-backdrop" id="modalBackdrop" style="display:none" onclick="closeModal()"></div>
-  <div class="modal" id="tenderModal" style="display:none">
-    <button class="modal-close" onclick="closeModal()"><i data-lucide="x"></i></button>
-    <h2 class="modal-title" id="modalTitle">Tender Detail</h2>
-    <div id="modalBody"></div>
-  </div>
+        </section>
+      </div> <!-- End view-search -->
 
-</main>
+      <!-- TENDER DETAIL MODAL -->
+      <div class="modal-backdrop" id="modalBackdrop" style="display:none" onclick="closeModal()"></div>
+      <div class="modal" id="tenderModal" style="display:none">
+        <button class="modal-close" onclick="closeModal()"><i data-lucide="x"></i></button>
+        <h2 class="modal-title" id="modalTitle">Tender Detail</h2>
+        <div id="modalBody"></div>
+      </div>
 
-<!-- FOOTER -->
-<footer class="footer">
-  <p>Data sourced from <a href="https://eprocure.gov.in/cppp/" target="_blank">CPPP (eprocure.gov.in)</a> via open scraping. Public data for public scrutiny.</p>
-  <p>Mirror: <a href="https://tender.sarthaksidhant.com" target="_blank">tender.sarthaksidhant.com</a></p>
-</footer>
+    </main>
 
-<script src="js/charts.js"></script>
+    <!-- FOOTER -->
+    <footer class="footer">
+      <p>Data sourced from <a href="https://eprocure.gov.in/cppp/" target="_blank">CPPP (eprocure.gov.in)</a> via open scraping. Public data for public scrutiny.</p>
+      <p>Mirror: <a href="https://tender.sarthaksidhant.com" target="_blank">tender.sarthaksidhant.com</a></p>
+    </footer>
+
+  </div> <!-- End main-wrapper -->
+</div> <!-- End app-layout -->
+
+<script src="js/charts.js?v=4"></script>
 <script src="js/search.js"></script>
 <script src="js/main.js"></script>
 </body>

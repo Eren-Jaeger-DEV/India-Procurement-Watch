@@ -331,3 +331,94 @@ function fmtCrore(n) {
 function truncate(str, max) {
   return str && str.length > max ? str.slice(0, max) + '…' : (str || '');
 }
+
+// ── INDIA MAP (Heatmap) ──
+let indiaTopoJson = null;
+
+async function createIndiaMap(canvasId, stateData, mode = 'count') {
+  if (!indiaTopoJson) {
+    try {
+      // Load standard India TopoJSON from local file
+      const res = await fetch('/india-states.json?v=' + Date.now());
+      indiaTopoJson = await res.json();
+    } catch(e) {
+      console.error("Map load failed", e);
+      return null;
+    }
+  }
+
+  // The local file is now a GeoJSON, not TopoJSON. We can use its features directly.
+  const states = indiaTopoJson.features;
+  
+  // Normalize dataset to match topojson state names (which might have slight variations)
+  // Our DB has 'Maharashtra', TopoJSON has 'Maharashtra'. Usually they match closely.
+  const dataMap = {};
+  stateData.forEach(d => {
+    const key = d.state_name.toLowerCase().replace(' ut', ''); // 'Chandigarh UT' -> 'chandigarh'
+    dataMap[key] = mode === 'count' ? d.total_contracts : d.total_value_crore;
+  });
+
+  const chartData = states.map(d => {
+    const name = d.properties.NAME_1 || d.properties.name || "Unknown";
+    const key = name.toLowerCase();
+    // Try exact or partial match
+    let val = dataMap[key] || 0;
+    if (val === 0) {
+      for (const [dk, dv] of Object.entries(dataMap)) {
+        if (dk.includes(key) || key.includes(dk)) { val = dv; break; }
+      }
+    }
+    return { feature: d, value: val, name: name };
+  });
+
+  const ctx = document.getElementById(canvasId).getContext('2d');
+  
+  return new Chart(ctx, {
+    type: 'choropleth',
+    data: {
+      labels: chartData.map(d => d.name),
+      datasets: [{
+        label: mode === 'count' ? 'Total Contracts' : 'Contract Value (₹ Cr)',
+        data: chartData,
+        backgroundColor: (context) => {
+          if (context.dataIndex == null) return null;
+          const value = context.dataset.data[context.dataIndex].value;
+          if (value === 0) return 'rgba(255,255,255,0.02)';
+          
+          // Map value to alpha
+          const max = Math.max(...chartData.map(d => d.value)) || 1;
+          const intensity = 0.2 + (value / max) * 0.8;
+          return mode === 'count' ? `rgba(99, 102, 241, ${intensity})` : `rgba(52, 211, 153, ${intensity})`; // Indigo for count, Emerald for value
+        },
+        borderColor: 'rgba(255,255,255,0.1)',
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: 'rgba(14,18,32,0.95)',
+          borderColor: 'rgba(255,255,255,0.1)',
+          borderWidth: 1,
+          callbacks: {
+            label: (ctx) => {
+              const val = ctx.raw.value;
+              return mode === 'count' 
+                ? ` ${fmtNum(val)} contracts` 
+                : ` ₹${fmtNum(Math.round(val))} Cr`;
+            }
+          }
+        }
+      },
+      scales: {
+        projection: {
+          axis: 'x',
+          projection: 'mercator'
+        }
+      }
+    }
+  });
+}

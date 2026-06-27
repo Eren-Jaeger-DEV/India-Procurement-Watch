@@ -5,6 +5,59 @@
 // Chart instances (kept for destroy/re-create on toggle)
 const chartInstances = {};
 
+// ── THEME TOGGLE ──
+window.toggleTheme = function() {
+  document.body.classList.toggle('light-mode');
+  const isLight = document.body.classList.contains('light-mode');
+  document.getElementById('themeToggleText').innerText = isLight ? 'Dark Mode' : 'Light Mode';
+  document.getElementById('themeToggleBtn').innerHTML = `<i data-lucide="${isLight ? 'moon' : 'sun'}"></i> <span id="themeToggleText">${isLight ? 'Dark Mode' : 'Light Mode'}</span>`;
+  
+  if (isLight) {
+    Chart.defaults.color = '#475569';
+    Chart.defaults.borderColor = 'rgba(0,0,0,0.05)';
+  } else {
+    document.getElementById('themeToggleText').innerText = 'Light Mode';
+    document.getElementById('themeToggleBtn').innerHTML = '<i data-lucide="sun"></i> <span id="themeToggleText">Light Mode</span>';
+    // Revert chart global fonts/colors
+    Chart.defaults.color = '#8b93a8';
+    Chart.defaults.borderColor = 'rgba(255,255,255,0.04)';
+  }
+  if (window.lucide) lucide.createIcons();
+  
+  // Re-render charts so grid lines update
+  window.dispatchEvent(new Event('resize'));
+};
+
+// ── SIDEBAR TOGGLE ──
+window.toggleSidebar = function() {
+  document.getElementById('appLayout').classList.toggle('collapsed');
+};
+
+// ── VIEW SWITCHING ──
+window.switchView = function(viewId) {
+  // Update sidebar active state
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  const navItem = document.getElementById('nav-' + viewId);
+  if (navItem) navItem.classList.add('active');
+
+  // Update visible panel
+  document.querySelectorAll('.view-panel').forEach(el => el.classList.remove('active'));
+  const viewPanel = document.getElementById(viewId);
+  if (viewPanel) viewPanel.classList.add('active');
+
+  // Trigger resize to fix chart.js canvas sizes when unhidden
+  setTimeout(() => window.dispatchEvent(new Event('resize')), 50);
+};
+
+// ── INVESTIGATION DESK INNER TABS ──
+window.switchInvTab = function(tabId) {
+  document.querySelectorAll('.inv-tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('btn-' + tabId).classList.add('active');
+
+  document.querySelectorAll('.inv-tab-content').forEach(el => el.classList.remove('active'));
+  document.getElementById(tabId).classList.add('active');
+};
+
 // ── COUNTER ANIMATION ──
 function animateCounter(elementId, targetValue, duration = 1200, formatter) {
   const el = document.getElementById(elementId);
@@ -187,6 +240,69 @@ async function loadPubOrgsChart() {
   chartInstances.pubOrgs = createOrgsChart('pubOrgsChart', data.labels, data.values, 'tenders published');
 }
 
+// ── INDIA MAP ──
+let currentMapMode = 'count';
+async function loadStateMap() {
+  const data = await fetch('/api/state-stats').then(r => r.json());
+  
+  if (chartInstances.indiaMap) {
+    chartInstances.indiaMap.destroy();
+    delete chartInstances.indiaMap;
+  }
+  
+  const chart = await createIndiaMap('indiaMapChart', data, currentMapMode);
+  if (chart) {
+    chartInstances.indiaMap = chart;
+  } else {
+    document.getElementById('indiaMapChart').parentElement.innerHTML += `<div style="text-align:center;padding:40px;color:var(--text-muted)">Map data could not be loaded. Are you offline?</div>`;
+  }
+}
+
+window.switchMap = function(mode) {
+  currentMapMode = mode;
+  document.getElementById('btnMapCount').classList.toggle('active', mode === 'count');
+  document.getElementById('btnMapValue').classList.toggle('active', mode === 'value');
+  loadStateMap();
+};
+
+// ── DEPARTMENT REPORT CARDS ──
+let currentReportCardSort = 'score_asc';
+async function loadReportCards() {
+  const data = await fetch(`/api/report-cards?sort=${currentReportCardSort}`).then(r => r.json());
+  const container = document.getElementById('reportCardsContainer');
+  
+  if (!data.results || data.results.length === 0) {
+    container.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text-muted)">No graded departments yet.</div>`;
+    return;
+  }
+  
+  container.innerHTML = data.results.map(org => {
+    return `
+      <div class="report-card">
+        <div class="report-card-info">
+          <div class="report-card-org" title="${esc(org.org_name)}">${esc(org.org_name)}</div>
+          <div class="report-card-stats">
+            <span><strong>${fmtNum(org.total_contracts)}</strong> contracts</span>
+            <span><strong>₹${fmtNum(Math.round(org.total_value_crore))}</strong> Cr</span>
+            <span style="color:var(--amber)"><strong>${org.single_bid_pct}%</strong> single-bid</span>
+          </div>
+        </div>
+        <div class="grade-badge grade-${org.grade}">
+          ${org.grade}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+window.switchReportCardSort = function(sort) {
+  currentReportCardSort = sort;
+  document.getElementById('btnGradeScore').classList.toggle('active', sort === 'score_asc');
+  document.getElementById('btnGradeValue').classList.toggle('active', sort === 'value_desc');
+  document.getElementById('reportCardsContainer').innerHTML = `<div style="text-align:center;padding:40px;color:var(--text-muted)">Loading...</div>`;
+  loadReportCards();
+};
+
 // ── SHOW MAIN / HIDE LOADER ──
 function showDashboard() {
   document.getElementById('loadingOverlay').style.opacity = '0';
@@ -242,6 +358,8 @@ async function initDashboard() {
     loadAnomalies('round_number', 1);
     loadSingleBid(1);
     loadRepeatWinners(1);
+    loadStateMap();
+    loadReportCards();
 
     // Lucide icons
     if (window.lucide) lucide.createIcons();

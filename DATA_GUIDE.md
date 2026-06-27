@@ -1,144 +1,111 @@
 # The Data Guide — Running the dashboard with real data
 
-So you want to analyze the actual 12GB dataset of India's procurement data? You're in the right place. This guide walks you through getting the raw SQLite files and hooking them up to the dashboard.
+This guide walks you through importing your raw SQLite procurement databases and running the automated analysis pipeline.
 
 ---
 
-## 1. The origin story
+## 1. Get the SQLite Files
 
-This dashboard is designed to visualize data scraped by **[Sarthak Sidhant's India Procurement Watch](https://tender.sarthaksidhant.com)**. 
-It pulls Award of Contract (AOC) notices and published tender records from:
-- **GeM** (Government e-Marketplace)
-- **CPPP** (Central Public Procurement Portal)
-- Over 30 different **state portals** (like Punjab, Maharashtra, Kerala, etc.)
+You will need the raw SQLite databases scraped from the public procurement portals. The tool looks for two database files:
 
-In total, you're looking at nearly **50 lakh (5 million) awarded contracts** from 2011 to 2026.
+1.  **`aoc_tenders.db`** (Required) — Contains the Award of Contract (AOC) notices.
+    *   `aoc_tenders` table schema:
+        ```sql
+        CREATE TABLE aoc_tenders (
+            internal_id TEXT PRIMARY KEY,
+            tender_id TEXT,
+            org_name TEXT,
+            title TEXT,
+            year INTEGER,
+            portal_type TEXT,
+            tender_type TEXT,
+            aoc_date TEXT,
+            closing_date TEXT
+        );
+        ```
+    *   `aoc_details` table schema:
+        ```sql
+        CREATE TABLE aoc_details (
+            internal_id TEXT PRIMARY KEY,
+            details_json TEXT
+        );
+        ```
+2.  **`tenders_vps.db`** (Optional) — Contains published tender notice alerts (allows published vs awarded contract volume comparisons).
+    *   `tenders` table schema:
+        ```sql
+        CREATE TABLE tenders (
+            tender_id TEXT PRIMARY KEY,
+            org_name TEXT,
+            title TEXT,
+            portal_type TEXT,
+            tender_type TEXT,
+            e_published_date TEXT,
+            tender_value TEXT
+        );
+        ```
+    *   `tender_details` table schema:
+        ```sql
+        CREATE TABLE tender_details (
+            tender_id TEXT PRIMARY KEY,
+            details_json TEXT
+        );
+        ```
+
+*(Note: If you only have `aoc_tenders.db`, that is completely fine. The tool will leave published stats charts blank but function fully.)*
 
 ---
 
-## 2. Get the SQLite files
+## 2. Drop the Files
 
-If you want the exact dataset we tested with, you'll need to reach out to the project at [tender.sarthaksidhant.com](https://tender.sarthaksidhant.com) and ask for the SQLite dump. 
-
-You're looking for two files:
-- `aoc_tenders.db` (~6.6 GB) — The awarded contracts
-- `tenders_vps.db` (~6.3 GB) — The published tenders
-
-*(Building your own scraper? Just make sure your SQLite output matches the schema described in the README).*
-
----
-
-## 3. Check your specs
-
-Before you start crunching 12GB of data, make sure your machine can handle it:
-- **Disk space:** Make sure you have at least 25GB free (the raw data + search indexes take up space).
-- **RAM:** 4GB is okay, but 8GB is better for the search index build.
-- **Python:** Needs to be 3.9 or newer.
-
----
-
-## 4. Drop the databases in
-
-First, grab the code:
-```bash
-git clone https://github.com/Eren-Jaeger-DEV/India-Procurement-Watch.git
-cd India-Procurement-Watch
-pip install -r requirements.txt
-```
-
-Now, take those massive `.db` files and just drop them straight into the main project folder. Your folder should look like this:
+Copy your database files and paste them directly into the **`data_dump/`** directory in your project root:
 
 ```text
 India-Procurement-Watch/
-├── aoc_tenders.db        ← drop it here
-├── tenders_vps.db        ← drop it here
+├── data_dump/
+│   ├── aoc_tenders.db    ← paste here
+│   └── tenders_vps.db    ← paste here
 ├── app.py
-├── build_summary.py
+├── analyse.py
 └── ...
 ```
 
-*(Note: If you only have `aoc_tenders.db`, that's completely fine. The dashboard will just leave the published tenders charts empty).*
-
 ---
 
-## 5. Crunch the numbers
+## 3. Trigger the Ingestion
 
-We don't want the dashboard querying 12GB of data every time you click a button. So, we pre-compute all the chart data into a tiny `summary.db` file.
+You can trigger the ingestion pipeline in two ways:
 
-Run this:
+### Method A: Browser UI (Recommended)
+1.  Start the local server:
+    ```bash
+    python app.py
+    ```
+2.  Open **`http://localhost:5000`** in your browser.
+3.  Go to the **Data Import** sidebar tab.
+4.  Verify that your database files are listed under "Files Detected".
+5.  Click **Analyse Data** to start the pipeline. A real-time progress bar will update you on the current processing stage.
+
+### Method B: Command Line (For Headless Run)
+If you prefer running the pipeline directly from a terminal:
 ```bash
-python build_summary.py
+python analyse.py
 ```
-
-Grab a coffee. It takes about **3–4 minutes** on a decent SSD. You'll see a bunch of terminal output tracking the progress, ending with "DONE".
+This runs the copy, database schema check, aggregation, FTS indexing, and narrative report generation as a sequential pipeline in your shell.
 
 ---
 
-## 6. Build the search engine
+## 4. Hardware Recommendations
 
-Next up, we need to build the full-text search index so you can instantly search through 5 million tender titles.
-
-Run these two commands:
-```bash
-python build_search_index.py
-python optimize_fts.py
-```
-
-This takes another **2–3 minutes**. 
-
-*(Don't care about search? You can skip this step entirely. The dashboard will still work, the search bar will just be a bit slower).*
+Crunching gigabytes of SQLite data requires minor system resources:
+*   **Disk Space**: Ensure at least 25 GB free (to store copy buffers and search index databases).
+*   **RAM**: 8 GB RAM is recommended for building FTS5 indices efficiently.
+*   **Python**: Version 3.10 or newer.
 
 ---
 
-## 7. Fire it up
+## 5. Troubleshooting Windows Lock Warnings
 
-That's it. The heavy lifting is done. Start the web server:
-
-```bash
-python app.py
-```
-
-Head over to **http://localhost:5000** in your browser. The dashboard should load instantly.
-
----
-
-## Running it 24/7
-
-If you want to leave this running on a server or in the background:
-
-**On Windows:** Just open a dedicated PowerShell window, run `python app.py`, and minimize it.
-
-**On macOS / Linux:**
-```bash
-nohup python app.py &> dashboard.log &
-echo "Dashboard running at http://localhost:5000"
-```
-
----
-
-## Updating data later
-
-If you download fresh `.db` files later, you just need to re-run the build scripts to update the dashboard:
-
-```bash
-python build_summary.py
-python build_search_index.py
-python optimize_fts.py
-python app.py
-```
-
----
-
-## Things that might go wrong
-
-- **Dashboard is stuck on "Building Summary Database…"**
-  You probably forgot to run `build_summary.py`, or it crashed. Check the terminal.
-  
-- **Search returns nothing**
-  You need to run `build_search_index.py`.
-  
-- **`build_summary.py` throws a "no such table" error**
-  Your database schema doesn't match what the scripts expect. Check the README for the exact table names required.
-  
-- **Port 5000 is already in use**
-  Open `app.py`, scroll to the very bottom, and change `port=5000` to `port=5001`.
+On Windows systems, SQLite files can occasionally be locked by running processes.
+*   **Server lock**: The web server uses request-scoped connection handlers, closing connections instantly when pages finish loading to avoid lockouts.
+*   **Pipeline recovery**: If `summary.db` or `search.db` is locked when rebuilding, the orchestrator automatically detects this, warns you, and drops SQL tables directly inside the existing files instead of crashing.
+*   If you face persistent file lock warnings, stop `app.py` in your console, run `python analyse.py` in your shell, and restart the server afterwards.

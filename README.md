@@ -1,110 +1,80 @@
-# 🇮🇳 India Procurement Watch Dashboard
+# 🏛️ India Procurement Watch — Power Analysis Tool
 
-A fast, interactive dashboard for digging through India's public procurement data. 
+A fast, offline-first investigative analysis dashboard for India's public procurement data.
 
-I built this to take massive, gigabyte-sized SQLite data dumps from government e-procurement portals and turn them into something you can actually explore in your browser without your computer catching on fire.
+This tool turns massive, gigabyte-sized SQLite database dumps from government e-procurement portals into a powerful investigative analysis workshop in your browser.
 
-**Perfect for data journalists, researchers, or anyone curious about where government money goes.**
-
----
-
-## Where's the data from?
-
-This project was built to analyze data scraped by [Sarthak Sidhant's India Procurement Watch](https://tender.sarthaksidhant.com). The dataset covers millions of Award of Contract (AOC) notices and published tenders from central and state portals.
+**Perfect for data journalists, corruption researchers, auditors, or citizens demanding transparency in public spending.**
 
 ---
 
-## What's in the box?
+## 🚀 Key Features
 
-- **Big numbers:** Total contracts, total ₹ value, unique orgs.
-- **Trends:** Yearly and monthly spending charts.
-- **Top spenders:** See which organizations award the most contracts.
-- **Red flags (Anomalies):** 
-  - Contracts awarded at suspiciously round numbers (e.g. exactly ₹10,000,000)
-  - Super fast awards (awarded within a day of bidding closing)
-  - Massive state contracts over ₹100 Crore.
-- **Instant search:** Full-text search across ~5 million tender titles and orgs.
-
----
-
-## Try it out right now (with fake data)
-
-Don't have the 12GB data dump? No worries. I wrote a script that generates a bunch of synthetic data so you can test drive the dashboard immediately.
-
-```bash
-git clone https://github.com/Eren-Jaeger-DEV/India-Procurement-Watch.git
-cd India-Procurement-Watch
-
-pip install -r requirements.txt
-
-# Create 5,000 fake records
-python create_sample_data.py
-
-# Crunch the numbers
-python build_summary.py
-
-# Build the search engine
-python build_search_index.py
-
-# Fire up the dashboard
-python app.py
-```
-Now just open **http://localhost:5000** in your browser.
+*   📥 **Simple Data Import**: Just copy-paste your database files into the `data_dump/` folder and trigger the analysis with one click from the browser.
+*   📝 **Interactive Narrative Reports**: A built-in rule-based narrative engine automatically detects procurement anomalies, drafts plain-English executive summaries, and ranks investigation priorities.
+*   📊 **Risk Grading (A–F)**: Departments are graded based on single-bid rates and round-number contract rates.
+*   🕵️ **Investigation Desk**: Deep dive into filterable tables for:
+    *   **Round-Number Contracts**: Tender values ending in exact Lakh multiples.
+    *   **Quick-Award Anomalies**: Contracts awarded suspiciously fast (within 24 hours of bidding close).
+    *   **Single-Bid Contracts**: Procurement where only one bid was received.
+    *   **Repeat Winners**: Vendors winning multiple contracts from the same department.
+*   🔎 **Full-Text Search**: Instantly query millions of tender titles and departments using an optimized SQLite FTS5 index.
+*   🗺️ **Geographical Heatmap**: Visualize contract volume and spending values across Indian states.
 
 ---
 
-## Plugging in the real data
+## ⚡ Quick Start (with Sample Data)
 
-Got the real SQLite data dump? Awesome. 
-Check out the **[Data Guide](DATA_GUIDE.md)** for a step-by-step walkthrough on how to hook it up.
+If you don't have the 12 GB dataset yet, you can test drive the entire pipeline using synthetic data:
 
-If you're building your own scraper, the dashboard expects two SQLite databases in the project folder:
+1.  **Clone & Install**:
+    ```bash
+    git clone https://github.com/Eren-Jaeger-DEV/India-Procurement-Watch.git
+    cd India-Procurement-Watch
+    pip install -r requirements.txt
+    ```
 
-### `aoc_tenders.db` (Awarded Contracts)
-Need tables:
-- `aoc_tenders`: `internal_id TEXT PK`, `tender_id TEXT`, `org_name TEXT`, `title TEXT`, `year INTEGER`, `portal_type TEXT`, `tender_type TEXT`, `aoc_date TEXT`, `closing_date TEXT`
-- `aoc_details`: `internal_id TEXT PK`, `details_json TEXT`
+2.  **Generate Mock Data**:
+    ```bash
+    python create_sample_data.py
+    ```
+    This generates mock databases in your `data_dump/` folder.
 
-### `tenders_vps.db` (Published Tenders)
-Need tables:
-- `tenders`: `tender_id TEXT PK`, `org_name TEXT`, `title TEXT`, `portal_type TEXT`, `tender_type TEXT`, `e_published_date TEXT`, `tender_value TEXT`
-- `tender_details`: `tender_id TEXT PK`, `details_json TEXT`
+3.  **Run the Server**:
+    ```bash
+    python app.py
+    ```
 
-*(Pro tip: If you only have `aoc_tenders.db`, that's fine. The dashboard handles missing data gracefully.)*
-
----
-
-## How it works under the hood
-
-Loading 12GB of raw SQL data on every page load would be terrible. Instead, we do the heavy lifting once:
-
-1. `build_summary.py` scans the giant databases and spits out a tiny `summary.db` (~50 MB).
-2. `build_search_index.py` builds an optimized SQLite FTS5 index into `search.db`.
-3. The Flask app (`app.py`) only ever reads from the small `summary.db` and the optimized search index.
-
-Result? Every chart loads instantly, no matter how big the source data gets.
+4.  **Analyze**:
+    *   Open **http://localhost:5000** in your browser.
+    *   You will see the **Data Import** panel showing the detected mock databases.
+    *   Click **Analyse Data** and watch the real-time progress bar process the files and generate the reports.
 
 ---
 
-## What are all these files?
+## 📂 Project Structure
 
-- **`create_sample_data.py`** — Spits out fake data for testing.
-- **`build_summary.py`** — The number cruncher. Run this when you get new data.
-- **`build_search_index.py`** — Builds the search engine.
-- **`optimize_fts.py`** — Makes the search engine faster.
-- **`app.py`** — The web server.
-- **`frontend/`** — All the HTML, CSS, and JS for the dashboard.
-
----
-
-## Built with
-
-- **Backend:** Python, Flask, SQLite (with FTS5 for search)
-- **Frontend:** Vanilla HTML/CSS/JS, Chart.js for graphs
-- No Node.js, no crazy build steps, no bloat.
+*   `app.py` — Flask API server (delivering request-scoped SQLite connections to prevent file locks).
+*   `analyse.py` — Orchestrates the full analysis pipeline (copying, schema validation, summarizing, and reporting).
+*   `build_summary.py` — Aggregates millions of rows into a tiny database.
+*   `build_search_index.py` — Generates the FTS5 search index.
+*   `data_dump/` — Target folder for placing database files.
+*   `src/analysis/` — Narrative engine rules and anomaly detection scripts.
+*   `frontend/` — CSS (premium dark theme), HTML structure, and JS components.
 
 ---
 
-## Want to contribute?
+## 💡 How it Works Under the Hood
 
-Feel free to open a PR! Just please keep it dependency-light. The goal is to keep this thing easy to run for anyone without a complex setup.
+To avoid querying 12 GB of raw database files directly, this tool performs one-time pre-aggregation:
+1.  Moves data from `data_dump/` and builds a highly compressed `summary.db` (~50 MB).
+2.  Creates a dedicated virtual search index in `search.db`.
+3.  Serves dashboard views instantly using request-scoped read-only connections.
+
+---
+
+## 🏛️ Transparency & Accountability
+
+*"Government has the power, but citizens must have the transparency."*
+
+This tool runs **entirely offline** on your local machine to keep your investigative queries private.

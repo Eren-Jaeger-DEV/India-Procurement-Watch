@@ -75,6 +75,44 @@ def read_state():
         return {"stage": "idle", "progress": 0, "message": "No analysis running.", "done": False}
 
 
+def build_collusion_finding(shared_clusters):
+    """Sort and compile shared-contact collusion networks into a readable report card."""
+    shared_clusters.sort(key=lambda x: x["total_wins"], reverse=True)
+    top_clusters = shared_clusters[:3]
+    
+    num_cos = sum(len(c["members"]) for c in shared_clusters)
+    total_wins = sum(c["total_wins"] for c in shared_clusters)
+    total_val = sum(c["total_val_crore"] for c in shared_clusters)
+    
+    explanation_lines = [
+        "A graph traversal of the MCA/ROC registry linkages revealed that multiple competing contractors share registered contact information. Sharing official corporate registry channels is a strong indicator of collusive networks or front organizations.",
+        "<br><strong>Key clusters detected:</strong>"
+    ]
+    
+    for idx, c in enumerate(top_clusters):
+        member_names = ", ".join(f"<strong>{m['label']}</strong> (won {m['n_contracts'] or 0} contracts)" for m in c["members"])
+        explanation_lines.append(
+            f"<strong>Cluster {idx+1}</strong>: {len(c['members'])} contractors share the registered {c['contact_type']} (<code>{c['contact_value']}</code>), winning a total of <strong>{c['total_wins']} contracts</strong> valued at <strong>₹{c['total_val_crore']:.1f} Cr</strong>."
+        )
+        explanation_lines.append(f"<ul><li>Contractors: {member_names}</li></ul>")
+        
+    explanation = "<br><br>".join(explanation_lines)
+    
+    return {
+        "severity": "CRITICAL",
+        "severity_emoji": "🔴",
+        "title": "Shared-Contact Contractor Networks Detected",
+        "summary": f"{num_cos} contractors share registered emails or addresses, winning {total_wins} contracts totaling ₹{total_val:.1f} Cr.",
+        "explanation": explanation,
+        "what_it_means": "Contractors that share registry contacts may not be independent competitors. They are likely sister companies or controlled by the same promoters, suggesting potential bid-rigging where multiple related entities bid on the same tenders to simulate competitive market bidding.",
+        "next_steps": [
+            "Cross-reference these contractors against the bidding logs to see if they bid on the exact same tenders.",
+            "Verify the shared email or address in the official MCA registry to rule out shared company secretary services.",
+            "Analyze the corporate directors of these companies to confirm common ownership."
+        ]
+    }
+
+
 # ─────────────────────────────────────────────
 # DATA DUMP DETECTION
 # ─────────────────────────────────────────────
@@ -285,6 +323,74 @@ def stage_generate_narrative():
     except Exception:
         yearly_data = {}
 
+    # Extract network shared-contact collusion clusters
+    shared_clusters = []
+    try:
+        cur.execute("SELECT COUNT(*) FROM network_nodes")
+        if cur.fetchone()[0] > 0:
+            cur.execute("""
+                SELECT source, target, relationship, label
+                FROM network_edges
+                WHERE relationship IN ('SHARES_EMAIL', 'SHARES_ADDRESS')
+            """)
+            edges = cur.fetchall()
+            
+            from collections import defaultdict
+            adj = defaultdict(list)
+            edge_labels = {}
+            for src, dst, rel, lbl in edges:
+                adj[src].append(dst)
+                adj[dst].append(src)
+                clean_lbl = lbl.replace("email: ", "").replace("address: ", "")
+                edge_labels[(src, dst)] = (rel, clean_lbl)
+                edge_labels[(dst, src)] = (rel, clean_lbl)
+                
+            visited = set()
+            for node in list(adj.keys()):
+                if node not in visited:
+                    component = []
+                    queue = [node]
+                    visited.add(node)
+                    while queue:
+                        curr = queue.pop(0)
+                        component.append(curr)
+                        for nbr in adj[curr]:
+                            if nbr not in visited:
+                                visited.add(nbr)
+                                queue.append(nbr)
+                    
+                    if len(component) >= 2:
+                        ph = ",".join(["?"] * len(component))
+                        cur.execute(f"""
+                            SELECT id, label, email, state, n_contracts, value
+                            FROM network_nodes
+                            WHERE id IN ({ph})
+                        """, component)
+                        members = [dict(row) for row in cur.fetchall()]
+                        
+                        contact_type = "Unknown"
+                        contact_val = "Unknown"
+                        for i in range(len(component)):
+                            for j in range(i+1, len(component)):
+                                info = edge_labels.get((component[i], component[j]))
+                                if info:
+                                    contact_type = "Email" if info[0] == "SHARES_EMAIL" else "Address"
+                                    contact_val = info[1]
+                                    break
+                                    
+                        total_wins = sum(m["n_contracts"] or 0 for m in members)
+                        total_val = sum(m["value"] or 0.0 for m in members)
+                        
+                        shared_clusters.append({
+                            "contact_type": contact_type,
+                            "contact_value": contact_val,
+                            "members": members,
+                            "total_wins": total_wins,
+                            "total_val_crore": total_val
+                        })
+    except sqlite3.OperationalError:
+        pass
+
     conn.close()
 
     write_state("narrative", 93, "Running narrative analysis engine...")
@@ -299,6 +405,13 @@ def stage_generate_narrative():
         yearly_data=yearly_data,
         total_contracts=total_contracts,
     )
+
+    # Inject collusion finding if clusters are present
+    if shared_clusters:
+        coll_finding = build_collusion_finding(shared_clusters)
+        report["findings"].insert(0, coll_finding)
+        if "executive_summary" in report:
+            report["executive_summary"]["critical_count"] = report["executive_summary"].get("critical_count", 0) + 1
 
     with open(REPORT_FILE, "w", encoding="utf-8") as f:
         json.dump(report, f, ensure_ascii=False, indent=2)

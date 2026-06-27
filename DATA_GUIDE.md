@@ -1,12 +1,10 @@
 # The Data Guide — Running the dashboard with real data
 
-This guide walks you through importing your raw SQLite procurement databases and running the automated analysis pipeline.
+This guide walks you through importing your SQLite procurement databases and running the automated analysis pipeline.
 
----
+## 1. Expected SQLite Files
 
-## 1. Get the SQLite Files
-
-You will need the raw SQLite databases scraped from the public procurement portals. The tool looks for two database files:
+The tool looks for two database files in the dump folder:
 
 1.  **`aoc_tenders.db`** (Required) — Contains the Award of Contract (AOC) notices.
     *   `aoc_tenders` table schema:
@@ -51,13 +49,11 @@ You will need the raw SQLite databases scraped from the public procurement porta
         );
         ```
 
-*(Note: If you only have `aoc_tenders.db`, that is completely fine. The tool will leave published stats charts blank but function fully.)*
-
----
+If you only have `aoc_tenders.db`, that is fine. The tool will leave the published tender metrics empty but function normally.
 
 ## 2. Drop the Files
 
-Copy your database files and paste them directly into the **`data_dump/`** directory in your project root:
+Copy your database files and paste them directly into the `data_dump/` directory in your project root:
 
 ```text
 India-Procurement-Watch/
@@ -69,43 +65,37 @@ India-Procurement-Watch/
 └── ...
 ```
 
----
+## 3. Run the Ingestion Pipeline
 
-## 3. Trigger the Ingestion
+You can run the ingestion in two ways:
 
-You can trigger the ingestion pipeline in two ways:
-
-### Method A: Browser UI (Recommended)
-1.  Start the local server:
+### Method A: From the Browser UI
+1.  Start the local Flask server:
     ```bash
     python app.py
     ```
-2.  Open **`http://localhost:5000`** in your browser.
-3.  Go to the **Data Import** sidebar tab.
+2.  Open `http://localhost:5000` in your browser.
+3.  Go to the **Data Import** tab in the sidebar.
 4.  Verify that your database files are listed under "Files Detected".
-5.  Click **Analyse Data** to start the pipeline. A real-time progress bar will update you on the current processing stage.
+5.  Click **Analyse Data** to run the pipeline. You will see a progress bar tracking the current stage.
 
-### Method B: Command Line (For Headless Run)
-If you prefer running the pipeline directly from a terminal:
+### Method B: From the Command Line
+If you prefer running the pipeline directly from a terminal without launching the browser UI:
 ```bash
 python analyse.py
 ```
-This runs the copy, database schema check, aggregation, FTS indexing, and narrative report generation as a sequential pipeline in your shell.
+This runs the file staging, schema validation, aggregation, indexing, and report generation scripts sequentially.
 
----
+## 4. Hardware Requirements
 
-## 4. Hardware Recommendations
-
-Crunching gigabytes of SQLite data requires minor system resources:
-*   **Disk Space**: Ensure at least 25 GB free (to store copy buffers and search index databases).
-*   **RAM**: 8 GB RAM is recommended for building FTS5 indices efficiently.
+Processing gigabytes of SQLite data requires minor system resources:
+*   **Disk Space**: At least 25 GB free (to accommodate staging copy operations and search index storage).
+*   **RAM**: 8 GB RAM is recommended for building SQLite FTS5 indices.
 *   **Python**: Version 3.10 or newer.
 
----
+## 5. Troubleshooting Windows File Locks
 
-## 5. Troubleshooting Windows Lock Warnings
-
-On Windows systems, SQLite files can occasionally be locked by running processes.
-*   **Server lock**: The web server uses request-scoped connection handlers, closing connections instantly when pages finish loading to avoid lockouts.
-*   **Pipeline recovery**: If `summary.db` or `search.db` is locked when rebuilding, the orchestrator automatically detects this, warns you, and drops SQL tables directly inside the existing files instead of crashing.
-*   If you face persistent file lock warnings, stop `app.py` in your console, run `python analyse.py` in your shell, and restart the server afterwards.
+On Windows systems, SQLite databases can occasionally be locked by running processes.
+*   The Flask web server uses request-scoped connection handlers, closing SQLite connections when request context terminates to prevent lockouts.
+*   If `summary.db` or `search.db` is locked when rebuilding, the orchestrator automatically handles the warning and drops/clears database tables internally instead of crashing.
+*   If you face persistent file lock warnings, stop `app.py` in your terminal, run `python analyse.py` manually, and restart the server afterwards.

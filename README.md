@@ -1,8 +1,8 @@
 # India Procurement Watch — Power Analysis Tool
 
-This is a fast, offline-first analysis tool and dashboard for exploring public procurement data in India. 
+India Procurement Watch is an offline-first analytical dashboard designed for exploring public procurement data in India. 
 
-It takes large SQLite database dumps from government e-procurement portals and processes them into a local dashboard, allowing journalists, researchers, and citizens to analyze public spending without needing database expertise.
+The application processes large SQLite database exports from government e-procurement portals into a local dashboard. It allows journalists, researchers, and citizens to analyze public spending and track anomalies without requiring direct database queries or specialized expertise.
 
 ## Key Features
 
@@ -15,11 +15,11 @@ It takes large SQLite database dumps from government e-procurement portals and p
     *   **Single-Bid Contracts**: Awards where only one bidder participated.
     *   **Repeat Winners**: Vendors winning multiple contracts from the same department.
 *   **Full-Text Search**: Instantly query tender titles and departments using an optimized SQLite FTS5 index.
-*   **Geographical Heatmap**: View contract distributions and total spending mapped across states.
+*   **Geographical Analysis**: View contract distributions and total spending mapped across states on a fully interactive, zoomable map powered by Leaflet.js.
 
 ## Quick Start (with Mock Data)
 
-If you don't have the real dataset, you can generate mock data to test the workflow:
+If you do not have the real dataset, you can generate mock data to test the workflow:
 
 1.  **Clone and Install**:
     ```bash
@@ -32,7 +32,7 @@ If you don't have the real dataset, you can generate mock data to test the workf
     ```bash
     python create_sample_data.py
     ```
-    This writes mock databases into the `data_dump/` folder.
+    This script writes mock databases into the `data_dump/` folder.
 
 3.  **Run the Server**:
     ```bash
@@ -40,30 +40,30 @@ If you don't have the real dataset, you can generate mock data to test the workf
     ```
 
 4.  **Process and View**:
-    *   Open `http://localhost:5000` in your browser.
-    *   The app will open to the **Data Import** screen showing the mock files.
+    *   Open `http://localhost:5000` in your web browser.
+    *   The application will open the **Data Import** screen displaying the mock files.
     *   Click **Analyse Data** to run the aggregation pipeline. Once finished, the dashboard will populate.
 
 ## Project Structure
 
-*   `app.py` — Flask API server that serves aggregate data and searches. Uses request-scoped connections to avoid database file locks.
+*   `app.py` — Flask API server that serves aggregate data and searches. It utilizes request-scoped connections to avoid database file locks.
 *   `analyse.py` — Pipeline orchestrator that coordinates schema checks, aggregation, indexing, and report generation.
 *   `build_summary.py` — Processes raw scraper logs to populate statistical tables.
 *   `build_search_index.py` — Builds the full-text search database.
-*   `data_dump/` — The directory where you drop new SQLite files.
-*   `src/analysis/` — Contains anomaly logic and narrative engines.
-*   `frontend/` — HTML, CSS, and JS dashboard files.
+*   `data_dump/` — The directory where new SQLite files should be placed.
+*   `src/analysis/` — Contains anomaly detection logic and narrative generation engines.
+*   `frontend/` — HTML, CSS, and Javascript dashboard files.
 
 ## Technical Details
 
-The tool runs a preprocessing step to avoid querying the giant raw databases directly:
-1.  It compiles raw records into a structured `summary.db` (usually under 50 MB).
+The tool runs a preprocessing step to avoid querying the large raw databases directly:
+1.  It compiles raw records into a structured `summary.db` (typically under 50 MB).
 2.  It copies text values to a separate `search.db` utilizing SQLite FTS5 virtual tables.
 3.  The Flask backend accesses these compiled databases read-only during active dashboard requests.
 
 ## Offline Privacy
 
-All processing is done locally on your machine. No search queries or database files are uploaded to external servers.
+All processing is executed locally on your machine. No search queries or database files are uploaded to external servers.
 
 ## Credits & Contributions
 
@@ -72,4 +72,4 @@ The **Director Networks** graph feature matches bidder names to official corpora
 This dataset mapping, name normalization, and record-linkage architecture was designed and developed by:
 *   [fireboy-dev/india-procurement-company-director](https://github.com/fireboy-dev/india-procurement-company-director)
 
-If you run their matching pipeline, you can drop the generated `nodes.csv` and `edges.csv` files into the `data_dump/` folder. This tool will automatically detect and import them, allowing you to explore company and buyer connections directly in your browser.
+If you run their matching pipeline, you can drop the generated `nodes.csv` and `edges.csv` files into the `data_dump/` folder. The application will automatically detect and import them, allowing you to explore company and buyer connections directly in your browser.

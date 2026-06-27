@@ -11,7 +11,7 @@ import json
 import os
 import re as _re
 import threading
-from flask import Flask, jsonify, request, send_from_directory, abort
+from flask import Flask, jsonify, request, send_from_directory, abort, g
 from flask_cors import CORS
 
 # ─────────────────────────────────────────────

@@ -332,13 +332,13 @@ function truncate(str, max) {
   return str && str.length > max ? str.slice(0, max) + '…' : (str || '');
 }
 
-// ── INDIA MAP (Heatmap) ──
+// ── INDIA MAP (Leaflet) ──
 let indiaTopoJson = null;
+let leafletMapInstance = null;
 
-async function createIndiaMap(canvasId, stateData, mode = 'count') {
+async function createIndiaMap(containerId, stateData, mode = 'count') {
   if (!indiaTopoJson) {
     try {
-      // Load standard India TopoJSON from local file
       const res = await fetch('/india-states.json?v=' + Date.now());
       indiaTopoJson = await res.json();
     } catch(e) {
@@ -347,80 +347,98 @@ async function createIndiaMap(canvasId, stateData, mode = 'count') {
     }
   }
 
-  // The local file is now a GeoJSON, not TopoJSON. We can use its features directly.
-  const states = indiaTopoJson.features;
-  
-  // Normalize dataset to match topojson state names (which might have slight variations)
-  // Our DB has 'Maharashtra', TopoJSON has 'Maharashtra'. Usually they match closely.
   const dataMap = {};
   stateData.forEach(d => {
-    const key = d.state_name.toLowerCase().replace(' ut', ''); // 'Chandigarh UT' -> 'chandigarh'
+    const key = d.state_name.toLowerCase().replace(' ut', '');
     dataMap[key] = mode === 'count' ? d.total_contracts : d.total_value_crore;
   });
 
-  const chartData = states.map(d => {
-    const name = d.properties.NAME_1 || d.properties.name || "Unknown";
-    const key = name.toLowerCase();
-    // Try exact or partial match
-    let val = dataMap[key] || 0;
-    if (val === 0) {
-      for (const [dk, dv] of Object.entries(dataMap)) {
-        if (dk.includes(key) || key.includes(dk)) { val = dv; break; }
-      }
-    }
-    return { feature: d, value: val, name: name };
-  });
+  const maxVal = Math.max(...Object.values(dataMap)) || 1;
 
-  const ctx = document.getElementById(canvasId).getContext('2d');
-  
-  return new Chart(ctx, {
-    type: 'choropleth',
-    data: {
-      labels: chartData.map(d => d.name),
-      datasets: [{
-        label: mode === 'count' ? 'Total Contracts' : 'Contract Value (₹ Cr)',
-        data: chartData,
-        backgroundColor: (context) => {
-          if (context.dataIndex == null) return null;
-          const value = context.dataset.data[context.dataIndex].value;
-          if (value === 0) return 'rgba(255,255,255,0.02)';
-          
-          // Map value to alpha
-          const max = Math.max(...chartData.map(d => d.value)) || 1;
-          const intensity = 0.2 + (value / max) * 0.8;
-          return mode === 'count' ? `rgba(99, 102, 241, ${intensity})` : `rgba(52, 211, 153, ${intensity})`; // Indigo for count, Emerald for value
-        },
-        borderColor: 'rgba(255,255,255,0.1)',
-        borderWidth: 1
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          backgroundColor: 'rgba(14,18,32,0.95)',
-          borderColor: 'rgba(255,255,255,0.1)',
-          borderWidth: 1,
-          callbacks: {
-            label: (ctx) => {
-              const val = ctx.raw.value;
-              return mode === 'count' 
-                ? ` ${fmtNum(val)} contracts` 
-                : ` ₹${fmtNum(Math.round(val))} Cr`;
-            }
-          }
-        }
-      },
-      scales: {
-        projection: {
-          axis: 'x',
-          projection: 'mercator'
+  // Initialize map if not already done
+  if (!leafletMapInstance) {
+    leafletMapInstance = L.map(containerId, {
+      zoomControl: true,
+      scrollWheelZoom: false // Keep scrolling smooth on the page
+    }).setView([22.5937, 78.9629], 4);
+
+    // Dark theme map tiles
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; CartoDB',
+      subdomains: 'abcd',
+      maxZoom: 10
+    }).addTo(leafletMapInstance);
+  } else {
+    // Clear previous geojson layers
+    leafletMapInstance.eachLayer(layer => {
+      if (layer.options && layer.options.isGeoJSON) {
+        leafletMapInstance.removeLayer(layer);
+      }
+    });
+  }
+
+  function getColor(val) {
+    if (!val) return 'transparent';
+    const intensity = 0.2 + (val / maxVal) * 0.8;
+    return mode === 'count' ? `rgba(99, 102, 241, ${intensity})` : `rgba(52, 211, 153, ${intensity})`;
+  }
+
+  const geoJsonLayer = L.geoJSON(indiaTopoJson, {
+    isGeoJSON: true,
+    style: function (feature) {
+      const name = feature.properties.ST_NM || feature.properties.name || "Unknown";
+      let val = dataMap[name.toLowerCase()] || 0;
+      if (val === 0) {
+        for (const [dk, dv] of Object.entries(dataMap)) {
+          if (dk.includes(name.toLowerCase()) || name.toLowerCase().includes(dk)) { val = dv; break; }
         }
       }
+      return {
+        fillColor: getColor(val),
+        weight: 1,
+        opacity: 1,
+        color: 'rgba(255,255,255,0.2)',
+        fillOpacity: val ? 0.9 : 0.1
+      };
+    },
+    onEachFeature: function (feature, layer) {
+      const name = feature.properties.ST_NM || feature.properties.name || "Unknown";
+      let val = dataMap[name.toLowerCase()] || 0;
+      if (val === 0) {
+        for (const [dk, dv] of Object.entries(dataMap)) {
+          if (dk.includes(name.toLowerCase()) || name.toLowerCase().includes(dk)) { val = dv; break; }
+        }
+      }
+      
+      const label = mode === 'count' 
+        ? `${fmtNum(val)} contracts` 
+        : `₹${fmtNum(Math.round(val))} Cr`;
+        
+      layer.bindTooltip(`<strong>${name}</strong><br/>${label}`, {
+        className: 'leaflet-custom-tooltip',
+        direction: 'top'
+      });
+      
+      layer.on({
+        mouseover: function(e) {
+          const l = e.target;
+          l.setStyle({ weight: 2, color: '#fff', fillOpacity: 1 });
+          if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
+            l.bringToFront();
+          }
+        },
+        mouseout: function(e) {
+          geoJsonLayer.resetStyle(e.target);
+        }
+      });
     }
-  });
+  }).addTo(leafletMapInstance);
+
+  if (geoJsonLayer.getBounds().isValid()) {
+    leafletMapInstance.fitBounds(geoJsonLayer.getBounds());
+  }
+
+  return leafletMapInstance;
 }
 
 // ── HORIZONTAL BAR CHART (Sector Distribution) ──

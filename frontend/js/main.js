@@ -93,7 +93,10 @@ window.switchView = function(viewId) {
   const titleEl = document.getElementById('headerTitle');
   if (titleEl) titleEl.textContent = VIEW_TITLES[viewId] || 'Dashboard';
 
-  setTimeout(() => window.dispatchEvent(new Event('resize')), 50);
+  setTimeout(() => {
+    window.dispatchEvent(new Event('resize'));
+    if (window.leafletMapInstance) window.leafletMapInstance.invalidateSize();
+  }, 50);
 
   // Lazy-load per view
   if (viewId === 'view-report') loadNarrativeReport();

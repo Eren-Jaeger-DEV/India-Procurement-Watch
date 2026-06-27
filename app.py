@@ -777,6 +777,18 @@ def api_tender_detail(internal_id):
 # ─────────────────────────────────────────────
 
 if __name__ == "__main__":
+    import sys
+    if hasattr(sys.stdout, 'reconfigure'):
+        try:
+            sys.stdout.reconfigure(encoding='utf-8')
+        except Exception:
+            pass
+    if hasattr(sys.stderr, 'reconfigure'):
+        try:
+            sys.stderr.reconfigure(encoding='utf-8')
+        except Exception:
+            pass
+
     print("=" * 60)
     print("  India Procurement Watch — Power Analysis Tool")
     print("  http://localhost:5000")

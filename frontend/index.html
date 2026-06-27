@@ -9,6 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
   <script src="https://unpkg.com/chartjs-chart-geo@4.2.8/build/index.umd.min.js"></script>
+  <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <link rel="stylesheet" href="css/style.css" />
 </head>
@@ -58,6 +59,9 @@
       </a>
       <a class="nav-item" id="nav-view-search" onclick="switchView('view-search')" title="Search Database">
         <i data-lucide="search"></i> <span>Search Database</span>
+      </a>
+      <a class="nav-item" id="nav-view-network" onclick="switchView('view-network')" title="Director Networks">
+        <i data-lucide="network"></i> <span>Director Networks</span>
       </a>
     </nav>
 
@@ -536,6 +540,77 @@
         </section>
       </div>
 
+      <!-- ════════════════════════════════
+           VIEW: COMPANY & DIRECTOR NETWORK
+           ════════════════════════════════ -->
+      <div id="view-network" class="view-panel">
+        <section class="section">
+          <div class="section-header">
+            <h2 class="section-title"><span class="pulse-dot" style="background:#0ea5e9"></span> Company &amp; Director Networks</h2>
+            <span class="btn-mini active" style="cursor:default">MCA/ROC Registry Linkage</span>
+          </div>
+          
+          <div class="anomaly-desc">
+            Explore connections between government buyers, awarded bidders, and companies that share registered email addresses or physical locations.
+            <strong style="color:var(--text-primary)">Credit:</strong> This feature is built on top of database staging and record linkage pipelines developed by 
+            <a href="https://github.com/fireboy-dev/india-procurement-company-director" target="_blank" style="color:var(--accent); text-decoration:underline">fireboy-dev/india-procurement-company-director</a>.
+          </div>
+
+          <!-- Network Search -->
+          <div class="chart-card" style="margin-bottom:20px">
+            <div class="search-bar">
+              <i data-lucide="search" style="width:16px;height:16px;color:var(--text-muted);flex-shrink:0"></i>
+              <input type="text" id="networkSearchInput" class="search-input"
+                placeholder="Search registered company, email, buyer name, or DIN/CIN..." autocomplete="off"
+                onkeydown="if(event.key==='Enter') searchNetworkEntities()" />
+            </div>
+            <div class="search-filters-row" style="margin-top:12px">
+              <button class="btn-search" onclick="searchNetworkEntities()">Find Connections</button>
+            </div>
+            
+            <!-- Network Search Results list -->
+            <div id="networkSearchResults" style="display:none;margin-top:16px;max-height:220px;overflow-y:auto;border-top:1px solid var(--border);padding-top:12px">
+              <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px">Select an entity to render its neighborhood graph:</div>
+              <div id="networkSearchResultsList"></div>
+            </div>
+          </div>
+
+          <!-- Ego-graph workspace -->
+          <div id="networkGraphWorkspace" style="display:none">
+            <div style="display:grid;grid-template-columns:300px 1fr;gap:20px">
+              
+              <!-- Left side: Node Detail panel -->
+              <div class="chart-card" style="display:flex;flex-direction:column;gap:16px">
+                <div class="chart-card-header">
+                  <h3 class="chart-title">Entity Profile</h3>
+                </div>
+                <div id="networkNodeProfile" style="font-size:12px;display:flex;flex-direction:column;gap:12px">
+                  <!-- Dynamic content -->
+                </div>
+              </div>
+
+              <!-- Right side: Visual canvas -->
+              <div class="chart-card" style="position:relative;height:550px;display:flex;flex-direction:column">
+                <div class="chart-card-header">
+                  <h3 class="chart-title">Neighborhood Ego-Graph (1-Hop Connections)</h3>
+                  <span style="font-size:10px;color:var(--text-muted)">Drag nodes to rearrange, hover for tooltips</span>
+                </div>
+                <div id="networkGraphCanvas" style="flex:1;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);margin-top:10px"></div>
+              </div>
+
+            </div>
+          </div>
+          
+          <!-- Empty State -->
+          <div id="networkEmptyState" class="empty-state">
+            <div class="empty-state-icon">🌐</div>
+            <h3>Graph Viewer</h3>
+            <p>Search a contractor, department, or registration email address above to view their connections.</p>
+          </div>
+
+        </section>
+      </div>
+
     </main>
 
     <!-- TENDER DETAIL MODAL -->
@@ -558,6 +633,7 @@
 <script src="js/charts.js?v=5"></script>
 <script src="js/search.js?v=2"></script>
 <script src="js/analysis.js?v=1"></script>
+<script src="js/network.js?v=1"></script>
 <script src="js/main.js?v=5"></script>
 </body>
 </html>

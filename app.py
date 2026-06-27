@@ -773,6 +773,73 @@ def api_tender_detail(internal_id):
 
 
 # ─────────────────────────────────────────────
+# API: COMPANY & DIRECTOR NETWORK GRAPH
+# ─────────────────────────────────────────────
+
+@app.route("/api/network/search")
+def api_network_search():
+    """Search for corporate entities or buyers inside the network graph."""
+    q = request.args.get("q", "").strip()
+    if not q:
+        return jsonify({"results": []})
+    
+    conn = get_sum_conn()
+    cur = conn.cursor()
+    try:
+        cur.execute("""
+            SELECT id, label, kind, state, email, value, n_contracts, n_buyers
+            FROM network_nodes
+            WHERE label LIKE ? OR id LIKE ? OR email LIKE ?
+            ORDER BY n_contracts DESC LIMIT 30
+        """, (f"%{q}%", f"%{q}%", f"%{q}%"))
+        results = [dict(row) for row in cur.fetchall()]
+        return jsonify({"results": results})
+    except sqlite3.OperationalError:
+        return jsonify({"error": "No network analysis data available. Place nodes.csv and edges.csv in data_dump/ and re-analyse."}), 404
+
+
+@app.route("/api/network/ego/<node_id>")
+def api_network_ego(node_id):
+    """Fetch 1-hop ego network around a specific node (nodes and links)."""
+    conn = get_sum_conn()
+    cur = conn.cursor()
+    try:
+        # Get edges
+        cur.execute("""
+            SELECT source, target, relationship, weight, total_value, label
+            FROM network_edges
+            WHERE source = ? OR target = ?
+        """, (node_id, node_id))
+        edges = [dict(row) for row in cur.fetchall()]
+        
+        # Collect unique node IDs in this ego subgraph
+        node_ids = {node_id}
+        for e in edges:
+            node_ids.add(e["source"])
+            node_ids.add(e["target"])
+            
+        # Retrieve details for all connected nodes
+        nodes = []
+        if node_ids:
+            ph = ",".join(["?"] * len(node_ids))
+            cur.execute(f"""
+                SELECT id, label, kind, state, email, value, n_contracts, n_buyers
+                FROM network_nodes
+                WHERE id IN ({ph})
+            """, list(node_ids))
+            nodes = [dict(row) for row in cur.fetchall()]
+            
+        return jsonify({
+            "focus": node_id,
+            "nodes": nodes,
+            "edges": edges
+        })
+    except sqlite3.OperationalError:
+        return jsonify({"error": "No network analysis data available."}), 404
+
+
+
+# ─────────────────────────────────────────────
 # MAIN
 # ─────────────────────────────────────────────
 

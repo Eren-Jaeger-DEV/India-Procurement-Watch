@@ -64,3 +64,12 @@ The tool runs a preprocessing step to avoid querying the giant raw databases dir
 ## Offline Privacy
 
 All processing is done locally on your machine. No search queries or database files are uploaded to external servers.
+
+## Credits & Contributions
+
+The **Director Networks** graph feature matches bidder names to official corporate profiles (CIN) and extracts connections such as shared registration emails or physical addresses.
+
+This dataset mapping, name normalization, and record-linkage architecture was designed and developed by:
+*   [fireboy-dev/india-procurement-company-director](https://github.com/fireboy-dev/india-procurement-company-director)
+
+If you run their matching pipeline, you can drop the generated `nodes.csv` and `edges.csv` files into the `data_dump/` folder. This tool will automatically detect and import them, allowing you to explore company and buyer connections directly in your browser.

@@ -78,6 +78,7 @@ const VIEW_TITLES = {
   'view-investigation': 'Investigation Desk',
   'view-redflags':    'Risk Grades',
   'view-search':      'Search Database',
+  'view-network':     'Director Networks',
 };
 
 window.switchView = function(viewId) {

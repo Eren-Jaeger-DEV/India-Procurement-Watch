@@ -99,3 +99,22 @@ On Windows systems, SQLite databases can occasionally be locked by running proce
 *   The Flask web server uses request-scoped connection handlers, closing SQLite connections when request context terminates to prevent lockouts.
 *   If `summary.db` or `search.db` is locked when rebuilding, the orchestrator automatically handles the warning and drops/clears database tables internally instead of crashing.
 *   If you face persistent file lock warnings, stop `app.py` in your terminal, run `python analyse.py` manually, and restart the server afterwards.
+
+## 6. Importing Director Network Data (Optional)
+
+If you wish to view the connected network of bidders, buyers, and contact-sharing corporate groups, you can link the raw data using [fireboy-dev/india-procurement-company-director](https://github.com/fireboy-dev/india-procurement-company-director).
+
+1.  Run the pipeline in their repository to resolve bidder names against the MCA company registry.
+2.  Once completed, find the following generated files inside their export directory:
+    *   `nodes.csv`
+    *   `edges.csv`
+3.  Drop both of these files directly into the `data_dump/` folder of this project:
+    ```text
+    data_dump/
+    ├── aoc_tenders.db
+    ├── tenders_vps.db
+    ├── nodes.csv          ← drop here
+    └── edges.csv          ← drop here
+    ```
+4.  Re-run the ingestion pipeline (either from the **Data Import** view in the browser or by running `python analyse.py` in your terminal).
+5.  Go to the **Director Networks** tab in the sidebar of the dashboard to search companies and explore their relationship graphs.

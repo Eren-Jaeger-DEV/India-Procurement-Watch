@@ -749,6 +749,85 @@ def main():
     total_pub = aggregate_vps(vps_conn, sum_conn)
     write_kpi_stats(sum_conn, dedup_count, total_value, valued_count, total_pub)
 
+    # Ingest company-director network files if present
+    import csv
+    nodes_path = os.path.join(BASE_DIR, "data_dump", "nodes.csv")
+    edges_path = os.path.join(BASE_DIR, "data_dump", "edges.csv")
+    if not os.path.exists(nodes_path) or not os.path.exists(edges_path):
+        nodes_path = os.path.join(BASE_DIR, "nodes.csv")
+        edges_path = os.path.join(BASE_DIR, "edges.csv")
+
+    if os.path.exists(nodes_path) and os.path.exists(edges_path):
+        log("Phase 4: Ingesting company-director network tables...")
+        sum_cur = sum_conn.cursor()
+        sum_cur.execute("DROP TABLE IF EXISTS network_nodes")
+        sum_cur.execute("""
+            CREATE TABLE network_nodes (
+                id TEXT PRIMARY KEY,
+                label TEXT,
+                kind TEXT,
+                state TEXT,
+                email TEXT,
+                value REAL,
+                n_contracts INTEGER,
+                n_buyers INTEGER
+            )
+        """)
+        
+        with open(nodes_path, "r", encoding="utf-8") as f:
+            reader = csv.reader(f)
+            next(reader, None)
+            rows = []
+            for r in reader:
+                if not r: continue
+                while len(r) < 8: r.append(None)
+                rows.append((r[0], r[1], r[2], r[3], r[4], 
+                             float(r[5]) if r[5] else None, 
+                             int(r[6]) if r[6] else None, 
+                             int(r[7]) if r[7] else None))
+            sum_cur.executemany("INSERT OR REPLACE INTO network_nodes VALUES (?,?,?,?,?,?,?,?)", rows)
+        
+        sum_cur.execute("DROP TABLE IF EXISTS network_edges")
+        sum_cur.execute("""
+            CREATE TABLE network_edges (
+                source TEXT,
+                target TEXT,
+                relationship TEXT,
+                weight REAL,
+                total_value REAL,
+                label TEXT
+            )
+        """)
+        
+        with open(edges_path, "r", encoding="utf-8") as f:
+            reader = csv.reader(f)
+            next(reader, None)
+            rows = []
+            for r in reader:
+                if not r: continue
+                while len(r) < 6: r.append(None)
+                rows.append((r[0], r[1], r[2], 
+                             float(r[3]) if r[3] else None, 
+                             float(r[4]) if r[4] else None, 
+                             r[5]))
+            sum_cur.executemany("INSERT INTO network_edges VALUES (?,?,?,?,?,?)", rows)
+        
+        sum_conn.commit()
+        sum_cur.execute("CREATE INDEX IF NOT EXISTS idx_net_nodes_kind ON network_nodes(kind)")
+        sum_cur.execute("CREATE INDEX IF NOT EXISTS idx_net_edges_src ON network_edges(source)")
+        sum_cur.execute("CREATE INDEX IF NOT EXISTS idx_net_edges_dst ON network_edges(target)")
+        sum_conn.commit()
+        log(f"  ✓ Ingested network nodes and edges successfully.")
+        
+        # Add KPI metadata for network status
+        sum_cur.execute("INSERT OR REPLACE INTO kpi_stats(key, value) VALUES ('has_network_data', 'true')")
+        sum_conn.commit()
+    else:
+        log("Phase 4: Skipping network ingestion (nodes.csv / edges.csv not found)")
+        sum_cur = sum_conn.cursor()
+        sum_cur.execute("INSERT OR REPLACE INTO kpi_stats(key, value) VALUES ('has_network_data', 'false')")
+        sum_conn.commit()
+
     # Final indexes for fast API queries
     log("Creating indexes on summary.db...")
     sum_conn.executescript("""

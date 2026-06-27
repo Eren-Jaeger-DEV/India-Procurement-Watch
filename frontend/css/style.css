@@ -44,6 +44,25 @@
   --transition:   0.2s ease;
 }
 
+/* ── Light Mode Overrides ── */
+body.light-mode {
+  --bg-base:      #f4f6f8;
+  --bg-surface:   #ffffff;
+  --bg-card:      #ffffff;
+  --bg-card-hover:#f8fafc;
+  --bg-input:     #f1f5f9;
+  --border:       #e2e8f0;
+  --border-light: #f1f5f9;
+
+  --text-primary: #1e293b;
+  --text-secondary:#475569;
+  --text-muted:   #64748b;
+  --text-inverse: #ffffff;
+
+  --shadow:       0 4px 24px rgba(0,0,0,0.06);
+  --shadow-sm:    0 2px 8px rgba(0,0,0,0.04);
+}
+
 /* ── Reset & Base ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -81,6 +100,35 @@ body {
 
 .sidebar.collapsed {
   width: 64px;
+}
+
+.sidebar.collapsed .brand-text,
+.sidebar.collapsed .nav-item span,
+.sidebar.collapsed .nav-section-label,
+.sidebar.collapsed .btn-theme span,
+.sidebar.collapsed .nav-badge {
+  display: none;
+}
+
+.sidebar.collapsed .header-brand {
+  display: none;
+}
+
+.sidebar.collapsed .sidebar-header {
+  justify-content: center;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.sidebar.collapsed .btn-theme {
+  justify-content: center;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.sidebar.collapsed .sidebar-toggle svg,
+.sidebar.collapsed .sidebar-toggle i {
+  transform: rotate(180deg);
 }
 
 .sidebar-header {

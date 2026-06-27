@@ -240,6 +240,24 @@ def create_summary_db(conn):
             first_win       TEXT,
             last_win        TEXT
         );
+
+        DROP TABLE IF EXISTS org_report_cards;
+        CREATE TABLE org_report_cards (
+            org_name            TEXT,
+            total_contracts     INTEGER,
+            total_value_crore   REAL,
+            single_bid_pct      REAL,
+            round_number_pct    REAL,
+            score               REAL,
+            grade               TEXT
+        );
+
+        DROP TABLE IF EXISTS state_stats;
+        CREATE TABLE state_stats (
+            state_name          TEXT,
+            total_contracts     INTEGER,
+            total_value_crore   REAL
+        );
     """)
     conn.commit()
     log("Summary DB tables created.")
@@ -303,7 +321,8 @@ def aggregate_aoc_data(aoc_conn, sum_conn):
     # Accumulators
     yearly        = defaultdict(lambda: {'count': 0, 'value': 0.0}) # (year, portal_type)
     monthly       = defaultdict(lambda: {'count': 0, 'value': 0.0}) # (year, month)
-    org_stats     = defaultdict(lambda: {'count': 0, 'value': 0.0, 'portal': ''})
+    org_stats     = defaultdict(lambda: {'count': 0, 'value': 0.0, 'portal': '', 'single_bid_count': 0, 'round_number_count': 0})
+    state_stats   = defaultdict(lambda: {'count': 0, 'value': 0.0})
     portal_counts = defaultdict(lambda: {'count': 0, 'value': 0.0})
     type_counts   = defaultdict(lambda: {'count': 0, 'value': 0.0})
     bracket_counts= defaultdict(int)
@@ -366,6 +385,10 @@ def aggregate_aoc_data(aoc_conn, sum_conn):
         org_stats[org]['count'] += 1
         if ptype and not org_stats[org]['portal']:
             org_stats[org]['portal'] = ptype
+        if ptype == 'state' and org:
+            state_stats[org]['count'] += 1
+            if cv is not None:
+                state_stats[org]['value'] += cv
 
         type_counts[tt]['count'] += 1
         bracket_counts[bracket_index(cv)] += 1
@@ -378,11 +401,13 @@ def aggregate_aoc_data(aoc_conn, sum_conn):
             valued_count += 1
 
         # ── Single-bid contracts (≥ ₹10 Lakh, only 1 bidder) ──
-        if bids == 1 and cv and cv >= 1_000_000 and len(single_bid_rows) < SINGLE_BID_LIMIT:
-            single_bid_rows.append((
-                iid, org or '', (title or '')[:200], cv,
-                aoc_date or '', ptype or '', bidder, ref
-            ))
+        if bids == 1:
+            org_stats[org]['single_bid_count'] += 1
+            if cv and cv >= 1_000_000 and len(single_bid_rows) < SINGLE_BID_LIMIT:
+                single_bid_rows.append((
+                    iid, org or '', (title or '')[:200], cv,
+                    aoc_date or '', ptype or '', bidder, ref
+                ))
 
         # ── Repeat winner tracking ──
         if bidder and org:
@@ -397,11 +422,13 @@ def aggregate_aoc_data(aoc_conn, sum_conn):
                     winner_stats[key]['last'] = aoc_date
 
         # ── Anomaly: round numbers ──
-        if cv and is_round_number(cv) and cv >= 1_000_000 and len(anom_round) < ANOMALY_LIMIT:
-            anom_round.append((
-                'round_number', iid, org, (title or '')[:200], cv,
-                aoc_date or '', ptype, json.dumps({'tender_type': tt})
-            ))
+        if cv and is_round_number(cv):
+            org_stats[org]['round_number_count'] += 1
+            if cv >= 1_000_000 and len(anom_round) < ANOMALY_LIMIT:
+                anom_round.append((
+                    'round_number', iid, org, (title or '')[:200], cv,
+                    aoc_date or '', ptype, json.dumps({'tender_type': tt})
+                ))
 
         # ── Anomaly: quick award ──
         if aoc_date and closing_date and len(anom_quick) < ANOMALY_LIMIT:
@@ -491,6 +518,41 @@ def aggregate_aoc_data(aoc_conn, sum_conn):
         rw_rows
     )
     log(f"  OK Stored {len(rw_rows):,} repeat winners (>= 3 wins from same org).")
+
+    # ── Report Cards ──
+    rc_rows = []
+    for o, stats in org_stats.items():
+        if stats['count'] < 10:  # Minimum 10 contracts to be graded
+            continue
+        s_pct = (stats['single_bid_count'] / stats['count']) * 100
+        r_pct = (stats['round_number_count'] / stats['count']) * 100
+        
+        # Risk Score (0-100 where 100 is max risk)
+        raw_risk = min(100.0, (s_pct * 0.7) + (r_pct * 0.3))
+        
+        if raw_risk < 5: grade = 'A'
+        elif raw_risk < 15: grade = 'B'
+        elif raw_risk < 25: grade = 'C'
+        elif raw_risk < 40: grade = 'D'
+        else: grade = 'F'
+        
+        score = round(100 - raw_risk, 1) # 100 is best, 0 is worst
+        rc_rows.append((
+            o, stats['count'], round(stats['value']/1e7, 4),
+            round(s_pct, 1), round(r_pct, 1), score, grade
+        ))
+    sum_conn.executemany(
+        "INSERT INTO org_report_cards(org_name, total_contracts, total_value_crore, single_bid_pct, round_number_pct, score, grade) VALUES (?,?,?,?,?,?,?)",
+        rc_rows
+    )
+    log(f"  OK Generated {len(rc_rows):,} department report cards.")
+
+    # ── State Stats ──
+    sum_conn.executemany(
+        "INSERT INTO state_stats(state_name, total_contracts, total_value_crore) VALUES (?,?,?)",
+        [(st, d['count'], round(d['value']/1e7, 4)) for st, d in state_stats.items()]
+    )
+    log(f"  OK Generated stats for {len(state_stats)} states.")
 
     sum_conn.commit()
 

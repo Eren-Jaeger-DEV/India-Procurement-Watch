@@ -389,6 +389,48 @@ def api_repeat_winners():
     })
 
 # ─────────────────────────────────────────────
+# API: REPORT CARDS & STATE STATS
+# ─────────────────────────────────────────────
+
+@app.route("/api/report-cards")
+def api_report_cards():
+    page     = max(1, int(request.args.get("page", 1)))
+    per_page = 20
+    offset   = (page - 1) * per_page
+    sort_by  = request.args.get("sort", "score_asc")  # score_asc, value_desc
+    
+    order_clause = "score ASC" if sort_by == "score_asc" else "total_value_crore DESC"
+
+    conn = get_sum_conn()
+    cur  = conn.cursor()
+
+    cur.execute("SELECT COUNT(*) as cnt FROM org_report_cards")
+    total = cur.fetchone()["cnt"]
+
+    cur.execute(f"""
+        SELECT org_name, total_contracts, total_value_crore, single_bid_pct, round_number_pct, score, grade
+        FROM org_report_cards
+        ORDER BY {order_clause}, total_contracts DESC
+        LIMIT ? OFFSET ?
+    """, (per_page, offset))
+
+    rows = [dict(r) for r in cur.fetchall()]
+    return jsonify({
+        "total": total,
+        "page": page,
+        "per_page": per_page,
+        "results": rows
+    })
+
+@app.route("/api/state-stats")
+def api_state_stats():
+    conn = get_sum_conn()
+    cur  = conn.cursor()
+    cur.execute("SELECT state_name, total_contracts, total_value_crore FROM state_stats")
+    rows = [dict(r) for r in cur.fetchall()]
+    return jsonify(rows)
+
+# ─────────────────────────────────────────────
 # HELPERS
 # ─────────────────────────────────────────────
 

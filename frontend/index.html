@@ -380,8 +380,14 @@
           <button class="inv-tab-btn" id="btn-inv-repeat" onclick="switchInvTab('inv-repeat')">
             Repeat Winners
           </button>
+          <button class="inv-tab-btn" id="btn-inv-cartel" onclick="switchInvTab('inv-cartel')" style="color:var(--danger)">
+            Cartel Rings (Bid Rotation)
+          </button>
           <button class="inv-tab-btn" id="btn-inv-pep" onclick="switchInvTab('inv-pep')" style="color:var(--danger)">
             Global Leaks & PEPs
+          </button>
+          <button class="inv-tab-btn" id="btn-inv-live" onclick="switchInvTab('inv-live')" style="color:var(--critical); animation: pulse 2s infinite;">
+            Live Alerts (Pre-Crime)
           </button>
         </div>
 
@@ -398,6 +404,9 @@
                   <button class="btn-pill active" id="btnRound" onclick="switchAnomalyType('round_number')">Round Numbers</button>
                   <button class="btn-pill" id="btnQuick" onclick="switchAnomalyType('quick_award')">Quick Awards</button>
                   <button class="btn-pill" id="btnHvState" onclick="switchAnomalyType('high_value_state')">High-Value State</button>
+                  <button class="btn-pill" id="btnShortWin" onclick="switchAnomalyType('short_window')">Short Window</button>
+                  <button class="btn-pill" id="btnLowEmd" onclick="switchAnomalyType('low_emd')">Low EMD</button>
+                  <button class="btn-pill" id="btnHighFee" onclick="switchAnomalyType('high_fee')">High Fee</button>
                 </div>
                 <button class="btn-mini" onclick="exportTableCSV('anomalyTable', 'anomalies_export.csv')" style="margin-left: 10px; background: rgba(56, 189, 248, 0.1); color: var(--accent); border-color: rgba(56, 189, 248, 0.3);">
                   <i data-lucide="download" style="width:14px;height:14px;margin-right:4px;"></i>Export CSV
@@ -515,6 +524,40 @@
           </section>
         </div>
 
+        <!-- CARTEL RINGS -->
+        <div class="inv-tab-content" id="inv-cartel">
+          <section class="section">
+            <div class="section-header">
+              <h2 class="section-title">
+                <span class="pulse-dot" style="background:var(--danger)"></span>
+                Confirmed Cartel Rings (Bid Rotation)
+              </h2>
+            </div>
+            <div class="anomaly-desc">
+              Instances where multiple companies from the <strong>same network cluster (shared beneficial owner/director)</strong> won contracts from the <strong>same government department</strong>. This is strong evidence of Bid Rotation (Cover Bidding).
+            </div>
+            <div class="chart-card">
+              <div class="table-wrap">
+                <table class="data-table" id="cartelTable">
+                  <thead>
+                    <tr>
+                      <th>Cluster ID</th>
+                      <th>Organisation</th>
+                      <th>Linked Companies in Cartel</th>
+                      <th>Members Won</th>
+                      <th>Total Value (Cr)</th>
+                    </tr>
+                  </thead>
+                  <tbody id="cartelBody">
+                    <tr><td colspan="5" class="table-empty">Loading…</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="pagination" id="cartelPagination"></div>
+            </div>
+          </section>
+        </div>
+
         <!-- GLOBAL LEAKS & PEPS -->
         <div class="inv-tab-content" id="inv-pep">
           <section class="section">
@@ -547,6 +590,41 @@
                   </tbody>
                 </table>
               </div>
+            </div>
+          </section>
+        </div>
+
+        <!-- LIVE ALERTS (PRE-CRIME) -->
+        <div class="inv-tab-content" id="inv-live">
+          <section class="section">
+            <div class="section-header">
+              <h2 class="section-title">
+                <span class="pulse-dot" style="background:var(--critical)"></span>
+                Live Predictive Alerts (Pre-Crime)
+              </h2>
+            </div>
+            <div class="anomaly-desc">
+              These are <strong>Currently Open Tenders</strong> flagged by our Machine Learning and NLP models as highly anomalous. "Tailored Specs" indicates highly unusual text requirements that may lock out competitors.
+            </div>
+            <div class="chart-card">
+              <div class="table-wrap">
+                <table class="data-table" id="liveAlertsTable">
+                  <thead>
+                    <tr>
+                      <th>Tender ID</th>
+                      <th>Organisation</th>
+                      <th>Title</th>
+                      <th>Contract Value</th>
+                      <th>Risk Score (0-100)</th>
+                      <th>Flag Type</th>
+                    </tr>
+                  </thead>
+                  <tbody id="liveAlertsBody">
+                    <tr><td colspan="6" class="table-empty">Loading…</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="pagination" id="liveAlertsPagination"></div>
             </div>
           </section>
         </div>

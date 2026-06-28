@@ -1,6 +1,8 @@
 import sqlite3
 import re
 import time
+import difflib
+import os
 
 SUM_DB = 'summary.db'
 SANCTIONS_DB = 'data_dump/sanctions.db'
@@ -76,15 +78,29 @@ def main():
     matches = set() # (bidder_name, sanction_id, schema, matched_name, dataset)
     
     t0 = time.time()
+    lookup_keys = list(lookup.keys())
+    
     for bidder in all_bidders:
         norm_bidder = normalize_name(bidder)
         if not norm_bidder or len(norm_bidder) <= 3:
             continue
             
+        # 1. Exact Match
         if norm_bidder in lookup:
             for s_rec in lookup[norm_bidder]:
                 sid, schema, s_name, dataset = s_rec
                 matches.add((bidder, sid, schema, s_name, dataset))
+        else:
+            # 2. Fuzzy Match (Only for strings > 10 chars to avoid false positives)
+            if len(norm_bidder) > 10:
+                # We use a strict cutoff of 0.90 to find near-perfect matches (e.g. typos)
+                close = difflib.get_close_matches(norm_bidder, lookup_keys, n=1, cutoff=0.90)
+                if close:
+                    best_match = close[0]
+                    for s_rec in lookup[best_match]:
+                        sid, schema, s_name, dataset = s_rec
+                        # Mark as fuzzy match in dataset field
+                        matches.add((bidder, sid, schema, s_name, dataset + " (Fuzzy)"))
                 
     if matches:
         sum_cur.executemany("INSERT INTO sanction_matches VALUES (?, ?, ?, ?, ?)", list(matches))

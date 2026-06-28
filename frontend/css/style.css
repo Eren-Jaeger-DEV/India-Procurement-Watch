@@ -1241,4 +1241,33 @@ body {
   .sidebar .nav-section-label,
   .sidebar .btn-theme span { display: none; }
   .main-wrapper { margin-left: 64px; }
+
+  .header { flex-wrap: wrap; height: auto; padding: 10px 16px; }
+  .header-actions { margin-top: 10px; width: 100%; justify-content: space-between; }
+  
+  .investigation-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 5px;
+  }
+  
+  .table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .report-card-item {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  .network-sidebar {
+    width: 100% !important;
+    z-index: 999;
+  }
 }
+
+/* PDF Export Styles */
+.pdf-export-container { padding: 20px; background: white; }
+.pdf-watermark { position: absolute; top: 0; left: 0; right: 0; bottom: 0; opacity: 0.05; pointer-events: none; background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text x="10" y="50" transform="rotate(-45 50 50)" font-size="14" fill="black">CONFIDENTIAL - IPW</text></svg>'); z-index: 9999; }

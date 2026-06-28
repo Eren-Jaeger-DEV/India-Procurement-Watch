@@ -32,7 +32,14 @@ def main():
     ''')
     conn.commit()
     
-    req = urllib.request.urlopen(URL)
+    try:
+        req = urllib.request.urlopen(URL, timeout=30)
+    except Exception as e:
+        print(f"Error downloading OpenSanctions dataset: {e}")
+        print("Please check your internet connection or try again later.")
+        conn.close()
+        return
+        
     lines = (line.decode('utf-8') for line in req)
     reader = csv.reader(lines)
     

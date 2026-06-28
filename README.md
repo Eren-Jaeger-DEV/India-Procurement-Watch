@@ -1,25 +1,28 @@
-# India Procurement Watch — Power Analysis Tool
+# India Procurement Watch — Power Analysis Tool (v3.0)
 
-India Procurement Watch is an offline-first analytical dashboard designed for exploring public procurement data in India. 
-
-The application processes large SQLite database exports from government e-procurement portals into a local dashboard. It allows journalists, researchers, and citizens to analyze public spending and track anomalies without requiring direct database queries or specialized expertise.
+India Procurement Watch is a robust analytical dashboard designed for exploring public procurement data in India. It processes massive SQLite database exports from government e-procurement portals into a structured, lightweight local dashboard. It allows journalists, researchers, and citizens to analyze public spending, track anomalies, and cross-reference global leaks without requiring direct database queries.
 
 ## Key Features
 
-*   **Offline Data Ingestion**: Place database files in the `data_dump/` directory and trigger the aggregation directly from your browser.
-*   **Narrative Analysis Reports**: An automated rules engine highlights unusual patterns, explains their implications, and suggests specific follow-up actions.
-*   **Risk Grading**: Assigns risk grades (A to F) to departments based on the percentage of single-bid awards and round-number contracts.
-*   **Investigation Desk**: Dedicated tabular views to filter potential red flags:
-    *   **Round-Number Contracts**: Awards ending in exact Lakh or Crore multiples.
-    *   **Quick-Award Notices**: Contracts awarded within 24 hours of the bidding deadline.
-    *   **Single-Bid Contracts**: Awards where only one bidder participated.
-    *   **Repeat Winners**: Vendors winning multiple contracts from the same department.
-*   **Full-Text Search**: Instantly query tender titles and departments using an optimized SQLite FTS5 index.
-*   **Geographical Analysis**: View contract distributions and total spending mapped across states on a fully interactive, zoomable map powered by Leaflet.js.
+*   **Machine Learning Risk Engine:** Uses `scikit-learn` Isolation Forests to flag highly anomalous contractors based on multi-dimensional behavioral data.
+*   **Global Leaks & PEP Cross-Referencing:** Automatically streams and cross-references bidders against the **OpenSanctions** global database to expose sanctioned entities and Politically Exposed Persons (PEPs) participating in Indian tenders.
+*   **Time-Series & Election Tracking:** An interactive timeline view allowing journalists to track spending spikes and rapid-award contracts leading up to state or national elections.
+*   **Exportable Evidence:** Generate clean, watermarked PDF reports of Contractor Network graphs and Risk Grades for direct attachment in investigative journalism articles.
+*   **Mobile-Responsive Field View:** A fully responsive UI layout allowing field reporters to seamlessly browse the Investigation Desk and Risk Cards on smartphones and tablets.
+*   **Narrative Analysis Reports**: An automated rules engine that highlights unusual patterns, explains their implications, and suggests specific follow-up actions in plain English.
+*   **Geographical Analysis**: View contract distributions and total spending mapped across states on a fully interactive, zoomable map.
 
-## Quick Start (with Mock Data)
+## Project Structure
 
-If you do not have the real dataset, you can generate mock data to test the workflow:
+*   `app.py` — Flask API server that serves aggregate data and searches.
+*   `analyse.py` — Master pipeline orchestrator that coordinates schema checks, data aggregation, ML risk scoring, Sanctions matching, and report generation.
+*   `build_summary.py` — Processes raw scraper logs to populate statistical tables.
+*   `build_ml_risk.py` — The machine learning engine for computing Risk Scores.
+*   `build_sanctions.py` & `match_sanctions.py` — OpenSanctions ingestion and matching pipeline.
+*   `data_dump/` — The directory where raw SQLite files (`aoc_tenders.db`, etc.) should be placed.
+*   `frontend/` — HTML, CSS, and Javascript dashboard files.
+
+## Running Locally
 
 1.  **Clone and Install**:
     ```bash
@@ -27,49 +30,44 @@ If you do not have the real dataset, you can generate mock data to test the work
     cd India-Procurement-Watch
     pip install -r requirements.txt
     ```
-
-2.  **Generate Test Data**:
-    ```bash
-    python create_sample_data.py
-    ```
-    This script writes mock databases into the `data_dump/` folder.
-
+2.  **Add Raw Data**:
+    Drop your raw SQLite dumps (e.g., `aoc_tenders.db` and `tenders_vps.db`) into the `data_dump/` folder.
 3.  **Run the Server**:
     ```bash
     python app.py
     ```
-
 4.  **Process and View**:
-    *   Open `http://localhost:5000` in your web browser.
-    *   The application will open the **Data Import** screen displaying the mock files.
-    *   Click **Analyse Data** to run the aggregation pipeline. Once finished, the dashboard will populate.
+    Open `http://localhost:5000` in your web browser. Click **Analyse Data** on the import screen to run the aggregation pipeline.
 
-## Project Structure
+## VPS Deployment (Production)
 
-*   `app.py` — Flask API server that serves aggregate data and searches. It utilizes request-scoped connections to avoid database file locks.
-*   `analyse.py` — Pipeline orchestrator that coordinates schema checks, aggregation, indexing, and report generation.
-*   `build_summary.py` — Processes raw scraper logs to populate statistical tables.
-*   `build_search_index.py` — Builds the full-text search database.
-*   `data_dump/` — The directory where new SQLite files should be placed.
-*   `src/analysis/` — Contains anomaly detection logic and narrative generation engines.
-*   `frontend/` — HTML, CSS, and Javascript dashboard files.
+The tool is designed to be hosted publicly on a VPS (e.g., AWS EC2, DigitalOcean Droplet, Linode) to share with the public.
 
-## Technical Details
-
-The tool runs a preprocessing step to avoid querying the large raw databases directly:
-1.  It compiles raw records into a structured `summary.db` (typically under 50 MB).
-2.  It copies text values to a separate `search.db` utilizing SQLite FTS5 virtual tables.
-3.  The Flask backend accesses these compiled databases read-only during active dashboard requests.
-
-## Offline Privacy
-
-All processing is executed locally on your machine. No search queries or database files are uploaded to external servers.
-
-## Credits & Contributions
-
-The **Director Networks** graph feature matches bidder names to official corporate profiles (CIN) and extracts connections such as shared registration emails or physical addresses.
-
-This dataset mapping, name normalization, and record-linkage architecture was designed and developed by:
-*   [fireboy-dev/india-procurement-company-director](https://github.com/fireboy-dev/india-procurement-company-director)
-
-If you run their matching pipeline, you can drop the generated `nodes.csv` and `edges.csv` files into the `data_dump/` folder. The application will automatically detect and import them, allowing you to explore company and buyer connections directly in your browser.
+1.  **Install System Dependencies**:
+    Ensure you have `python3`, `pip`, and `git` installed on your VPS.
+    ```bash
+    sudo apt update
+    sudo apt install python3 python3-pip python3-venv git
+    ```
+2.  **Clone & Setup Environment**:
+    ```bash
+    git clone https://github.com/Eren-Jaeger-DEV/India-Procurement-Watch.git
+    cd India-Procurement-Watch
+    python3 -m venv venv
+    source venv/bin/activate
+    pip install -r requirements.txt
+    ```
+3.  **Transfer Data**:
+    Upload your `data_dump/` files to the VPS (using `scp` or a cloud storage provider).
+4.  **Production WSGI Server (Gunicorn)**:
+    Do not use the built-in Flask development server in production. Install Gunicorn:
+    ```bash
+    pip install gunicorn
+    ```
+5.  **Run with Gunicorn**:
+    Run the app on port 80 (requires root/sudo, or use a reverse proxy like Nginx to route port 80 to 5000):
+    ```bash
+    gunicorn -w 4 -b 0.0.0.0:5000 app:app
+    ```
+6.  **Reverse Proxy (Recommended)**:
+    For best performance, configure Nginx to serve the `frontend/` static files directly and proxy API requests to Gunicorn.

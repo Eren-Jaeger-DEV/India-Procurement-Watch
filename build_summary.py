@@ -272,6 +272,7 @@ def create_summary_db(conn):
             round_number_pct    REAL,
             score               REAL,
             grade               TEXT,
+            hhi_score           REAL,
             ml_risk_score       REAL,
             ml_flag             INTEGER
         );
@@ -562,12 +563,26 @@ def aggregate_aoc_data(aoc_conn, sum_conn):
     log(f"  OK Stored {len(rw_rows):,} repeat winners (>= 3 wins from same org).")
 
     # ── Report Cards ──
+    # Compute HHI (Herfindahl-Hirschman Index) per org
+    org_vendors = defaultdict(list)
+    for (bidder, org), stats in winner_stats.items():
+        if bidder and org:
+            org_vendors[org].append(stats['wins'])
+
     rc_rows = []
     for o, stats in org_stats.items():
         if stats['count'] < 10:  # Minimum 10 contracts to be graded
             continue
         s_pct = (stats['single_bid_count'] / stats['count']) * 100
         r_pct = (stats['round_number_count'] / stats['count']) * 100
+        
+        # Calculate HHI Score
+        total_wins = sum(org_vendors[o])
+        hhi_score = 0.0
+        if total_wins > 0:
+            for w in org_vendors[o]:
+                share = (w / total_wins) * 100.0
+                hhi_score += share ** 2
         
         # Risk Score (0-100 where 100 is max risk)
         raw_risk = min(100.0, (s_pct * 0.7) + (r_pct * 0.3))
@@ -581,10 +596,10 @@ def aggregate_aoc_data(aoc_conn, sum_conn):
         score = round(100 - raw_risk, 1) # 100 is best, 0 is worst
         rc_rows.append((
             o, stats['count'], round(stats['value']/1e7, 4),
-            round(s_pct, 1), round(r_pct, 1), score, grade
+            round(s_pct, 1), round(r_pct, 1), score, grade, round(hhi_score, 1)
         ))
     sum_conn.executemany(
-        "INSERT INTO org_report_cards(org_name, total_contracts, total_value_crore, single_bid_pct, round_number_pct, score, grade) VALUES (?,?,?,?,?,?,?)",
+        "INSERT INTO org_report_cards(org_name, total_contracts, total_value_crore, single_bid_pct, round_number_pct, score, grade, hhi_score) VALUES (?,?,?,?,?,?,?,?)",
         rc_rows
     )
     log(f"  OK Generated {len(rc_rows):,} department report cards.")
@@ -680,6 +695,71 @@ def aggregate_vps(vps_conn, sum_conn):
         )
     else:
         log("  (no recognised date column — skipping monthly published)")
+
+    log("Phase 2d: Deep Procurement Flags (Short Window, Low EMD, High Fee)...")
+    try:
+        cur.execute("SELECT tender_id, details_json FROM tender_details")
+        anom_short = []
+        anom_low_emd = []
+        anom_high_fee = []
+        
+        pk = 0
+        ANOMALY_LIMIT = 500  # match the limit from phase 1
+        
+        for tid, djson in cur:
+            if not djson: continue
+            try:
+                d = json.loads(djson)
+                pub_date = d.get('ePublished Date')
+                end_date = d.get('Bid Submission End Date') or d.get('closing_date')
+                org = str(d.get('Organisation Name', ''))
+                title = str(d.get('Tender Title', ''))
+                val_raw = str(d.get('Tender Value', ''))
+                emd_raw = str(d.get('EMD', ''))
+                fee_raw = str(d.get('Tender Fee', ''))
+                ptype = str(d.get('Organisation Type', ''))
+                
+                cv = parse_contract_value(val_raw) or 0.0
+                emd = parse_contract_value(emd_raw) or 0.0
+                fee = parse_contract_value(fee_raw) or 0.0
+                
+                # Short Window (< 7 days)
+                if pub_date and end_date and len(anom_short) < ANOMALY_LIMIT:
+                    days = days_between(pub_date, end_date)
+                    if days is not None and days < 7 and days >= 0:
+                        anom_short.append((
+                            'short_window', tid, org, title[:200], cv, pub_date, ptype,
+                            json.dumps({'days_open': days})
+                        ))
+                        
+                # High Fee (> 10,000)
+                if fee > 10000 and len(anom_high_fee) < ANOMALY_LIMIT:
+                    anom_high_fee.append((
+                        'high_fee', tid, org, title[:200], cv, pub_date or '', ptype,
+                        json.dumps({'tender_fee': fee})
+                    ))
+                    
+                # Low EMD (< 0.5% on large contracts >= 1 Cr)
+                if cv >= 100_000_00 and emd > 0 and len(anom_low_emd) < ANOMALY_LIMIT:
+                    if (emd / cv) < 0.005:
+                        anom_low_emd.append((
+                            'low_emd', tid, org, title[:200], cv, pub_date or '', ptype,
+                            json.dumps({'emd': emd, 'pct': round((emd/cv)*100, 3)})
+                        ))
+            except Exception:
+                pass
+                
+            pk += 1
+            if pk % 250_000 == 0:
+                log(f"  Processed {pk:,} details for deep flags...")
+                
+        sum_conn.executemany(
+            "INSERT INTO anomalies(anom_type, internal_id, org_name, title, contract_value, aoc_date, portal_type, extra_info) VALUES (?,?,?,?,?,?,?,?)",
+            anom_short + anom_low_emd + anom_high_fee
+        )
+        log(f"  OK Generated {len(anom_short)} short-window, {len(anom_low_emd)} low-emd, {len(anom_high_fee)} high-fee flags.")
+    except Exception as e:
+        log(f"  (Skipping deep flags due to missing tables/data: {e})")
 
     sum_conn.commit()
 

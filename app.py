@@ -461,6 +461,54 @@ def api_repeat_winners():
     return jsonify({"total": total, "page": page, "per_page": per_page,
                     "results": [dict(r) for r in cur.fetchall()]})
 
+@app.route("/api/cartels")
+def api_cartels():
+    page     = max(1, int(request.args.get("page", 1)))
+    per_page = 20
+    offset   = (page - 1) * per_page
+
+    conn = get_sum_conn()
+    cur  = conn.cursor()
+
+    try:
+        cur.execute("SELECT COUNT(*) as cnt FROM cartel_rings")
+        total = cur.fetchone()["cnt"]
+
+        cur.execute("""
+            SELECT cluster_id, org_name, companies, company_count, total_value_crore
+            FROM cartel_rings
+            ORDER BY total_value_crore DESC LIMIT ? OFFSET ?
+        """, (per_page, offset))
+
+        return jsonify({"total": total, "page": page, "per_page": per_page,
+                        "results": [dict(r) for r in cur.fetchall()]})
+    except sqlite3.OperationalError:
+        return jsonify({"error": "No cartel data found. Make sure to generate nodes.csv and run the cartel detector."}), 404
+
+@app.route("/api/live-alerts")
+def api_live_alerts():
+    page     = max(1, int(request.args.get("page", 1)))
+    per_page = 20
+    offset   = (page - 1) * per_page
+
+    conn = get_sum_conn()
+    cur  = conn.cursor()
+
+    try:
+        cur.execute("SELECT COUNT(*) as cnt FROM live_alerts")
+        total = cur.fetchone()["cnt"]
+
+        cur.execute("""
+            SELECT tender_id, org_name, title, contract_value, ml_risk_score, nlp_flag
+            FROM live_alerts
+            ORDER BY ml_risk_score DESC LIMIT ? OFFSET ?
+        """, (per_page, offset))
+
+        return jsonify({"total": total, "page": page, "per_page": per_page,
+                        "results": [dict(r) for r in cur.fetchall()]})
+    except sqlite3.OperationalError:
+        return jsonify({"error": "No live alerts data found. Run build_live_alerts.py."}), 404
+
 # ─────────────────────────────────────────────
 # API: REPORT CARDS & STATE STATS
 # ─────────────────────────────────────────────

@@ -333,7 +333,69 @@ def stage_match_sanctions():
     if proc.returncode != 0:
         print(f"  [!] match_sanctions.py failed with exit code {proc.returncode}. Continuing anyway.")
     
-    write_state("sanctions", 82, "Sanctions cross-referencing complete.")
+    write_state("sanctions", 82, "Sanctions matching complete.")
+
+def stage_build_cartels():
+    """Run build_cartels.py to detect bid rotation rings."""
+    write_state("cartels", 83, "Detecting cartel rings (bid rotation)...")
+
+    script = os.path.join(BASE_DIR, "build_cartels.py")
+    if not os.path.exists(script):
+        write_state("cartels", 83, "Cartel detector not found, skipping.")
+        return
+
+    proc = subprocess.Popen(
+        [sys.executable, script],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        cwd=BASE_DIR
+    )
+
+    for line in proc.stdout:
+        line = line.strip()
+        if line:
+            print(f"  [build_cartels] {line}")
+            write_state("cartels", 83, f"Cartels: {line[:80]}")
+
+    proc.wait()
+    if proc.returncode != 0:
+        print(f"  [!] build_cartels.py failed with exit code {proc.returncode}. Continuing anyway.")
+    
+    write_state("cartels", 85, "Cartel detection complete.")
+
+def stage_build_live_alerts():
+    """Run build_live_alerts.py for predictive NLP and ML."""
+    write_state("live_alerts", 86, "Running Predictive Models on Live Tenders...")
+
+    script = os.path.join(BASE_DIR, "build_live_alerts.py")
+    if not os.path.exists(script):
+        write_state("live_alerts", 86, "Live Alerts script not found, skipping.")
+        return
+
+    proc = subprocess.Popen(
+        [sys.executable, script],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        cwd=BASE_DIR
+    )
+
+    for line in proc.stdout:
+        line = line.strip()
+        if line:
+            print(f"  [build_live_alerts] {line}")
+            write_state("live_alerts", 86, f"Live Alerts: {line[:80]}")
+
+    proc.wait()
+    if proc.returncode != 0:
+        print(f"  [!] build_live_alerts.py failed with exit code {proc.returncode}. Continuing anyway.")
+    
+    write_state("live_alerts", 88, "Live Alerts generation complete.")
 
 
 def stage_build_search():
@@ -576,6 +638,12 @@ def run_analysis(aoc_src=None, vps_src=None, use_existing=False):
 
         # Stage 2.6: Match Global Sanctions
         stage_match_sanctions()
+
+        # Stage 2.7: Detect Cartels
+        stage_build_cartels()
+
+        # Stage 2.8: Predictive Live Alerts
+        stage_build_live_alerts()
 
         # Stage 3: Build search index
         stage_build_search()

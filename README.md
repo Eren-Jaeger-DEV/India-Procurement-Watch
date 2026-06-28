@@ -2,6 +2,34 @@
 
 India Procurement Watch is a robust analytical dashboard designed for exploring public procurement data in India. It processes massive SQLite database exports from government e-procurement portals into a structured, lightweight local dashboard. It allows journalists, researchers, and citizens to analyze public spending, track anomalies, and cross-reference global leaks without requiring direct database queries.
 
+
+# Sentinel Edition Update (June 2026)
+This project has been updated to the Sentinel Edition architecture, focusing on enhanced diagnostic capabilities, offline robustness, and a refined investigative UI.
+
+# Key Enhancements:
+* **Architectural Stability**: Refined core logic within analysis.js, network.js, and main.js to ensure seamless state management and error resolution.
+
+* **Offline-Friendly Design**: Integrated state persistence, allowing the dashboard to function reliably during network fluctuations.
+
+* **UI/UX Overhaul**: Adopted the Sentinel design language, utilizing high-contrast styling in style.css and a restructured layout in index.html.
+
+* **Advanced Data Processing**: Upgraded chart.js and search.js for dynamic data filtering and real-time visualization of procurement patterns.
+Fully Functional Live Gemini AI Assistant: Powered by the real gemini-3-flash-preview engine, ready to answer any custom forensic data query live.
+
+* **Interactive SQL Hacker Termina**l: A real sandboxed SQL prompt that accepts typed commands (or clickable presets) and dynamically filters our mock procurement databases in memory.
+
+* **"Spot the Corruption" Mini-Game**: A gamified forensic auditing challenge with interactive cases, structural red-flag puzzles, scoring systems, and progressive investigator ranking.
+
+* **Interactive Network Graph Customizer**: Dynamic form controls that let you physically inject new suspect nodes and establish custom relationship strings on the live Vis.js network map.
+
+* **Architectural Stability**: Refined core logic within analysis.js, network.js, and main.js to ensure seamless state management and error resolution.
+
+* **Offline-Friendly Design**: Integrated state persistence, allowing the dashboard to function reliably during network fluctuations.
+
+* **UI/UX Overhaul**: Adopted the Sentinel design language, utilizing high-contrast styling in style.css and a restructured layout in index.html.
+
+* **Advanced Data Processing**: Upgraded chart.js and search.js for dynamic data filtering and real-time visualization of procurement patterns.
+
 ## Key Features
 
 *   **Machine Learning Risk Engine:** Uses `scikit-learn` Isolation Forests to flag highly anomalous contractors based on multi-dimensional behavioral data.

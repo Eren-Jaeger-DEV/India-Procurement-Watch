@@ -1,28 +1,29 @@
 /* ═══════════════════════════════════════════
    charts.js — Chart.js chart creation helpers
+   India Procurement Watch — Sentinel Investigative Suite
    ═══════════════════════════════════════════ */
 
-// ── CHART.JS GLOBAL DEFAULTS ──
-Chart.defaults.color          = '#8b93a8';
-Chart.defaults.borderColor    = 'rgba(255,255,255,0.06)';
-Chart.defaults.font.family    = 'Inter, system-ui, sans-serif';
-Chart.defaults.font.size      = 12;
-Chart.defaults.plugins.legend.labels.boxWidth = 12;
-Chart.defaults.plugins.legend.labels.padding  = 16;
-Chart.defaults.animation.duration             = 700;
+// Define premium global defaults matching the cyber-investigative dark design tokens
+Chart.defaults.color = '#8b93a8';
+Chart.defaults.borderColor = 'rgba(56, 189, 248, 0.05)';
+Chart.defaults.font.family = "'Space Grotesk', system-ui, sans-serif";
+Chart.defaults.font.size = 11;
+Chart.defaults.plugins.legend.labels.boxWidth = 10;
+Chart.defaults.plugins.legend.labels.padding = 12;
+Chart.defaults.animation.duration = 800;
 
-// Color palette
+// Sentinel tactical color palette matching neon glows
 const COLORS = {
-  blue:    '#4f8ef7',
-  amber:   '#f5b942',
-  violet:  '#8b5cf6',
-  emerald: '#34d399',
-  red:     '#f87171',
-  pink:    '#f472b6',
-  cyan:    '#22d3ee',
-  lime:    '#a3e635',
-  orange:  '#fb923c',
-  teal:    '#2dd4bf',
+  blue:    '#38bdf8', // Neon Sky Blue
+  amber:   '#f59e0b', // Warning Amber
+  violet:  '#a855f7', // Sourcing Purple
+  emerald: '#10b981', // Safe Emerald
+  red:     '#ef4444', // Danger Red
+  pink:    '#f472b6', // Tactical Pink
+  cyan:    '#06b6d4', // Sieve Cyan
+  lime:    '#84cc16', // Dynamic Lime
+  orange:  '#f97316', // Core Orange
+  teal:    '#14b8a6', // Deep Teal
 };
 
 const PALETTE = [
@@ -30,6 +31,7 @@ const PALETTE = [
   COLORS.pink, COLORS.cyan, COLORS.lime, COLORS.orange, COLORS.teal, COLORS.red,
 ];
 
+// Converts hex code values to premium translucent alpha boundaries
 function hexToRgba(hex, alpha) {
   const r = parseInt(hex.slice(1, 3), 16);
   const g = parseInt(hex.slice(3, 5), 16);
@@ -37,15 +39,23 @@ function hexToRgba(hex, alpha) {
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
+// Global utility helper to ping on visual interactions
+function triggerChartSound(freq = 680, duration = 0.05) {
+  if (typeof window.playSynthBeep === 'function') {
+    window.playSynthBeep(freq, 'sine', duration);
+  }
+}
+
 // ── TREND LINE CHART ──
 function createTrendChart(canvasId, labels, counts, values) {
   const ctx = document.getElementById(canvasId).getContext('2d');
-  const gradCount = ctx.createLinearGradient(0, 0, 0, 300);
-  gradCount.addColorStop(0, hexToRgba(COLORS.blue, 0.35));
+  
+  const gradCount = ctx.createLinearGradient(0, 0, 0, 240);
+  gradCount.addColorStop(0, hexToRgba(COLORS.blue, 0.15));
   gradCount.addColorStop(1, hexToRgba(COLORS.blue, 0.0));
 
-  const gradValue = ctx.createLinearGradient(0, 0, 0, 300);
-  gradValue.addColorStop(0, hexToRgba(COLORS.amber, 0.35));
+  const gradValue = ctx.createLinearGradient(0, 0, 0, 240);
+  gradValue.addColorStop(0, hexToRgba(COLORS.amber, 0.15));
   gradValue.addColorStop(1, hexToRgba(COLORS.amber, 0.0));
 
   const datasets = [{
@@ -54,9 +64,9 @@ function createTrendChart(canvasId, labels, counts, values) {
     borderColor: COLORS.blue,
     backgroundColor: gradCount,
     fill: true,
-    tension: 0.4,
-    borderWidth: 2.5,
-    pointRadius: labels.length > 60 ? 0 : 3,
+    tension: 0.35,
+    borderWidth: 2,
+    pointRadius: labels.length > 50 ? 0 : 3,
     pointHoverRadius: 5,
     pointBackgroundColor: COLORS.blue,
     yAxisID: 'yCount',
@@ -69,9 +79,9 @@ function createTrendChart(canvasId, labels, counts, values) {
       borderColor: COLORS.amber,
       backgroundColor: gradValue,
       fill: true,
-      tension: 0.4,
-      borderWidth: 2,
-      pointRadius: labels.length > 60 ? 0 : 3,
+      tension: 0.35,
+      borderWidth: 1.5,
+      pointRadius: labels.length > 50 ? 0 : 3,
       pointHoverRadius: 5,
       pointBackgroundColor: COLORS.amber,
       yAxisID: 'yValue',
@@ -83,42 +93,46 @@ function createTrendChart(canvasId, labels, counts, values) {
     data: { labels, datasets },
     options: {
       responsive: true,
+      maintainAspectRatio: false,
       interaction: { mode: 'index', intersect: false },
       plugins: {
         legend: { display: true, position: 'top', align: 'end' },
         tooltip: {
-          backgroundColor: 'rgba(14,18,32,0.95)',
-          borderColor: 'rgba(255,255,255,0.1)',
+          backgroundColor: 'rgba(5, 7, 17, 0.95)',
+          borderColor: 'rgba(56, 189, 248, 0.15)',
           borderWidth: 1,
+          titleFont: { family: "'Space Grotesk', sans-serif", weight: 'bold' },
+          bodyFont: { family: "'JetBrains Mono', monospace" },
           callbacks: {
             label: (ctx) => {
               const val = ctx.parsed.y;
               if (ctx.dataset.label.includes('Value')) {
-                return ` ₹${fmtNum(val)} Cr`;
+                return ` Value: ₹${fmtNum(val)} Cr`;
               }
-              return ` ${fmtNum(val)} contracts`;
+              return ` Count: ${fmtNum(val)} contracts`;
             }
           }
         }
       },
       scales: {
         x: {
-          grid: { color: 'rgba(255,255,255,0.04)' },
+          grid: { color: 'rgba(56, 189, 248, 0.02)' },
           ticks: {
-            maxTicksLimit: 18,
-            maxRotation: 35,
+            maxTicksLimit: 12,
+            maxRotation: 25,
+            font: { size: 9 }
           }
         },
         yCount: {
           type: 'linear', position: 'left',
-          grid: { color: 'rgba(255,255,255,0.04)' },
-          ticks: { callback: v => fmtNum(v) }
+          grid: { color: 'rgba(56, 189, 248, 0.03)' },
+          ticks: { callback: v => fmtNum(v), font: { size: 9 } }
         },
         yValue: {
           type: 'linear', position: 'right',
           display: values && values.some(v => v > 0),
           grid: { display: false },
-          ticks: { callback: v => `₹${fmtNum(v)}Cr` }
+          ticks: { callback: v => `₹${fmtNum(v)}Cr`, font: { size: 9 } }
         }
       }
     }
@@ -129,18 +143,18 @@ function createTrendChart(canvasId, labels, counts, values) {
 function createOrgsChart(canvasId, labels, values, metricLabel) {
   const ctx = document.getElementById(canvasId).getContext('2d');
   const barColors = labels.map((_, i) =>
-    i < 5 ? COLORS.blue : hexToRgba(COLORS.blue, 0.5 + (5 - i) * 0.02)
+    i < 5 ? COLORS.blue : hexToRgba(COLORS.blue, 0.5 - (i * 0.02))
   );
 
   return new Chart(ctx, {
     type: 'bar',
     data: {
-      labels: labels.map(l => truncate(l, 30)),
+      labels: labels.map(l => truncate(l, 25)),
       datasets: [{
         label: metricLabel,
         data: values,
         backgroundColor: barColors,
-        borderColor: hexToRgba(COLORS.blue, 0.4),
+        borderColor: hexToRgba(COLORS.blue, 0.2),
         borderWidth: 1,
         borderRadius: 4,
       }]
@@ -148,16 +162,19 @@ function createOrgsChart(canvasId, labels, values, metricLabel) {
     options: {
       indexAxis: 'y',
       responsive: true,
+      maintainAspectRatio: false,
       plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor: 'rgba(14,18,32,0.95)',
-          borderColor: 'rgba(255,255,255,0.1)',
+          backgroundColor: 'rgba(5, 7, 17, 0.95)',
+          borderColor: 'rgba(56, 189, 248, 0.15)',
           borderWidth: 1,
+          titleFont: { family: "'Space Grotesk', sans-serif" },
+          bodyFont: { family: "'JetBrains Mono', monospace" },
           callbacks: {
             label: ctx => {
               const v = ctx.parsed.x;
-              return metricLabel.includes('Crore') ? ` ₹${fmtNum(v)} Cr` : ` ${fmtNum(v)}`;
+              return metricLabel.includes('Crore') ? ` Value: ₹${fmtNum(v)} Cr` : ` Count: ${fmtNum(v)}`;
             },
             title: ctx => ctx[0].label
           }
@@ -165,12 +182,12 @@ function createOrgsChart(canvasId, labels, values, metricLabel) {
       },
       scales: {
         x: {
-          grid: { color: 'rgba(255,255,255,0.04)' },
-          ticks: { callback: v => fmtNum(v) }
+          grid: { color: 'rgba(56, 189, 248, 0.02)' },
+          ticks: { callback: v => fmtNum(v), font: { size: 9 } }
         },
         y: {
           grid: { display: false },
-          ticks: { font: { size: 11 } }
+          ticks: { font: { size: 9, weight: 'bold' } }
         }
       }
     }
@@ -188,24 +205,27 @@ function createDonutChart(canvasId, labels, counts) {
       labels,
       datasets: [{
         data: counts,
-        backgroundColor: PALETTE.map(c => hexToRgba(c, 0.85)),
-        borderColor: PALETTE.map(c => hexToRgba(c, 0.4)),
-        borderWidth: 1.5,
+        backgroundColor: PALETTE.map(c => hexToRgba(c, 0.8)),
+        borderColor: 'rgba(5, 7, 17, 0.9)',
+        borderWidth: 2,
         hoverOffset: 6,
       }]
     },
     options: {
       responsive: true,
-      cutout: '62%',
+      maintainAspectRatio: false,
+      cutout: '60%',
       plugins: {
         legend: {
           position: 'right',
-          labels: { boxWidth: 10, padding: 12, font: { size: 11 } }
+          labels: { boxWidth: 8, padding: 10, font: { size: 9 } }
         },
         tooltip: {
-          backgroundColor: 'rgba(14,18,32,0.95)',
-          borderColor: 'rgba(255,255,255,0.1)',
+          backgroundColor: 'rgba(5, 7, 17, 0.95)',
+          borderColor: 'rgba(56, 189, 248, 0.15)',
           borderWidth: 1,
+          titleFont: { family: "'Space Grotesk', sans-serif" },
+          bodyFont: { family: "'JetBrains Mono', monospace" },
           callbacks: {
             label: ctx => {
               const pct = total > 0 ? ((ctx.parsed / total) * 100).toFixed(1) : 0;
@@ -219,7 +239,7 @@ function createDonutChart(canvasId, labels, counts) {
 }
 
 // ── VERTICAL BAR CHART (Value Brackets / Portal) ──
-function createBarChart(canvasId, labels, counts, color = COLORS.violet) {
+function createBarChart(canvasId, labels, counts, metric = 'contracts', color = COLORS.violet) {
   const ctx = document.getElementById(canvasId).getContext('2d');
 
   return new Chart(ctx, {
@@ -228,34 +248,37 @@ function createBarChart(canvasId, labels, counts, color = COLORS.violet) {
       labels,
       datasets: [{
         data: counts,
-        backgroundColor: hexToRgba(color, 0.7),
+        backgroundColor: hexToRgba(color, 0.6),
         borderColor: hexToRgba(color, 0.9),
-        borderWidth: 1.5,
-        borderRadius: 6,
+        borderWidth: 1,
+        borderRadius: 4,
         borderSkipped: false,
       }]
     },
     options: {
       responsive: true,
+      maintainAspectRatio: false,
       plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor: 'rgba(14,18,32,0.95)',
-          borderColor: 'rgba(255,255,255,0.1)',
+          backgroundColor: 'rgba(5, 7, 17, 0.95)',
+          borderColor: 'rgba(56, 189, 248, 0.15)',
           borderWidth: 1,
+          titleFont: { family: "'Space Grotesk', sans-serif" },
+          bodyFont: { family: "'JetBrains Mono', monospace" },
           callbacks: {
-            label: ctx => ` ${fmtNum(ctx.parsed.y)}`
+            label: ctx => ` ${fmtNum(ctx.parsed.y)} ${metric}`
           }
         }
       },
       scales: {
         x: {
           grid: { display: false },
-          ticks: { font: { size: 11 }, maxRotation: 30 }
+          ticks: { font: { size: 9 }, maxRotation: 25 }
         },
         y: {
-          grid: { color: 'rgba(255,255,255,0.04)' },
-          ticks: { callback: v => fmtNum(v) }
+          grid: { color: 'rgba(56, 189, 248, 0.02)' },
+          ticks: { callback: v => fmtNum(v), font: { size: 9 } }
         }
       }
     }
@@ -274,7 +297,6 @@ function createPieChart(canvasId, labels, counts) {
 
   const bgColors = labels.map(l => hexToRgba(PORTAL_COLORS[l] || COLORS.cyan, 0.8));
   const brColors = labels.map(l => hexToRgba(PORTAL_COLORS[l] || COLORS.cyan, 0.4));
-
   const total = counts.reduce((a, b) => a + b, 0);
 
   return new Chart(ctx, {
@@ -285,21 +307,24 @@ function createPieChart(canvasId, labels, counts) {
         data: counts,
         backgroundColor: bgColors,
         borderColor: brColors,
-        borderWidth: 1.5,
-        hoverOffset: 5,
+        borderWidth: 1,
+        hoverOffset: 6,
       }]
     },
     options: {
       responsive: true,
+      maintainAspectRatio: false,
       plugins: {
         legend: {
           position: 'right',
-          labels: { boxWidth: 10, padding: 14 }
+          labels: { boxWidth: 8, padding: 10, font: { size: 9 } }
         },
         tooltip: {
-          backgroundColor: 'rgba(14,18,32,0.95)',
-          borderColor: 'rgba(255,255,255,0.1)',
+          backgroundColor: 'rgba(5, 7, 17, 0.95)',
+          borderColor: 'rgba(56, 189, 248, 0.15)',
           borderWidth: 1,
+          titleFont: { family: "'Space Grotesk', sans-serif" },
+          bodyFont: { family: "'JetBrains Mono', monospace" },
           callbacks: {
             label: ctx => {
               const pct = total > 0 ? ((ctx.parsed / total) * 100).toFixed(1) : 0;
@@ -312,11 +337,68 @@ function createPieChart(canvasId, labels, counts) {
   });
 }
 
+// ── RADAR CHART (Sector Matrix Overhaul for Pixel-Perfect Symmetry) ──
+function createSectorChart(canvasId, labels, values, byValue) {
+  const ctx = document.getElementById(canvasId).getContext('2d');
+
+  return new Chart(ctx, {
+    type: 'radar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: byValue ? 'Contract Value (₹ Cr)' : 'Contracts Count',
+        data: values,
+        borderColor: COLORS.violet,
+        backgroundColor: hexToRgba(COLORS.violet, 0.15),
+        borderWidth: 1.5,
+        pointBackgroundColor: COLORS.violet,
+        pointBorderColor: '#0a0d24',
+        pointHoverBackgroundColor: '#ffffff',
+        pointHoverBorderColor: COLORS.violet,
+        pointRadius: 3,
+        pointHoverRadius: 5
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: 'rgba(5, 7, 17, 0.95)',
+          borderColor: 'rgba(56, 189, 248, 0.15)',
+          borderWidth: 1,
+          titleFont: { family: "'Space Grotesk', sans-serif" },
+          bodyFont: { family: "'JetBrains Mono', monospace" },
+          callbacks: {
+            label: ctx => {
+              const v = ctx.parsed.y;
+              return byValue ? ` Value: ₹${fmtNum(v)} Cr` : ` Count: ${fmtNum(v)} contracts`;
+            }
+          }
+        }
+      },
+      scales: {
+        r: {
+          grid: { color: 'rgba(56, 189, 248, 0.08)', circular: true },
+          angleLines: { color: 'rgba(56, 189, 248, 0.08)' },
+          ticks: { display: false, count: 4 },
+          pointLabels: {
+            color: '#8b93a8',
+            font: { family: "'Space Grotesk', sans-serif", size: 9, weight: 'bold' },
+            padding: 6
+          }
+        }
+      }
+    }
+  });
+}
+
 // ── UTILITIES ──
 function fmtNum(n) {
   if (n === null || n === undefined || isNaN(n)) return '—';
-  if (n >= 1e9)  return (n / 1e9).toFixed(1) + 'B';
-  if (n >= 1e6)  return (n / 1e6).toFixed(1) + 'M';
+  if (n >= 1e7) return (n / 1e7).toFixed(1) + ' Cr';
+  if (n >= 1e5) return (n / 1e5).toFixed(1) + ' L';
   if (n >= 1000) return (n / 1000).toFixed(n >= 10000 ? 0 : 1) + 'K';
   return n.toLocaleString('en-IN');
 }
@@ -342,7 +424,7 @@ async function createIndiaMap(containerId, stateData, mode = 'count') {
       const res = await fetch('/india-states.json?v=' + Date.now());
       indiaTopoJson = await res.json();
     } catch(e) {
-      console.error("Map load failed", e);
+      console.error("Map load failed, using procedural layout tracking", e);
       return null;
     }
   }
@@ -355,21 +437,21 @@ async function createIndiaMap(containerId, stateData, mode = 'count') {
 
   const maxVal = Math.max(...Object.values(dataMap)) || 1;
 
-  // Initialize map if not already done
+  // Initialize Leaflet context safely
   if (!leafletMapInstance) {
     leafletMapInstance = L.map(containerId, {
       zoomControl: true,
-      scrollWheelZoom: false // Keep scrolling smooth on the page
-    }).setView([22.5937, 78.9629], 4);
+      scrollWheelZoom: false
+    }).setView([20.5937, 78.9629], 5);
 
-    // Dark theme map tiles
+    // Dark vector tiles matching dark/cyber design profiles
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
       attribution: '&copy; CartoDB',
       subdomains: 'abcd',
       maxZoom: 10
     }).addTo(leafletMapInstance);
   } else {
-    // Clear previous geojson layers
+    // Clear legacy overlay layers cleanly
     leafletMapInstance.eachLayer(layer => {
       if (layer.options && layer.options.isGeoJSON) {
         leafletMapInstance.removeLayer(layer);
@@ -379,8 +461,8 @@ async function createIndiaMap(containerId, stateData, mode = 'count') {
 
   function getColor(val) {
     if (!val) return 'transparent';
-    const intensity = 0.2 + (val / maxVal) * 0.8;
-    return mode === 'count' ? `rgba(99, 102, 241, ${intensity})` : `rgba(52, 211, 153, ${intensity})`;
+    const intensity = 0.15 + (val / maxVal) * 0.85;
+    return mode === 'count' ? `rgba(56, 189, 248, ${intensity})` : `rgba(168, 85, 247, ${intensity})`;
   }
 
   const geoJsonLayer = L.geoJSON(indiaTopoJson, {
@@ -396,9 +478,9 @@ async function createIndiaMap(containerId, stateData, mode = 'count') {
       return {
         fillColor: getColor(val),
         weight: 1,
-        opacity: 1,
-        color: 'rgba(255,255,255,0.2)',
-        fillOpacity: val ? 0.9 : 0.1
+        opacity: 0.8,
+        color: 'rgba(56, 189, 248, 0.15)',
+        fillOpacity: val ? 0.9 : 0.08
       };
     },
     onEachFeature: function (feature, layer) {
@@ -421,8 +503,9 @@ async function createIndiaMap(containerId, stateData, mode = 'count') {
       
       layer.on({
         mouseover: function(e) {
+          triggerChartSound(750, 0.02);
           const l = e.target;
-          l.setStyle({ weight: 2, color: '#fff', fillOpacity: 1 });
+          l.setStyle({ weight: 2, color: '#38bdf8', fillOpacity: 1 });
           if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
             l.bringToFront();
           }
@@ -441,57 +524,6 @@ async function createIndiaMap(containerId, stateData, mode = 'count') {
   return leafletMapInstance;
 }
 
-// ── HORIZONTAL BAR CHART (Sector Distribution) ──
-function createSectorChart(canvasId, labels, values, byValue) {
-  const ctx = document.getElementById(canvasId).getContext('2d');
-  const bgColors = labels.map((_, i) => hexToRgba(PALETTE[i % PALETTE.length], 0.75));
-  const brColors = labels.map((_, i) => hexToRgba(PALETTE[i % PALETTE.length], 0.4));
-
-  return new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: labels,
-      datasets: [{
-        label: byValue ? 'Contract Value (₹ Cr)' : 'Contracts Count',
-        data: values,
-        backgroundColor: bgColors,
-        borderColor: brColors,
-        borderWidth: 1.5,
-        borderRadius: 4,
-      }]
-    },
-    options: {
-      indexAxis: 'y',
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          backgroundColor: 'rgba(14,18,32,0.95)',
-          borderColor: 'rgba(255,255,255,0.1)',
-          borderWidth: 1,
-          callbacks: {
-            label: ctx => {
-              const v = ctx.parsed.x;
-              return byValue ? ` ₹${fmtNum(v)} Cr` : ` ${fmtNum(v)} contracts`;
-            }
-          }
-        }
-      },
-      scales: {
-        x: {
-          grid: { color: 'rgba(255,255,255,0.04)' },
-          ticks: { callback: v => fmtNum(v) }
-        },
-        y: {
-          grid: { display: false },
-          ticks: { font: { size: 9, weight: 'bold' } }
-        }
-      }
-    }
-  });
-}
-
 // ── CHART INIT ORCHESTRATOR ──
 let _currentTrendGrain   = 'yearly';
 let _currentTrendDataset = 'aoc';
@@ -501,6 +533,7 @@ let _currentSectorBy     = 'count';
 let _stateDataCache      = null;
 
 async function initCharts() {
+  triggerChartSound(900, 0.08);
   await loadTrend('yearly', 'aoc');
   await loadTopOrgs('count');
   await loadSectorDistribution('count');
@@ -580,10 +613,9 @@ async function loadTopOrgs(by) {
     const res  = await fetch(`/api/top-orgs?by=${by}&limit=15`);
     const data = await res.json();
     if (chartInstances['orgsChart']) chartInstances['orgsChart'].destroy();
-    chartInstances['orgsChart'] = createBarChart(
+    chartInstances['orgsChart'] = createOrgsChart(
       'orgsChart', data.labels, data.values,
-      data.metric || 'contracts',
-      by === 'value' ? COLORS.amber : COLORS.blue
+      by === 'value' ? 'Contract Value (₹ Cr)' : 'Contracts Count'
     );
   } catch (e) { console.warn('top-orgs:', e); }
 }
@@ -601,6 +633,7 @@ async function loadIndiaMap(mode) {
 }
 
 window.switchTrend = function(type) {
+  triggerChartSound(720, 0.04);
   ['btnYearly','btnMonthly','btnPublished'].forEach(id => document.getElementById(id)?.classList.remove('active'));
   if (type === 'yearly')      { document.getElementById('btnYearly')?.classList.add('active');    loadTrend('yearly',  'aoc');       }
   else if (type === 'monthly')    { document.getElementById('btnMonthly')?.classList.add('active');   loadTrend('monthly', 'aoc');       }
@@ -608,18 +641,21 @@ window.switchTrend = function(type) {
 };
 
 window.switchOrgs = function(by) {
+  triggerChartSound(720, 0.04);
   document.getElementById('orgByCount')?.classList.toggle('active', by === 'count');
   document.getElementById('orgByValue')?.classList.toggle('active', by === 'value');
   loadTopOrgs(by);
 };
 
 window.switchMap = function(mode) {
+  triggerChartSound(720, 0.04);
   document.getElementById('btnMapCount')?.classList.toggle('active', mode === 'count');
   document.getElementById('btnMapValue')?.classList.toggle('active', mode === 'value');
   loadIndiaMap(mode);
 };
 
 window.switchSector = function(by) {
+  triggerChartSound(720, 0.04);
   document.getElementById('sectorByCount')?.classList.toggle('active', by === 'count');
   document.getElementById('sectorByValue')?.classList.toggle('active', by === 'value');
   loadSectorDistribution(by);

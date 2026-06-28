@@ -6,11 +6,19 @@ India Procurement Watch is a robust analytical dashboard designed for exploring 
 
 *   **Machine Learning Risk Engine:** Uses `scikit-learn` Isolation Forests to flag highly anomalous contractors based on multi-dimensional behavioral data.
 *   **Global Leaks & PEP Cross-Referencing:** Automatically streams and cross-references bidders against the **OpenSanctions** global database to expose sanctioned entities and Politically Exposed Persons (PEPs) participating in Indian tenders.
+*   **Offline Data Ingestion**: Place database files in the `data_dump/` directory and trigger the aggregation directly from your browser.
 *   **Time-Series & Election Tracking:** An interactive timeline view allowing journalists to track spending spikes and rapid-award contracts leading up to state or national elections.
+*   **Investigation Desk**: Dedicated tabular views to filter potential red flags:
+    *   **Round-Number Contracts**: Awards ending in exact Lakh or Crore multiples.
+    *   **Quick-Award Notices**: Contracts awarded within 24 hours of the bidding deadline.
+    *   **Single-Bid Contracts**: Awards where only one bidder participated.
+    *   **Repeat Winners**: Vendors winning multiple contracts from the same department.
+*   **Risk Grading**: Assigns risk grades (A to F) to departments based on the percentage of single-bid awards and round-number contracts.
 *   **Exportable Evidence:** Generate clean, watermarked PDF reports of Contractor Network graphs and Risk Grades for direct attachment in investigative journalism articles.
 *   **Mobile-Responsive Field View:** A fully responsive UI layout allowing field reporters to seamlessly browse the Investigation Desk and Risk Cards on smartphones and tablets.
 *   **Narrative Analysis Reports**: An automated rules engine that highlights unusual patterns, explains their implications, and suggests specific follow-up actions in plain English.
 *   **Geographical Analysis**: View contract distributions and total spending mapped across states on a fully interactive, zoomable map.
+*   **Full-Text Search**: Instantly query tender titles and departments using an optimized SQLite FTS5 index.
 
 ## Project Structure
 
@@ -71,3 +79,16 @@ The tool is designed to be hosted publicly on a VPS (e.g., AWS EC2, DigitalOcean
     ```
 6.  **Reverse Proxy (Recommended)**:
     For best performance, configure Nginx to serve the `frontend/` static files directly and proxy API requests to Gunicorn.
+
+## Offline Privacy
+
+All processing is executed locally on your machine. No search queries or database files are uploaded to external servers.
+
+## Credits & Contributions
+
+The **Director Networks** graph feature matches bidder names to official corporate profiles (CIN) and extracts connections such as shared registration emails or physical addresses.
+
+This dataset mapping, name normalization, and record-linkage architecture was designed and developed by:
+*   [fireboy-dev/india-procurement-company-director](https://github.com/fireboy-dev/india-procurement-company-director)
+
+If you run their matching pipeline, you can drop the generated `nodes.csv` and `edges.csv` files into the `data_dump/` folder. The application will automatically detect and import them, allowing you to explore company and buyer connections directly in your browser.

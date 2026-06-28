@@ -104,3 +104,17 @@ The **V4 Statistical Rigor Update** was deeply inspired by the mathematical rigo
 Their use of the Herfindahl-Hirschman Index (HHI) for department concentration and their exact definitions for Deep Procurement Flags have been adapted and injected directly into our V4 engine.
 
 The **V5 "Unbeatable" Anti-Corruption Suite** (including Predictive Live Alerts, Cartel Ring Detection via Graph Theory, and Fuzzy PEP matching) was implemented directly in this repository to provide an unmatched investigative intelligence tool.
+
+## ⚠️ Disclaimer & Caution
+
+*   **For Research & Investigation Only:** This tool is designed to assist journalists, researchers, and citizens in exploring public procurement data. It is **not** a judicial or legal tool.
+*   **Anomalies Do Not Equal Guilt:** The machine learning risk models, cartel detection algorithms, and statistical flags highlight *anomalous patterns* (e.g., bid rotation, exact-match values). These are mathematical red flags requiring human investigation, not definitive proof of corruption, fraud, or legal wrongdoing.
+*   **False Positives in Sanctions Matching:** The OpenSanctions cross-referencing—especially the Fuzzy Matching algorithms—can and will produce false positives due to shared names. You must **always verify identities** through official corporate registries (e.g., MCA in India) and legal channels before publishing accusations or reports.
+*   **No Liability:** The developers, contributors, and data providers (including Sarthak Sidhant's India Procurement Watch) assume no liability or responsibility for how this tool or its generated reports are used, interpreted, or published.
+
+## 🔒 Privacy Policy
+
+*   **100% Local Processing:** When running this tool locally, all data ingestion, machine learning, graph processing, and search querying happens directly on your machine.
+*   **No Data Exfiltration:** The application does not upload your search queries, generated narrative reports, or imported SQLite databases to any external servers.
+*   **No Telemetry:** We do not use tracking cookies, analytics, or telemetry of any kind.
+*   **VPS Deployment Caution:** If you choose to host this dashboard publicly on a VPS, you are solely responsible for securing the endpoint, managing user access, and complying with the data privacy laws (such as the DPDP Act in India) applicable to your jurisdiction.

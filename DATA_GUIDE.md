@@ -1,5 +1,9 @@
 # The Data Guide — Running the dashboard with real data
 
+This dashboard is designed to visualize data scraped by **[Sarthak Sidhant's India Procurement Watch](https://tender.sarthaksidhant.com)**. It pulls Award of Contract (AOC) notices and published tender records from GeM, CPPP, and over 30 state portals.
+
+If you want the exact dataset we tested with, you'll need to reach out to the project at [tender.sarthaksidhant.com](https://tender.sarthaksidhant.com) and ask for the SQLite dump.
+
 This guide walks you through importing your SQLite procurement databases and running the automated analysis pipeline.
 
 ## 1. Expected SQLite Files

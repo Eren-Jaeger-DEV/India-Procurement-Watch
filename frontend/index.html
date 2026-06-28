@@ -9,10 +9,13 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
   <script src="https://unpkg.com/chartjs-chart-geo@4.2.8/build/index.umd.min.js"></script>
+  <script src="https://unpkg.com/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
   <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- PDF Export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
@@ -153,6 +156,26 @@
           </div>
           <div id="dumpFilesList">
             <div class="no-files-box">No .db files found in data_dump/ yet.<br>Drop your file there and click Refresh.</div>
+          </div>
+        </div>
+
+        <!-- File Integrity -->
+        <div class="chart-card" style="margin-bottom:20px; border-left: 3px solid var(--accent)">
+          <div class="chart-card-header">
+            <h3 class="chart-title">VERIFYING FILE INTEGRITY (SHA-256)</h3>
+          </div>
+          <p style="font-size:14px; margin-top:8px; line-height: 1.6; color: var(--text-color);">
+            After downloading, verify the file has not been corrupted or tampered with by comparing its SHA-256 hash against the values below.
+          </p>
+          <div style="margin-top:16px;">
+            <strong style="text-transform:uppercase; font-size:12px; letter-spacing:0.05em; border-bottom: 1px solid var(--text-color); padding-bottom:2px;">EXPECTED HASHES</strong>
+            <div style="margin-top: 12px; font-family: monospace; font-size: 13px; display: grid; grid-template-columns: 140px 1fr; gap: 8px;">
+              <span style="color:var(--text-muted)">aoc_tenders.db :</span>
+              <span style="color:var(--accent); word-break: break-all;">ec8ef7711a17b7cae9e0414c2403b119a0a31c4dec49ed7055b38ec0df5f7586</span>
+              
+              <span style="color:var(--text-muted)">tenders_vps.db :</span>
+              <span style="color:var(--accent); word-break: break-all;">b1994cfb6dd2d5da9ed1d9ac8d6bbc7083178f155e92a65628e87a38e4c64d01</span>
+            </div>
           </div>
         </div>
 
@@ -357,6 +380,9 @@
           <button class="inv-tab-btn" id="btn-inv-repeat" onclick="switchInvTab('inv-repeat')">
             Repeat Winners
           </button>
+          <button class="inv-tab-btn" id="btn-inv-pep" onclick="switchInvTab('inv-pep')" style="color:var(--danger)">
+            Global Leaks & PEPs
+          </button>
         </div>
 
         <!-- ANOMALIES -->
@@ -367,10 +393,15 @@
                 <span class="pulse-dot"></span>
                 Procurement Anomaly Signals
               </h2>
-              <div class="btn-group">
-                <button class="btn-pill active" id="btnRound" onclick="switchAnomalyType('round_number')">Round Numbers</button>
-                <button class="btn-pill" id="btnQuick" onclick="switchAnomalyType('quick_award')">Quick Awards</button>
-                <button class="btn-pill" id="btnHvState" onclick="switchAnomalyType('high_value_state')">High-Value State</button>
+              <div style="display:flex;gap:12px;align-items:center;">
+                <div class="btn-group">
+                  <button class="btn-pill active" id="btnRound" onclick="switchAnomalyType('round_number')">Round Numbers</button>
+                  <button class="btn-pill" id="btnQuick" onclick="switchAnomalyType('quick_award')">Quick Awards</button>
+                  <button class="btn-pill" id="btnHvState" onclick="switchAnomalyType('high_value_state')">High-Value State</button>
+                </div>
+                <button class="btn-mini" onclick="exportTableCSV('anomalyTable', 'anomalies_export.csv')" style="margin-left: 10px; background: rgba(56, 189, 248, 0.1); color: var(--accent); border-color: rgba(56, 189, 248, 0.3);">
+                  <i data-lucide="download" style="width:14px;height:14px;margin-right:4px;"></i>Export CSV
+                </button>
               </div>
             </div>
             <div class="anomaly-desc" id="anomalyDesc">
@@ -407,10 +438,15 @@
                 <span class="pulse-dot" style="background:var(--medium)"></span>
                 Single-Bid Contracts
               </h2>
-              <div class="btn-group">
-                <button class="btn-pill active" onclick="filterSingleBid(1000000)">≥ ₹10 Lakh</button>
-                <button class="btn-pill" onclick="filterSingleBid(10000000)">≥ ₹1 Crore</button>
-                <button class="btn-pill" onclick="filterSingleBid(100000000)">≥ ₹10 Crore</button>
+              <div style="display:flex;gap:12px;align-items:center;">
+                <div class="btn-group">
+                  <button class="btn-pill active" onclick="filterSingleBid(1000000)">≥ ₹10 Lakh</button>
+                  <button class="btn-pill" onclick="filterSingleBid(10000000)">≥ ₹1 Crore</button>
+                  <button class="btn-pill" onclick="filterSingleBid(100000000)">≥ ₹10 Crore</button>
+                </div>
+                <button class="btn-mini" onclick="exportTableCSV('singleBidTable', 'single_bid_contracts.csv')" style="margin-left: 10px; background: rgba(56, 189, 248, 0.1); color: var(--accent); border-color: rgba(56, 189, 248, 0.3);">
+                  <i data-lucide="download" style="width:14px;height:14px;margin-right:4px;"></i>Export CSV
+                </button>
               </div>
             </div>
             <div class="anomaly-desc">
@@ -478,6 +514,42 @@
             </div>
           </section>
         </div>
+
+        <!-- GLOBAL LEAKS & PEPS -->
+        <div class="inv-tab-content" id="inv-pep">
+          <section class="section">
+            <div class="section-header">
+              <h2 class="section-title">
+                <span class="pulse-dot" style="background:var(--danger)"></span>
+                Cross-Referenced: OpenSanctions Global Database
+              </h2>
+              <button class="btn-mini" onclick="exportTableCSV('pepTable', 'sanctions_export.csv')" style="background: rgba(56, 189, 248, 0.1); color: var(--accent); border-color: rgba(56, 189, 248, 0.3);">
+                <i data-lucide="download" style="width:14px;height:14px;margin-right:4px;"></i>Export CSV
+              </button>
+            </div>
+            <div class="anomaly-desc">
+              Companies winning government contracts that perfectly match names in the <strong>OpenSanctions Global Database</strong>. This includes Politically Exposed Persons (PEPs), sanctioned entities, and known criminal associates.
+            </div>
+            <div class="chart-card">
+              <div class="table-wrap">
+                <table class="data-table" id="pepTable">
+                  <thead>
+                    <tr>
+                      <th>Winning Company Name</th>
+                      <th>Matched Sanction Entity</th>
+                      <th>Schema Type</th>
+                      <th>Dataset Source</th>
+                      <th>Total Value (₹)</th>
+                    </tr>
+                  </thead>
+                  <tbody id="pepBody">
+                    <tr><td colspan="5" class="table-empty">Loading OpenSanctions matches...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        </div>
       </div>
 
       <!-- ════════════════════════════════
@@ -487,9 +559,14 @@
         <section class="section">
           <div class="section-header">
             <h2 class="section-title">Department Risk Grades</h2>
-            <div class="btn-group">
-              <button class="btn-mini active" id="btnGradeScore" onclick="switchReportCardSort('score_asc')">Highest Risk First</button>
-              <button class="btn-mini" id="btnGradeValue" onclick="switchReportCardSort('value_desc')">Largest Orgs First</button>
+            <div style="display:flex;gap:12px;align-items:center;">
+              <div class="btn-group">
+                <button class="btn-mini active" id="btnGradeScore" onclick="switchReportCardSort('score_asc')">Highest Risk First</button>
+                <button class="btn-mini" id="btnGradeValue" onclick="switchReportCardSort('value_desc')">Largest Orgs First</button>
+              </div>
+              <button class="btn-mini" onclick="exportRiskGradesPDF()" style="margin-left: 10px; background: rgba(220, 38, 38, 0.1); color: var(--danger); border-color: rgba(220, 38, 38, 0.3);">
+                <i data-lucide="file-text" style="width:14px;height:14px;margin-right:4px;"></i>Export PDF
+              </button>
             </div>
           </div>
           <div class="anomaly-desc">
@@ -609,12 +686,17 @@
               </div>
 
               <!-- Right side: Visual canvas -->
-              <div class="chart-card" style="position:relative;height:550px;display:flex;flex-direction:column">
+              <div class="chart-card" style="position:relative;height:550px;display:flex;flex-direction:column;min-height:0;">
                 <div class="chart-card-header">
-                  <h3 class="chart-title">Neighborhood Ego-Graph (1-Hop Connections)</h3>
-                  <span style="font-size:10px;color:var(--text-muted)">Drag nodes to rearrange, hover for tooltips</span>
+                  <div>
+                    <h3 class="chart-title">Neighborhood Ego-Graph (1-Hop Connections)</h3>
+                    <span style="font-size:10px;color:var(--text-muted)">Drag nodes to rearrange, hover for tooltips</span>
+                  </div>
+                  <button class="btn-mini" onclick="exportNetworkPDF()" style="background: rgba(56, 189, 248, 0.1); color: var(--accent); border-color: rgba(56, 189, 248, 0.3);">
+                    <i data-lucide="camera" style="width:14px;height:14px;margin-right:4px;"></i>Snapshot Graph
+                  </button>
                 </div>
-                <div id="networkGraphCanvas" style="flex:1;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);margin-top:10px"></div>
+                <div id="networkGraphCanvas" style="flex:1;min-height:0;min-width:0;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);margin-top:10px"></div>
               </div>
 
             </div>

@@ -2,6 +2,7 @@
 *.db
 *.db-wal
 *.db-shm
+data_dump/*.csv
 
 # ── Python ──
 __pycache__/

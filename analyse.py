@@ -23,6 +23,7 @@ import shutil
 import sqlite3
 import subprocess
 import threading
+import hashlib
 from datetime import datetime
 
 # Reconfigure stdout/stderr to handle Unicode characters on Windows
@@ -45,6 +46,11 @@ SUM_DB      = os.path.join(BASE_DIR, "summary.db")
 SEARCH_DB   = os.path.join(BASE_DIR, "search.db")
 AOC_DB      = os.path.join(BASE_DIR, "aoc_tenders.db")
 VPS_DB      = os.path.join(BASE_DIR, "tenders_vps.db")
+
+EXPECTED_HASHES = {
+    "aoc_tenders.db": "ec8ef7711a17b7cae9e0414c2403b119a0a31c4dec49ed7055b38ec0df5f7586",
+    "tenders_vps.db": "b1994cfb6dd2d5da9ed1d9ac8d6bbc7083178f155e92a65628e87a38e4c64d01"
+}
 
 # ─────────────────────────────────────────────
 # STATE MANAGEMENT
@@ -170,17 +176,55 @@ def validate_db_schema(db_path):
 # PIPELINE STAGES
 # ─────────────────────────────────────────────
 
+def verify_file_hash(filepath, expected_hash):
+    """Calculate SHA-256 and compare it with the expected hash."""
+    if not expected_hash:
+        return True
+    
+    sha256 = hashlib.sha256()
+    print(f"  Verifying {os.path.basename(filepath)}...")
+    with open(filepath, 'rb') as f:
+        # Read in 8MB chunks to avoid memory spikes
+        for chunk in iter(lambda: f.read(8192 * 1024), b''):
+            sha256.update(chunk)
+            
+    calculated_hash = sha256.hexdigest()
+    if calculated_hash != expected_hash:
+        print(f"  [!] HASH MISMATCH for {os.path.basename(filepath)}")
+        print(f"      Expected: {expected_hash}")
+        print(f"      Got:      {calculated_hash}")
+        return False
+    
+    print(f"  [+] Hash verified for {os.path.basename(filepath)}")
+    return True
+
+# ─────────────────────────────────────────────
+# PIPELINE STAGES
+# ─────────────────────────────────────────────
+
 def stage_copy_data(aoc_src, vps_src):
     """Copy .db files from data_dump/ to project root."""
-    write_state("copying", 5, "Copying data files to working directory...")
+    write_state("copying", 5, "Verifying and copying data files to working directory...")
 
     if aoc_src and os.path.exists(aoc_src):
+        basename = os.path.basename(aoc_src)
+        expected = EXPECTED_HASHES.get(basename)
+        if expected:
+            write_state("copying", 5, f"Verifying SHA-256 for {basename}...")
+            if not verify_file_hash(aoc_src, expected):
+                raise RuntimeError(f"Data corruption detected: {basename} failed SHA-256 hash check.")
         shutil.copy2(aoc_src, AOC_DB)
-        print(f"  Copied: {os.path.basename(aoc_src)} → aoc_tenders.db")
+        print(f"  Copied: {basename} → aoc_tenders.db")
 
     if vps_src and os.path.exists(vps_src):
+        basename = os.path.basename(vps_src)
+        expected = EXPECTED_HASHES.get(basename)
+        if expected:
+            write_state("copying", 5, f"Verifying SHA-256 for {basename}...")
+            if not verify_file_hash(vps_src, expected):
+                raise RuntimeError(f"Data corruption detected: {basename} failed SHA-256 hash check.")
         shutil.copy2(vps_src, VPS_DB)
-        print(f"  Copied: {os.path.basename(vps_src)} → tenders_vps.db")
+        print(f"  Copied: {basename} → tenders_vps.db")
     elif os.path.exists(VPS_DB):
         # Keep existing VPS db if no new one provided
         pass
@@ -226,6 +270,70 @@ def stage_build_summary():
         raise RuntimeError(f"build_summary.py failed with exit code {proc.returncode}")
 
     write_state("summary", 75, "Summary database built successfully.")
+
+
+def stage_build_ml_risk():
+    """Run build_ml_risk.py to compute Isolation Forest anomaly scores."""
+    write_state("ml_risk", 76, "Training Machine Learning risk model...")
+
+    script = os.path.join(BASE_DIR, "build_ml_risk.py")
+    if not os.path.exists(script):
+        write_state("ml_risk", 78, "ML Risk script not found, skipping.")
+        return
+
+    proc = subprocess.Popen(
+        [sys.executable, script],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        cwd=BASE_DIR
+    )
+
+    for line in proc.stdout:
+        line = line.strip()
+        if line:
+            print(f"  [build_ml_risk] {line}")
+            write_state("ml_risk", 77, f"ML Risk: {line[:80]}")
+
+    proc.wait()
+    if proc.returncode != 0:
+        print(f"  [!] build_ml_risk.py failed with exit code {proc.returncode}. Continuing anyway.")
+    
+    write_state("ml_risk", 80, "Machine Learning scoring complete.")
+
+
+def stage_match_sanctions():
+    """Run match_sanctions.py to cross-reference global leaks."""
+    write_state("sanctions", 81, "Cross-referencing Global Leaks and PEPs...")
+
+    script = os.path.join(BASE_DIR, "match_sanctions.py")
+    if not os.path.exists(script):
+        write_state("sanctions", 81, "Sanctions matcher not found, skipping.")
+        return
+
+    proc = subprocess.Popen(
+        [sys.executable, script],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        cwd=BASE_DIR
+    )
+
+    for line in proc.stdout:
+        line = line.strip()
+        if line:
+            print(f"  [match_sanctions] {line}")
+            write_state("sanctions", 81, f"Sanctions: {line[:80]}")
+
+    proc.wait()
+    if proc.returncode != 0:
+        print(f"  [!] match_sanctions.py failed with exit code {proc.returncode}. Continuing anyway.")
+    
+    write_state("sanctions", 82, "Sanctions cross-referencing complete.")
 
 
 def stage_build_search():
@@ -462,6 +570,12 @@ def run_analysis(aoc_src=None, vps_src=None, use_existing=False):
 
         # Stage 2: Build summary
         stage_build_summary()
+
+        # Stage 2.5: Build ML Risk Scores
+        stage_build_ml_risk()
+
+        # Stage 2.6: Match Global Sanctions
+        stage_match_sanctions()
 
         # Stage 3: Build search index
         stage_build_search()

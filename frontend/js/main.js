@@ -100,12 +100,16 @@ window.switchView = function(viewId) {
 
   // Lazy-load per view
   if (viewId === 'view-report') loadNarrativeReport();
+  if (viewId === 'view-overview') {
+    loadKPIs();
+  }
   if (viewId === 'view-import') refreshDumpFiles();
   if (viewId === 'view-redflags') loadReportCards(1);
   if (viewId === 'view-investigation') {
     loadAnomalies('round_number', 1);
     loadSingleBid(1000000, 1);
     loadRepeatWinners(3, 1);
+    loadSanctions();
   }
 };
 
@@ -410,13 +414,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   try {
     const status = await fetch('/api/status').then(r => r.json());
     if (status.summary_db_ready) {
-      // We have data — load everything
+      // We have data - load everything
       await Promise.all([
         loadKPIs(),
         initCharts(),
         loadAnomalies('round_number', 1),
         loadSingleBid(1000000, 1),
         loadRepeatWinners(3, 1),
+        loadSanctions(),
         loadReportCards(1),
         loadNarrativeReport(),
         updateHeaderStatus(),

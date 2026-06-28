@@ -33,3 +33,10 @@ inspect_schema.py
 investigate_ferozepur.py
 test_search.py
 optimize_fts.py
+
+# -- Temporary Application Data --
+analysis_state.json
+narrative_report.json
+.agents/
+company-director-temp/
+*.pdf

@@ -115,6 +115,18 @@ function renderProfile(focusId, nodes, label, kind) {
         <div class="modal-field-value">${fmtNetValue(node.value)}</div>
       </div>
     `;
+  } else if (node.kind === 'director' || node.kind === 'person') {
+    // Director
+    html += `
+      <div class="modal-body-field">
+        <div class="modal-field-label">Director Identification No. (DIN)</div>
+        <div class="modal-field-value" style="font-family:monospace;font-size:11px">${node.id.replace('D:', '')}</div>
+      </div>
+      <div class="modal-body-field">
+        <div class="modal-field-label">Total Connected Companies</div>
+        <div class="modal-field-value">${node.n_contracts ? node.n_contracts.toLocaleString('en-IN') : '0'}</div>
+      </div>
+    `;
   } else {
     // Buyer
     html += `
@@ -312,3 +324,55 @@ window.openNetworkEntity = async function(label) {
     console.warn("Failed to automatically load network entity:", e);
   }
 };
+
+// ==========================================
+// EXPORT NETWORK TO PDF
+// ==========================================
+function exportNetworkPDF() {
+  const canvasContainer = document.getElementById('networkGraphCanvas');
+  if (!canvasContainer) return;
+  
+  // We need to wait for Vis.js to finish drawing, but since it's user triggered, it should be done.
+  const clone = canvasContainer.cloneNode(true);
+  const wrapper = document.createElement('div');
+  wrapper.className = 'pdf-export-container';
+  
+  const header = document.createElement('div');
+  header.innerHTML = '<h2>India Procurement Watch - Director Network Ego-Graph</h2><p style="color:#666">Generated on: ' + new Date().toLocaleString() + '</p><hr style="margin-bottom:20px">';
+  wrapper.appendChild(header);
+  
+  // Because Vis.js uses a canvas inside, a direct clone might lose the canvas content.
+  // We will manually append the image of the canvas.
+  const originalCanvas = canvasContainer.querySelector('canvas');
+  if (originalCanvas) {
+    const img = document.createElement('img');
+    img.src = originalCanvas.toDataURL('image/png');
+    img.style.width = '100%';
+    img.style.height = 'auto';
+    img.style.border = '1px solid #ccc';
+    wrapper.appendChild(img);
+  }
+  
+  const profile = document.getElementById('networkNodeProfile');
+  if (profile) {
+      const profileClone = document.createElement('div');
+      profileClone.innerHTML = '<h3>Entity Profile</h3>' + profile.innerHTML;
+      profileClone.style.marginTop = '20px';
+      wrapper.appendChild(profileClone);
+  }
+  
+  const watermark = document.createElement('div');
+  watermark.className = 'pdf-watermark';
+  wrapper.appendChild(watermark);
+  
+  const opt = {
+    margin:       10,
+    filename:     'Director_Network_Graph.pdf',
+    image:        { type: 'jpeg', quality: 0.98 },
+    html2canvas:  { scale: 2 },
+    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  };
+  
+  html2pdf().set(opt).from(wrapper).save();
+}
+

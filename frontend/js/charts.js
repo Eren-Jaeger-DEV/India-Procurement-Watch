@@ -99,6 +99,42 @@ function createTrendChart(canvasId, labels, counts, values) {
               return ` ${fmtNum(val)} contracts`;
             }
           }
+        },
+        annotation: {
+          annotations: {
+            line1: {
+              type: 'line',
+              xMin: 'Apr 2024',
+              xMax: 'Apr 2024',
+              borderColor: 'rgba(239, 68, 68, 0.8)',
+              borderWidth: 2,
+              borderDash: [5, 5],
+              label: {
+                display: true,
+                content: 'Lok Sabha General Elections',
+                position: 'start',
+                backgroundColor: 'rgba(239, 68, 68, 0.9)',
+                color: 'white',
+                font: { size: 10 }
+              }
+            },
+            line2: {
+              type: 'line',
+              xMin: 'Feb 2022',
+              xMax: 'Feb 2022',
+              borderColor: 'rgba(239, 68, 68, 0.8)',
+              borderWidth: 2,
+              borderDash: [5, 5],
+              label: {
+                display: true,
+                content: 'Punjab State Elections',
+                position: 'end',
+                backgroundColor: 'rgba(239, 68, 68, 0.9)',
+                color: 'white',
+                font: { size: 10 }
+              }
+            }
+          }
         }
       },
       scales: {

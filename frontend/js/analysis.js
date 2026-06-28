@@ -149,7 +149,14 @@ async function refreshDumpFiles() {
 
     let html = '';
     for (const f of data.files) {
-      const isAoc = f.name.toLowerCase().includes('aoc') || (!f.name.toLowerCase().includes('vps') && !f.name.toLowerCase().includes('summary'));
+      const name = f.name.toLowerCase();
+      let badge = 'VPS Data';
+      if (name.includes('sanction')) {
+        badge = 'OpenSanctions';
+      } else if (name.includes('aoc') || (!name.includes('vps') && !name.includes('summary'))) {
+        badge = 'AOC Data';
+      }
+      
       html += `
         <div class="file-item">
           <div class="file-item-info">
@@ -159,7 +166,7 @@ async function refreshDumpFiles() {
               <div class="file-size">${f.size_mb} MB</div>
             </div>
           </div>
-          <span class="file-badge">${isAoc ? 'AOC Data' : 'VPS Data'}</span>
+          <span class="file-badge" style="${badge === 'OpenSanctions' ? 'color:var(--danger);border-color:var(--danger)' : ''}">${badge}</span>
         </div>`;
     }
     listEl.innerHTML = html;

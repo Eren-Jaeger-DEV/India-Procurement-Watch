@@ -480,7 +480,7 @@ def api_report_cards():
     total = cur.fetchone()["cnt"]
 
     cur.execute(f"""
-        SELECT org_name, total_contracts, total_value_crore, single_bid_pct, round_number_pct, score, grade
+        SELECT org_name, total_contracts, total_value_crore, single_bid_pct, round_number_pct, score, grade, ml_risk_score, ml_flag
         FROM org_report_cards
         ORDER BY {order_clause}, total_contracts DESC
         LIMIT ? OFFSET ?
@@ -975,3 +975,17 @@ if __name__ == "__main__":
         print(f"     Drop your .db file into: {DATA_DUMP}")
         print("     Then click 'Analyse Data' in the dashboard.")
     app.run(debug=False, host="0.0.0.0", port=5000, threaded=True)
+
+@app.route('/api/sanctions')
+def api_sanctions():
+    conn = get_sum_conn()
+    cur = conn.cursor()
+    cur.execute('''
+        SELECT s.bidder_name, s.sanction_id, s.schema, s.matched_name, s.dataset, n.value, n.n_contracts 
+        FROM sanction_matches s 
+        LEFT JOIN network_nodes n ON s.bidder_name = n.label 
+        ORDER BY n.value DESC
+    ''')
+    rows = cur.fetchall()
+    return jsonify([dict(r) for r in rows])
+

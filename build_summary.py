@@ -271,7 +271,9 @@ def create_summary_db(conn):
             single_bid_pct      REAL,
             round_number_pct    REAL,
             score               REAL,
-            grade               TEXT
+            grade               TEXT,
+            ml_risk_score       REAL,
+            ml_flag             INTEGER
         );
 
         DROP TABLE IF EXISTS state_stats;

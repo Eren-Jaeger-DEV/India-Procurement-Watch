@@ -670,6 +670,21 @@
             <span id="searchIndexNote" class="btn-mini active" style="display:none; cursor:default">⚡ Full-text search ready</span>
           </div>
           <div class="chart-card">
+            <h4 style="margin-bottom: 8px; color: var(--accent);"><span style="font-size: 14px;">✨</span> Smart Search (Beta)</h4>
+            <div class="search-bar" style="border-color: var(--accent); box-shadow: 0 0 5px rgba(56, 189, 248, 0.2);">
+              <input type="text" id="agenticSearchInput" class="search-input"
+                placeholder="e.g., 'Find me all railway contracts in 2023 for civil work'" autocomplete="off"
+                onkeydown="if(event.key==='Enter') doAgenticSearch()" />
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px;">
+              <button class="btn-search" style="background: var(--accent); color: #fff; width: auto;" onclick="doAgenticSearch()">Ask AI</button>
+              <div id="agenticConstraints" style="display: none; font-size: 12px; color: var(--text-muted); background: rgba(255,255,255,0.05); padding: 4px 8px; border-radius: 4px;">
+              </div>
+            </div>
+            
+            <hr style="margin: 20px 0; border: none; border-top: 1px solid var(--border-light);" />
+            
+            <h4 style="margin-bottom: 8px; color: var(--text-secondary);">Traditional Search</h4>
             <div class="search-bar">
               <i data-lucide="search" style="width:16px;height:16px;color:var(--text-muted);flex-shrink:0"></i>
               <input type="text" id="searchInput" class="search-input"

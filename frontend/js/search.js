@@ -24,7 +24,49 @@ function formatDateStr(d) {
   return d;
 }
 
-// ── SEARCH ──
+// ── AGENTIC SEARCH ──
+window.doAgenticSearch = function() {
+  const text = (document.getElementById('agenticSearchInput')?.value || '').trim();
+  if (!text) return;
+
+  const btn = document.querySelector('button[onclick="doAgenticSearch()"]');
+  if (btn) { btn.textContent = 'Thinking...'; btn.disabled = true; }
+
+  fetch('/api/agentic-search', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.success && data.constraints) {
+      // Populate traditional search inputs with parsed constraints
+      const qInput = document.getElementById('searchInput');
+      const yearSelect = document.getElementById('filterYear');
+      const portalSelect = document.getElementById('filterPortal');
+      
+      if (qInput) qInput.value = data.constraints.q || '';
+      if (yearSelect) yearSelect.value = data.constraints.year || '';
+      if (portalSelect) portalSelect.value = data.constraints.portal || '';
+      
+      // Show constraints UI pill
+      const constraintsDiv = document.getElementById('agenticConstraints');
+      if (constraintsDiv) {
+        constraintsDiv.style.display = 'block';
+        constraintsDiv.innerHTML = `<strong>Filters Extracted:</strong> Year: <span style="color:#fff">${data.constraints.year || 'Any'}</span> | Portal: <span style="color:#fff">${data.constraints.portal || 'Any'}</span> | Query: <span style="color:#fff">${data.constraints.q || 'None'}</span>`;
+      }
+      
+      // Execute normal search with these constraints
+      window.doSearch(1);
+    }
+  })
+  .catch(err => console.error('Agentic Search error:', err))
+  .finally(() => {
+    if (btn) { btn.textContent = 'Ask AI'; btn.disabled = false; }
+  });
+};
+
+// ── TRADITIONAL SEARCH ──
 window.doSearch = function(page = 1) {
   const q      = (document.getElementById('searchInput')?.value || '').trim();
   const year   = document.getElementById('filterYear')?.value || '';

@@ -831,6 +831,23 @@ def _sanitize_fts(q):
     return ' '.join(f'"{w}"' for w in words)
 
 
+@app.route("/api/agentic-search", methods=["POST"])
+def api_agentic_search():
+    from src.analysis.nlp_router import parse_natural_query
+    
+    data = request.get_json() or {}
+    text = data.get("text", "")
+    
+    # Parse the natural language into constraints
+    constraints = parse_natural_query(text)
+    
+    # Return the constraints so the frontend can redirect to the normal /search page
+    # with these parameters appended as query strings.
+    return jsonify({
+        "success": True,
+        "constraints": constraints
+    })
+
 @app.route("/api/search")
 def api_search():
     q        = request.args.get("q", "").strip()

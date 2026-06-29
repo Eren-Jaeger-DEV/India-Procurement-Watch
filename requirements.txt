@@ -1,2 +1,8 @@
 flask>=3.0.0
 flask-cors>=4.0.0
+numpy
+pandas
+scikit-learn
+scipy
+python-dotenv
+requests

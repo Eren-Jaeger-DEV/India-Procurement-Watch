@@ -55,12 +55,9 @@
         <i data-lucide="map"></i> <span>Geographical</span>
       </a>
 
-      <div class="nav-section-label">Investigate</div>
-      <a class="nav-item" id="nav-view-investigation" onclick="switchView('view-investigation')" title="Investigation Desk">
-        <i data-lucide="shield-alert"></i> <span>Investigation Desk</span>
-      </a>
-      <a class="nav-item" id="nav-view-redflags" onclick="switchView('view-redflags')" title="Risk Grades">
-        <i data-lucide="flag"></i> <span>Risk Grades</span>
+      <div class="nav-section-label">Data Points</div>
+      <a class="nav-item" id="nav-view-investigation" onclick="switchView('view-investigation')" title="Tender Highlights">
+        <i data-lucide="file-search"></i> <span>Tender Highlights</span>
       </a>
       <a class="nav-item" id="nav-view-search" onclick="switchView('view-search')" title="Search Database">
         <i data-lucide="search"></i> <span>Search Database</span>
@@ -371,76 +368,18 @@
            ════════════════════════════════ -->
       <div id="view-investigation" class="view-panel">
         <div class="investigation-tabs">
-          <button class="inv-tab-btn active" id="btn-inv-anomaly" onclick="switchInvTab('inv-anomaly')">
-            General Anomalies
-          </button>
-          <button class="inv-tab-btn" id="btn-inv-single" onclick="switchInvTab('inv-single')">
+
+          <button class="inv-tab-btn active" id="btn-inv-single" onclick="switchInvTab('inv-single')">
             Single-Bid Contracts
           </button>
           <button class="inv-tab-btn" id="btn-inv-repeat" onclick="switchInvTab('inv-repeat')">
             Repeat Winners
           </button>
-          <button class="inv-tab-btn" id="btn-inv-cartel" onclick="switchInvTab('inv-cartel')" style="color:var(--danger)">
-            Cartel Rings (Bid Rotation)
-          </button>
-          <button class="inv-tab-btn" id="btn-inv-pep" onclick="switchInvTab('inv-pep')" style="color:var(--danger)">
-            Global Leaks & PEPs
-          </button>
-          <button class="inv-tab-btn" id="btn-inv-live" onclick="switchInvTab('inv-live')" style="color:var(--critical); animation: pulse 2s infinite;">
-            Live Alerts (Pre-Crime)
-          </button>
-        </div>
 
-        <!-- ANOMALIES -->
-        <div class="inv-tab-content active" id="inv-anomaly">
-          <section class="section">
-            <div class="section-header">
-              <h2 class="section-title">
-                <span class="pulse-dot"></span>
-                Procurement Anomaly Signals
-              </h2>
-              <div style="display:flex;gap:12px;align-items:center;">
-                <div class="btn-group">
-                  <button class="btn-pill active" id="btnRound" onclick="switchAnomalyType('round_number')">Round Numbers</button>
-                  <button class="btn-pill" id="btnQuick" onclick="switchAnomalyType('quick_award')">Quick Awards</button>
-                  <button class="btn-pill" id="btnHvState" onclick="switchAnomalyType('high_value_state')">High-Value State</button>
-                  <button class="btn-pill" id="btnShortWin" onclick="switchAnomalyType('short_window')">Short Window</button>
-                  <button class="btn-pill" id="btnLowEmd" onclick="switchAnomalyType('low_emd')">Low EMD</button>
-                  <button class="btn-pill" id="btnHighFee" onclick="switchAnomalyType('high_fee')">High Fee</button>
-                </div>
-                <button class="btn-mini" onclick="exportTableCSV('anomalyTable', 'anomalies_export.csv')" style="margin-left: 10px; background: rgba(56, 189, 248, 0.1); color: var(--accent); border-color: rgba(56, 189, 248, 0.3);">
-                  <i data-lucide="download" style="width:14px;height:14px;margin-right:4px;"></i>Export CSV
-                </button>
-              </div>
-            </div>
-            <div class="anomaly-desc" id="anomalyDesc">
-              Contracts where the value is an exact multiple of ₹1 Lakh — often a signal of estimated rather than market-competitive pricing.
-            </div>
-            <div class="chart-card">
-              <div class="table-wrap">
-                <table class="data-table" id="anomalyTable">
-                  <thead>
-                    <tr>
-                      <th>Organisation</th>
-                      <th>Tender Title</th>
-                      <th>Contract Value</th>
-                      <th>Award Date</th>
-                      <th>Portal</th>
-                      <th>Info</th>
-                    </tr>
-                  </thead>
-                  <tbody id="anomalyBody">
-                    <tr><td colspan="6" class="table-empty">Loading…</td></tr>
-                  </tbody>
-                </table>
-              </div>
-              <div class="pagination" id="anomalyPagination"></div>
-            </div>
-          </section>
         </div>
 
         <!-- SINGLE-BID -->
-        <div class="inv-tab-content" id="inv-single">
+        <div class="inv-tab-content active" id="inv-single">
           <section class="section">
             <div class="section-header">
               <h2 class="section-title">
@@ -459,7 +398,7 @@
               </div>
             </div>
             <div class="anomaly-desc">
-              Contracts where only <strong>one bid was received</strong> — a major red flag for rigged procurement. Sorted by value descending.
+              Contracts where only <strong>one bid was received</strong>. Sorted by value descending.
             </div>
             <div class="chart-card">
               <div class="table-wrap">
@@ -499,7 +438,7 @@
               </div>
             </div>
             <div class="anomaly-desc">
-              Vendors who won <strong>multiple contracts from the same department</strong>. High repeat wins from the same org warrant investigation.
+              Vendors who won <strong>multiple contracts from the same department</strong>.
             </div>
             <div class="chart-card">
               <div class="table-wrap">
@@ -523,142 +462,7 @@
             </div>
           </section>
         </div>
-
-        <!-- CARTEL RINGS -->
-        <div class="inv-tab-content" id="inv-cartel">
-          <section class="section">
-            <div class="section-header">
-              <h2 class="section-title">
-                <span class="pulse-dot" style="background:var(--danger)"></span>
-                Confirmed Cartel Rings (Bid Rotation)
-              </h2>
-            </div>
-            <div class="anomaly-desc">
-              Instances where multiple companies from the <strong>same network cluster (shared beneficial owner/director)</strong> won contracts from the <strong>same government department</strong>. This is strong evidence of Bid Rotation (Cover Bidding).
-            </div>
-            <div class="chart-card">
-              <div class="table-wrap">
-                <table class="data-table" id="cartelTable">
-                  <thead>
-                    <tr>
-                      <th>Cluster ID</th>
-                      <th>Organisation</th>
-                      <th>Linked Companies in Cartel</th>
-                      <th>Members Won</th>
-                      <th>Total Value (Cr)</th>
-                    </tr>
-                  </thead>
-                  <tbody id="cartelBody">
-                    <tr><td colspan="5" class="table-empty">Loading…</td></tr>
-                  </tbody>
-                </table>
-              </div>
-              <div class="pagination" id="cartelPagination"></div>
-            </div>
-          </section>
-        </div>
-
-        <!-- GLOBAL LEAKS & PEPS -->
-        <div class="inv-tab-content" id="inv-pep">
-          <section class="section">
-            <div class="section-header">
-              <h2 class="section-title">
-                <span class="pulse-dot" style="background:var(--danger)"></span>
-                Cross-Referenced: OpenSanctions Global Database
-              </h2>
-              <button class="btn-mini" onclick="exportTableCSV('pepTable', 'sanctions_export.csv')" style="background: rgba(56, 189, 248, 0.1); color: var(--accent); border-color: rgba(56, 189, 248, 0.3);">
-                <i data-lucide="download" style="width:14px;height:14px;margin-right:4px;"></i>Export CSV
-              </button>
-            </div>
-            <div class="anomaly-desc">
-              Companies winning government contracts that perfectly match names in the <strong>OpenSanctions Global Database</strong>. This includes Politically Exposed Persons (PEPs), sanctioned entities, and known criminal associates.
-            </div>
-            <div class="chart-card">
-              <div class="table-wrap">
-                <table class="data-table" id="pepTable">
-                  <thead>
-                    <tr>
-                      <th>Winning Company Name</th>
-                      <th>Matched Sanction Entity</th>
-                      <th>Schema Type</th>
-                      <th>Dataset Source</th>
-                      <th>Total Value (₹)</th>
-                    </tr>
-                  </thead>
-                  <tbody id="pepBody">
-                    <tr><td colspan="5" class="table-empty">Loading OpenSanctions matches...</td></tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </section>
-        </div>
-
-        <!-- LIVE ALERTS (PRE-CRIME) -->
-        <div class="inv-tab-content" id="inv-live">
-          <section class="section">
-            <div class="section-header">
-              <h2 class="section-title">
-                <span class="pulse-dot" style="background:var(--critical)"></span>
-                Live Predictive Alerts (Pre-Crime)
-              </h2>
-            </div>
-            <div class="anomaly-desc">
-              These are <strong>Currently Open Tenders</strong> flagged by our Machine Learning and NLP models as highly anomalous. "Tailored Specs" indicates highly unusual text requirements that may lock out competitors.
-            </div>
-            <div class="chart-card">
-              <div class="table-wrap">
-                <table class="data-table" id="liveAlertsTable">
-                  <thead>
-                    <tr>
-                      <th>Tender ID</th>
-                      <th>Organisation</th>
-                      <th>Title</th>
-                      <th>Contract Value</th>
-                      <th>Risk Score (0-100)</th>
-                      <th>Flag Type</th>
-                    </tr>
-                  </thead>
-                  <tbody id="liveAlertsBody">
-                    <tr><td colspan="6" class="table-empty">Loading…</td></tr>
-                  </tbody>
-                </table>
-              </div>
-              <div class="pagination" id="liveAlertsPagination"></div>
-            </div>
-          </section>
-        </div>
-      </div>
-
-      <!-- ════════════════════════════════
-           VIEW: RISK GRADES
-           ════════════════════════════════ -->
-      <div id="view-redflags" class="view-panel">
-        <section class="section">
-          <div class="section-header">
-            <h2 class="section-title">Department Risk Grades</h2>
-            <div style="display:flex;gap:12px;align-items:center;">
-              <div class="btn-group">
-                <button class="btn-mini active" id="btnGradeScore" onclick="switchReportCardSort('score_asc')">Highest Risk First</button>
-                <button class="btn-mini" id="btnGradeValue" onclick="switchReportCardSort('value_desc')">Largest Orgs First</button>
-              </div>
-              <button class="btn-mini" onclick="exportRiskGradesPDF()" style="margin-left: 10px; background: rgba(220, 38, 38, 0.1); color: var(--danger); border-color: rgba(220, 38, 38, 0.3);">
-                <i data-lucide="file-text" style="width:14px;height:14px;margin-right:4px;"></i>Export PDF
-              </button>
-            </div>
-          </div>
-          <div class="anomaly-desc">
-            Each department is graded A–F based on its single-bid rate (70% weight) and round-number contract rate (30% weight).
-            <strong>F = highest risk.</strong> Minimum 10 contracts required for a grade.
-          </div>
-          <div class="chart-card" style="max-height: calc(100vh - 220px); overflow-y: auto;">
-            <div id="reportCardsContainer" style="padding: 8px 0;">
-              <div style="text-align:center;padding:40px;color:var(--text-muted)">Loading...</div>
-            </div>
-            <div class="pagination" id="reportCardsPagination"></div>
-          </div>
-        </section>
-      </div>
+      </div> <!-- End view-investigation -->
 
       <!-- ════════════════════════════════
            VIEW: SEARCH DATABASE
@@ -814,6 +618,8 @@
       <h2 class="modal-title" id="modalTitle">Tender Detail</h2>
       <div id="modalBody"></div>
     </div>
+
+
 
     <!-- FOOTER -->
     <footer class="footer">

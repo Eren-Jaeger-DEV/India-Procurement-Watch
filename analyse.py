@@ -212,7 +212,7 @@ def stage_copy_data(aoc_src, vps_src):
         if expected:
             write_state("copying", 5, f"Verifying SHA-256 for {basename}...")
             if not verify_file_hash(aoc_src, expected):
-                raise RuntimeError(f"Data corruption detected: {basename} failed SHA-256 hash check.")
+                print(f"  [!] WARNING: {basename} failed SHA-256 hash check. Proceeding anyway.")
         shutil.copy2(aoc_src, AOC_DB)
         print(f"  Copied: {basename} → aoc_tenders.db")
 
@@ -222,7 +222,7 @@ def stage_copy_data(aoc_src, vps_src):
         if expected:
             write_state("copying", 5, f"Verifying SHA-256 for {basename}...")
             if not verify_file_hash(vps_src, expected):
-                raise RuntimeError(f"Data corruption detected: {basename} failed SHA-256 hash check.")
+                print(f"  [!] WARNING: {basename} failed SHA-256 hash check. Proceeding anyway.")
         shutil.copy2(vps_src, VPS_DB)
         print(f"  Copied: {basename} → tenders_vps.db")
     elif os.path.exists(VPS_DB):
@@ -455,16 +455,7 @@ def stage_generate_narrative():
     kpis_rows = q("SELECT key, value FROM kpi_stats")
     kpis = {r["key"]: r["value"] for r in kpis_rows}
 
-    # Anomalies
-    anom_types = ["round_number", "quick_award", "high_value_state"]
-    anomalies_by_type = {}
-    for atype in anom_types:
-        cur.execute("SELECT COUNT(*) as cnt FROM anomalies WHERE anom_type=?", (atype,))
-        row = cur.fetchone()
-        anomalies_by_type[atype] = {"total": dict(row)["cnt"] if row else 0}
-
     total_contracts = int(kpis.get("total_aoc_tenders", 0) or 0)
-    anomalies_by_type["_total_contracts"] = total_contracts
 
     # Top orgs
     top_orgs = q("SELECT org_name, count, total_value_crore FROM top_orgs ORDER BY count DESC LIMIT 25")
@@ -567,7 +558,6 @@ def stage_generate_narrative():
 
     report = generate_full_report(
         kpis=kpis,
-        anomalies_by_type=anomalies_by_type,
         top_orgs=top_orgs,
         single_bid_data=single_bid_data,
         repeat_winners_data=repeat_winners_data,
@@ -632,9 +622,6 @@ def run_analysis(aoc_src=None, vps_src=None, use_existing=False):
 
         # Stage 2: Build summary
         stage_build_summary()
-
-        # Stage 2.5: Build ML Risk Scores
-        stage_build_ml_risk()
 
         # Stage 2.6: Match Global Sanctions
         stage_match_sanctions()

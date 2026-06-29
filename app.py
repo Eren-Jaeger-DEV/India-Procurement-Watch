@@ -23,6 +23,7 @@ SUM_DB     = os.path.join(BASE_DIR, "summary.db")
 AOC_DB     = os.path.join(BASE_DIR, "aoc_tenders.db")
 VPS_DB     = os.path.join(BASE_DIR, "tenders_vps.db")
 SEARCH_DB  = os.path.join(BASE_DIR, "search.db")
+MCA_DB     = os.path.join(BASE_DIR, "data_dump", "mca_data.db")
 STATIC_DIR = os.path.join(BASE_DIR, "frontend")
 STATE_FILE = os.path.join(BASE_DIR, "analysis_state.json")
 REPORT_FILE= os.path.join(BASE_DIR, "narrative_report.json")
@@ -52,9 +53,15 @@ def _get_conn(attr, path, read_only=False):
     return conn
 
 def get_sum_conn():
-    conn = _get_conn('sum', SUM_DB)
+    conn = _get_conn('sum', SUM_DB, read_only=True)
     if conn is None:
         abort(503, description="summary.db not found. Run analysis first.")
+    return conn
+
+def get_mca_conn():
+    conn = _get_conn('mca', MCA_DB, read_only=True)
+    if conn is None:
+        abort(503, description="mca_data.db not found.")
     return conn
 
 def get_aoc_conn():
@@ -204,6 +211,66 @@ def api_dump_files():
             size_mb = round(os.path.getsize(full) / 1024 / 1024, 1)
             files.append({"name": f, "size_mb": size_mb})
     return jsonify({"files": files, "data_dump_path": DATA_DUMP})
+
+# ─────────────────────────────────────────────
+# API: VENDOR CORPORATE IDENTITY (MCA)
+# ─────────────────────────────────────────────
+
+@app.route("/api/vendor-mca/<path:vendor_name>")
+def api_vendor_mca(vendor_name):
+    """Fuzzy match a vendor name against the MCA dataset to fetch corporate identity."""
+    if not os.path.exists(MCA_DB):
+        return jsonify({"error": "MCA database not available"}), 404
+        
+    conn = get_mca_conn()
+    cur = conn.cursor()
+    
+    import re
+    try:
+        from rapidfuzz import fuzz, process
+    except ImportError:
+        return jsonify({"error": "rapidfuzz not installed"}), 500
+    
+    clean_name = re.sub(r'[^a-zA-Z0-9\s]', '', vendor_name).upper()
+    words = clean_name.split()
+    if not words:
+        return jsonify({"error": "Invalid vendor name"}), 400
+        
+    # Use longest words for the initial SQL LIKE search to cast a wide but efficient net
+    words.sort(key=len, reverse=True)
+    top_words = words[:2]
+    
+    query = "SELECT CIN, CompanyName, CompanyStatus, PaidupCapital, CompanyRegistrationdate_date, Registered_Office_Address, CompanyStateCode FROM records WHERE "
+    conditions = []
+    params = []
+    for w in top_words:
+        if len(w) > 2:
+            conditions.append("CompanyName LIKE ?")
+            params.append(f"%{w}%")
+            
+    if not conditions:
+        return jsonify({"match": None})
+        
+    query += " OR ".join(conditions) + " LIMIT 200"
+    
+    try:
+        cur.execute(query, params)
+        rows = [dict(r) for r in cur.fetchall()]
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+        
+    if not rows:
+        return jsonify({"match": None})
+        
+    # Fuzzy match to find the best candidate
+    choices = [r['CompanyName'].upper() for r in rows]
+    best_match = process.extractOne(clean_name, choices, scorer=fuzz.token_sort_ratio)
+    
+    if best_match and best_match[1] >= 65:  # 65% threshold for token match
+        idx = best_match[2]
+        return jsonify({"match": rows[idx], "score": best_match[1]})
+        
+    return jsonify({"match": None})
 
 
 # ─────────────────────────────────────────────
@@ -372,41 +439,6 @@ def api_value_dist():
     return jsonify({"labels": [r["bracket"] for r in rows],
                     "counts": [r["count"] for r in rows]})
 
-# ─────────────────────────────────────────────
-# API: ANOMALIES
-# ─────────────────────────────────────────────
-
-@app.route("/api/anomalies")
-def api_anomalies():
-    atype    = request.args.get("type", "round_number")
-    page     = max(1, int(request.args.get("page", 1)))
-    per_page = 20
-    offset   = (page - 1) * per_page
-
-    conn = get_sum_conn()
-    cur  = conn.cursor()
-
-    cur.execute("SELECT COUNT(*) as cnt FROM anomalies WHERE anom_type=?", (atype,))
-    total = cur.fetchone()["cnt"]
-
-    cur.execute("""
-        SELECT anom_type, internal_id, org_name, title,
-               contract_value, aoc_date, portal_type, extra_info
-        FROM anomalies WHERE anom_type=?
-        ORDER BY contract_value DESC LIMIT ? OFFSET ?
-    """, (atype, per_page, offset))
-
-    rows = []
-    for r in cur.fetchall():
-        row = dict(r)
-        if row.get("extra_info"):
-            try:
-                row["extra_info"] = json.loads(row["extra_info"])
-            except Exception:
-                pass
-        rows.append(row)
-
-    return jsonify({"total": total, "page": page, "per_page": per_page, "results": rows})
 
 # ─────────────────────────────────────────────
 # API: SINGLE-BID CONTRACTS
@@ -461,81 +493,8 @@ def api_repeat_winners():
     return jsonify({"total": total, "page": page, "per_page": per_page,
                     "results": [dict(r) for r in cur.fetchall()]})
 
-@app.route("/api/cartels")
-def api_cartels():
-    page     = max(1, int(request.args.get("page", 1)))
-    per_page = 20
-    offset   = (page - 1) * per_page
 
-    conn = get_sum_conn()
-    cur  = conn.cursor()
 
-    try:
-        cur.execute("SELECT COUNT(*) as cnt FROM cartel_rings")
-        total = cur.fetchone()["cnt"]
-
-        cur.execute("""
-            SELECT cluster_id, org_name, companies, company_count, total_value_crore
-            FROM cartel_rings
-            ORDER BY total_value_crore DESC LIMIT ? OFFSET ?
-        """, (per_page, offset))
-
-        return jsonify({"total": total, "page": page, "per_page": per_page,
-                        "results": [dict(r) for r in cur.fetchall()]})
-    except sqlite3.OperationalError:
-        return jsonify({"error": "No cartel data found. Make sure to generate nodes.csv and run the cartel detector."}), 404
-
-@app.route("/api/live-alerts")
-def api_live_alerts():
-    page     = max(1, int(request.args.get("page", 1)))
-    per_page = 20
-    offset   = (page - 1) * per_page
-
-    conn = get_sum_conn()
-    cur  = conn.cursor()
-
-    try:
-        cur.execute("SELECT COUNT(*) as cnt FROM live_alerts")
-        total = cur.fetchone()["cnt"]
-
-        cur.execute("""
-            SELECT tender_id, org_name, title, contract_value, ml_risk_score, nlp_flag
-            FROM live_alerts
-            ORDER BY ml_risk_score DESC LIMIT ? OFFSET ?
-        """, (per_page, offset))
-
-        return jsonify({"total": total, "page": page, "per_page": per_page,
-                        "results": [dict(r) for r in cur.fetchall()]})
-    except sqlite3.OperationalError:
-        return jsonify({"error": "No live alerts data found. Run build_live_alerts.py."}), 404
-
-# ─────────────────────────────────────────────
-# API: REPORT CARDS & STATE STATS
-# ─────────────────────────────────────────────
-
-@app.route("/api/report-cards")
-def api_report_cards():
-    page     = max(1, int(request.args.get("page", 1)))
-    per_page = 20
-    offset   = (page - 1) * per_page
-    sort_by  = request.args.get("sort", "score_asc")
-    order_clause = "score ASC" if sort_by == "score_asc" else "total_value_crore DESC"
-
-    conn = get_sum_conn()
-    cur  = conn.cursor()
-
-    cur.execute("SELECT COUNT(*) as cnt FROM org_report_cards")
-    total = cur.fetchone()["cnt"]
-
-    cur.execute(f"""
-        SELECT org_name, total_contracts, total_value_crore, single_bid_pct, round_number_pct, score, grade, ml_risk_score, ml_flag
-        FROM org_report_cards
-        ORDER BY {order_clause}, total_contracts DESC
-        LIMIT ? OFFSET ?
-    """, (per_page, offset))
-
-    return jsonify({"total": total, "page": page, "per_page": per_page,
-                    "results": [dict(r) for r in cur.fetchall()]})
 
 @app.route("/api/state-stats")
 def api_state_stats():
@@ -559,19 +518,13 @@ def api_org_profile(org_name):
 
     # Basic stats
     cur.execute("""
-        SELECT org_name, total_contracts, total_value_crore, single_bid_pct, round_number_pct, score, grade
+        SELECT org_name, total_contracts, total_value_crore, single_bid_pct, round_number_pct, hhi_score
         FROM org_report_cards WHERE org_name = ?
     """, (org_name,))
     rc_row = cur.fetchone()
     report_card = dict(rc_row) if rc_row else {}
 
-    # Anomalies for this org
-    cur.execute("""
-        SELECT anom_type, COUNT(*) as cnt, SUM(contract_value) as total_val
-        FROM anomalies WHERE org_name = ?
-        GROUP BY anom_type
-    """, (org_name,))
-    anomaly_summary = [dict(r) for r in cur.fetchall()]
+    anomaly_summary = []
 
     # Top vendors (repeat winners) for this org
     cur.execute("""

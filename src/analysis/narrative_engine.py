@@ -48,8 +48,6 @@ def analyse_kpis(kpis):
     valued = int(kpis.get("total_contracts_valued", 0) or 0)
     total_value = float(kpis.get("total_value_crore", 0) or 0)
     avg_value = float(kpis.get("avg_value_crore", 0) or 0)
-    min_yr = kpis.get("min_year", "?")
-    max_yr = kpis.get("max_year", "?")
 
     if total > 0:
         undisclosed_pct = round((1 - valued / total) * 100, 1) if total else 0
@@ -108,85 +106,6 @@ def analyse_kpis(kpis):
     return findings
 
 
-def analyse_anomalies(anomalies_by_type):
-    """Generate findings from anomaly data."""
-    findings = []
-
-    round_count = anomalies_by_type.get("round_number", {}).get("total", 0)
-    quick_count = anomalies_by_type.get("quick_award", {}).get("total", 0)
-    hv_count = anomalies_by_type.get("high_value_state", {}).get("total", 0)
-
-    if quick_count > 0:
-        severity = "CRITICAL" if quick_count > 50 else "HIGH"
-        findings.append(_finding(
-            severity,
-            f"{quick_count:,} Contracts Awarded Implausibly Fast (≤ 1 day)",
-            f"{quick_count:,} contracts were awarded within 24 hours of the bidding deadline closing.",
-            f"Standard procurement procedure requires time to receive bids, evaluate them against technical "
-            f"and financial criteria, obtain approval from a tender committee, and issue the Award of Contract. "
-            f"This process typically takes days to weeks. Yet {quick_count:,} contracts in this dataset "
-            f"were awarded on the same day — or within 24 hours — of the bidding deadline. "
-            f"This is physically implausible under fair procurement rules.",
-            "Contracts awarded this fast were almost certainly pre-decided before bidding opened. "
-            "The tender process may have been a formality to create a paper trail for a pre-arranged award. "
-            "This is one of the strongest structural red flags for procurement fraud.",
-            [
-                "Prioritise these contracts for RTI requests — ask for the bid evaluation committee minutes.",
-                "Check if the same vendor appears across multiple 'quick award' contracts.",
-                "Verify if the award date and bid closing date in the raw data are accurate — some may be data entry errors.",
-                "Cross-reference with the vendor who won — are they politically connected?"
-            ],
-            {"count": quick_count}
-        ))
-
-    if round_count > 0:
-        round_pct_of_total = None
-        total = anomalies_by_type.get("_total_contracts", 0)
-        if total > 0:
-            round_pct_of_total = round(round_count / total * 100, 1)
-
-        severity = "MEDIUM"
-        pct_str = f" ({round_pct_of_total}% of all contracts)" if round_pct_of_total else ""
-        findings.append(_finding(
-            severity,
-            f"{round_count:,} Contracts at Suspiciously Round Numbers{pct_str}",
-            f"{round_count:,} contracts have values that are exact multiples of ₹1 Lakh (₹1,00,000).",
-            f"In competitive procurement, contract values should reflect the actual cost of work or goods — "
-            f"a messy, specific number. When {round_count:,} contracts are awarded at exactly ₹10,00,000 "
-            f"or ₹50,00,000 or ₹1,00,00,000, it strongly suggests the price was estimated rather than "
-            f"competitively determined. This is a classic signal of single-vendor negotiations or rubber-stamped approvals.",
-            "Round-number contracts suggest either: (1) the 'lowest bidder' was told what price to quote, "
-            "(2) the contract value was set before bidding began, or "
-            "(3) estimates are being passed off as market-tested prices.",
-            [
-                "Compare round-number contracts against similar contracts with specific values — which orgs have higher rates?",
-                "Check if round-number contracts cluster around specific thresholds that trigger higher oversight (e.g., ₹1 Crore).",
-                "A high rate of round numbers combined with a high rate of single bids is a very strong compound signal."
-            ],
-            {"count": round_count}
-        ))
-
-    if hv_count > 0:
-        findings.append(_finding(
-            "HIGH",
-            f"{hv_count:,} High-Value State Contracts Over ₹10 Crore",
-            f"{hv_count:,} contracts awarded by state governments exceed ₹10 Crore each.",
-            f"State government contracts above ₹10 Crore are significant expenditures "
-            f"that should be subject to rigorous oversight, competitive tendering, and "
-            f"approval at senior government levels. This dataset contains {hv_count:,} such contracts, "
-            f"collectively representing a large share of state procurement spending.",
-            "High-value state contracts are particularly prone to political interference in vendor selection, "
-            "inflated valuations, and poor quality delivery. They are also harder to scrutinize "
-            "as state-level RTI responses are often slower.",
-            [
-                "Identify which states dominate this list.",
-                "Check if any single vendor appears across multiple high-value state contracts.",
-                "Look for contracts awarded near state election dates."
-            ],
-            {"count": hv_count}
-        ))
-
-    return findings
 
 
 def analyse_top_orgs(top_orgs):
@@ -340,63 +259,8 @@ def analyse_repeat_winners(repeat_winners_data):
     return findings
 
 
-def analyse_report_cards(report_cards):
-    """Generate systemic findings from org risk grades."""
-    findings = []
-    results = report_cards.get("results", [])
-
-    if not results:
-        return findings
-
-    f_grade = [r for r in results if r.get("grade") == "F"]
-    d_grade = [r for r in results if r.get("grade") == "D"]
-
-    if f_grade:
-        worst = sorted(f_grade, key=lambda x: -(x.get("total_contracts", 0)))[:5]
-        names = [w.get("org_name", "Unknown") for w in worst]
-        total_value = sum(w.get("total_value_crore", 0) for w in worst)
-        findings.append(_finding(
-            "CRITICAL" if len(f_grade) > 10 else "HIGH",
-            f"{len(f_grade)} Departments Graded 'F' for Procurement Risk",
-            f"{len(f_grade)} organisations scored the highest risk level based on single-bid and round-number patterns.",
-            f"The risk grading system assigns 'F' to departments where over 40% of contracts "
-            f"show procurement red flags (single bids, round-number values). "
-            f"{len(f_grade)} departments have earned this lowest grade. "
-            f"The highest-volume 'F' grade departments include: {', '.join(names[:3])}. "
-            f"Together, the top 5 'F' departments control at least ₹{total_value:.0f} Crore in contracts.",
-            "An 'F' grade does not automatically mean corruption — it means the procurement patterns "
-            "match the profile of high-risk procurement. It could reflect poor procedure, "
-            "weak oversight, or active manipulation. Without investigation, the cause is unknown.",
-            [
-                f"Prioritise these {len(f_grade)} departments for RTI requests and audit scrutiny.",
-                "Check if 'F' grade departments are concentrated in specific states or sectors.",
-                "Compare 'F' departments' single-bid rates against their market — are they justified by specialisation?",
-            ],
-            {"f_grade_count": len(f_grade), "worst_orgs": names, "combined_value": total_value}
-        ))
-
-    if d_grade:
-        findings.append(_finding(
-            "MEDIUM",
-            f"{len(d_grade)} More Departments Graded 'D' (Elevated Risk)",
-            f"An additional {len(d_grade)} departments show elevated procurement risk patterns.",
-            f"Beyond the 'F' grade departments, {len(d_grade)} more organisations "
-            f"have been graded 'D' — indicating that 25–40% of their contracts raise flags. "
-            f"This is a significant secondary tier of risk that should not be ignored.",
-            "A 'D' grade means procurement practices are poor enough to warrant attention, "
-            "even if they haven't reached the extreme levels of 'F' grade departments.",
-            [
-                "Monitor 'D' grade departments — are their scores improving or worsening over time?",
-                "Combine grade data with contract value data — a mid-size department with a 'D' grade but high contract value is still high priority."
-            ],
-            {"d_grade_count": len(d_grade)}
-        ))
-
-    return findings
-
-
 def analyse_trends(yearly_data):
-    """Detect spending pattern anomalies in yearly trends."""
+    """Detect notable changes in yearly trends."""
     findings = []
 
     if not yearly_data or len(yearly_data.get("labels", [])) < 3:
@@ -421,9 +285,8 @@ def analyse_trends(yearly_data):
                     f"increased by {change_pct:.0f}% — from ₹{prev:.0f} Crore to ₹{curr:.0f} Crore. "
                     f"While some year-to-year variation is normal (new projects, annual budgets), "
                     f"a spike of this magnitude warrants explanation.",
-                    "Sudden spending spikes can indicate: year-end budget rush (use-it-or-lose-it spending), "
-                    "large infrastructure projects suddenly approved, or inflated contract values being rubber-stamped "
-                    "to absorb available budget before the financial year closes.",
+                    "Sudden spending spikes can indicate year-end budget utilization, "
+                    "or large infrastructure projects suddenly approved.",
                     [
                         f"Identify which departments drove the {labels[i]} spending spike.",
                         f"Check if the surge in {labels[i]} correlates with election cycles or budget approvals.",
@@ -456,39 +319,34 @@ def analyse_trends(yearly_data):
 
 def generate_executive_summary(kpis, all_findings):
     """Generate a top-level plain-English summary of the entire dataset."""
-    total = int(kpis.get("total_aoc_tenders", 0) or 0)
+    total_tenders = int(kpis.get("total_aoc_tenders", 0) or 0)
     total_value = float(kpis.get("total_value_crore", 0) or 0)
-    unique_orgs = int(kpis.get("unique_aoc_orgs", 0) or 0)
-    min_yr = kpis.get("min_year", "?")
-    max_yr = kpis.get("max_year", "?")
-    total_pub = int(kpis.get("total_published_tenders", 0) or 0)
+    
+    critical_count = len([f for f in all_findings if f["severity_level"] == 3])
+    high_count = len([f for f in all_findings if f["severity_level"] == 2])
+    medium_count = len([f for f in all_findings if f["severity_level"] == 1])
 
-    critical_count = sum(1 for f in all_findings if f["severity"] == "CRITICAL")
-    high_count = sum(1 for f in all_findings if f["severity"] == "HIGH")
-    medium_count = sum(1 for f in all_findings if f["severity"] == "MEDIUM")
-
-    risk_statement = ""
+    summary_statement = ""
     if critical_count > 0:
-        risk_statement = f"The analysis has identified {critical_count} CRITICAL and {high_count} HIGH severity findings that warrant immediate investigative attention."
+        summary_statement = f"The analysis has generated {critical_count} primary and {high_count} secondary data highlights."
     elif high_count > 0:
-        risk_statement = f"The analysis has identified {high_count} HIGH severity findings that indicate significant procurement irregularities."
+        summary_statement = f"The analysis has generated {high_count} primary data highlights."
+    elif medium_count > 0:
+        summary_statement = f"The analysis has generated {medium_count} notable data trends."
     else:
-        risk_statement = f"The analysis has identified {medium_count} MEDIUM severity findings with patterns worth monitoring."
+        summary_statement = "The dataset shows standard procurement patterns with no major statistical deviations."
 
     return {
-        "headline": f"Analysis of {total:,} Government Procurement Contracts ({min_yr}–{max_yr})",
+        "title": "Data Analysis Summary",
         "paragraph_1": (
-            f"This dataset covers {total:,} awarded contracts spanning {min_yr} to {max_yr}, "
-            f"involving {unique_orgs:,} unique government organisations. "
-            f"The total declared value of these contracts is ₹{total_value:,.0f} Crore. "
-            + (f"Additionally, {total_pub:,} published (open) tenders are tracked." if total_pub > 0 else "")
+            f"This report covers {total_tenders:,} awarded contracts "
+            f"with a declared total value of ₹{total_value:,} Crore. "
         ),
-        "paragraph_2": risk_statement,
+        "paragraph_2": summary_statement,
         "paragraph_3": (
-            "The findings below are ranked by severity. CRITICAL findings represent structural patterns "
-            "that are inconsistent with fair, transparent procurement. HIGH findings indicate strong "
-            "statistical anomalies. MEDIUM and LOW findings are patterns that should be monitored "
-            "but may have legitimate explanations."
+            "These findings are generated automatically through statistical profiling. "
+            "Primary findings are strong statistical highlights, while secondary findings are patterns that "
+            "may warrant further review. None of these findings imply wrongdoing; they are strictly data trends."
         ),
         "critical_count": critical_count,
         "high_count": high_count,
@@ -502,7 +360,7 @@ def generate_executive_summary(kpis, all_findings):
 # MASTER GENERATE FUNCTION
 # ─────────────────────────────────────────────
 
-def generate_full_report(kpis, anomalies_by_type, top_orgs, single_bid_data,
+def generate_full_report(kpis, top_orgs, single_bid_data,
                           repeat_winners_data, report_cards, yearly_data, total_contracts=0):
     """
     Master function: takes all processed data and returns the complete
@@ -511,11 +369,10 @@ def generate_full_report(kpis, anomalies_by_type, top_orgs, single_bid_data,
     all_findings = []
 
     all_findings += analyse_kpis(kpis)
-    all_findings += analyse_anomalies(anomalies_by_type)
+
     all_findings += analyse_top_orgs(top_orgs)
     all_findings += analyse_single_bids(single_bid_data, total_contracts)
     all_findings += analyse_repeat_winners(repeat_winners_data)
-    all_findings += analyse_report_cards(report_cards)
     all_findings += analyse_trends(yearly_data)
 
     # Sort by severity descending

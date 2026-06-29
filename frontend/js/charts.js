@@ -38,7 +38,7 @@ function hexToRgba(hex, alpha) {
 }
 
 // ── TREND LINE CHART ──
-function createTrendChart(canvasId, labels, counts, values) {
+function createTrendChart(canvasId, labels, counts, values, grain = 'yearly') {
   const ctx = document.getElementById(canvasId).getContext('2d');
   const gradCount = ctx.createLinearGradient(0, 0, 0, 300);
   gradCount.addColorStop(0, hexToRgba(COLORS.blue, 0.35));
@@ -104,8 +104,8 @@ function createTrendChart(canvasId, labels, counts, values) {
           annotations: {
             line1: {
               type: 'line',
-              xMin: 'Apr 2024',
-              xMax: 'Apr 2024',
+              xMin: grain === 'yearly' ? '2024' : '2024-04',
+              xMax: grain === 'yearly' ? '2024' : '2024-04',
               borderColor: 'rgba(239, 68, 68, 0.8)',
               borderWidth: 2,
               borderDash: [5, 5],
@@ -120,8 +120,8 @@ function createTrendChart(canvasId, labels, counts, values) {
             },
             line2: {
               type: 'line',
-              xMin: 'Feb 2022',
-              xMax: 'Feb 2022',
+              xMin: grain === 'yearly' ? '2022' : '2022-02',
+              xMax: grain === 'yearly' ? '2022' : '2022-02',
               borderColor: 'rgba(239, 68, 68, 0.8)',
               borderWidth: 2,
               borderDash: [5, 5],
@@ -606,7 +606,7 @@ async function loadTrend(grain, dataset) {
     const res  = await fetch(`/api/trends?grain=${grain}&dataset=${dataset}`);
     const data = await res.json();
     if (chartInstances['trendChart']) chartInstances['trendChart'].destroy();
-    chartInstances['trendChart'] = createTrendChart('trendChart', data.labels, data.counts, data.values || []);
+    chartInstances['trendChart'] = createTrendChart('trendChart', data.labels, data.counts, data.values || [], grain);
   } catch (e) { console.warn('trends:', e); }
 }
 

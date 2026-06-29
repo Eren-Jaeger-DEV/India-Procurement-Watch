@@ -6,3 +6,5 @@ scikit-learn
 scipy
 python-dotenv
 requests
+duckduckgo-search
+rapidfuzz

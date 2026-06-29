@@ -99,19 +99,13 @@ window.switchView = function(viewId) {
   }, 50);
 
   // Lazy-load per view
-  if (viewId === 'view-report') loadNarrativeReport();
   if (viewId === 'view-overview') {
     loadKPIs();
   }
-  if (viewId === 'view-import') refreshDumpFiles();
   if (viewId === 'view-redflags') loadReportCards(1);
   if (viewId === 'view-investigation') {
-    loadAnomalies('round_number', 1);
     loadSingleBid(1000000, 1);
     loadRepeatWinners(3, 1);
-    loadCartels(1);
-    loadSanctions();
-    loadLiveAlerts(1);
   }
 };
 
@@ -179,61 +173,7 @@ async function loadKPIs() {
   }
 }
 
-// ── ANOMALIES ──
-let currentAnomalyType = 'round_number';
 
-const ANOMALY_DESCS = {
-  round_number:    "Contracts where the value is an exact multiple of ₹1 Lakh — often a signal of estimated rather than market-competitive pricing.",
-  quick_award:     "Contracts awarded within 24 hours of the bidding deadline — physically implausible under fair procurement rules. Almost certainly pre-decided.",
-  high_value_state: "Contracts from state government portals exceeding ₹10 Crore — significant expenditures requiring strong oversight.",
-  short_window:    "Tenders whose bid submission window was open for fewer than 7 days — artificially restricting competition by giving competitors no time to prepare.",
-  low_emd:         "Tenders (≥ ₹1 Crore) where the Earnest Money Deposit (EMD) is less than 0.5% of the contract value — commonly used to let under-capitalized shell companies bid.",
-  high_fee:        "Tenders requiring a document download fee greater than ₹10,000 — an exclusionary tactic that prices out smaller competitors from even reading the requirements."
-};
-
-window.switchAnomalyType = function(type) {
-  currentAnomalyType = type;
-  document.querySelectorAll('#btn-inv-anomaly .btn-pill, #view-investigation .btn-pill').forEach(b => b.classList.remove('active'));
-  const activeMap = { 
-    round_number: 'btnRound', quick_award: 'btnQuick', high_value_state: 'btnHvState',
-    short_window: 'btnShortWin', low_emd: 'btnLowEmd', high_fee: 'btnHighFee' 
-  };
-  const el = document.getElementById(activeMap[type]);
-  if (el) el.classList.add('active');
-  const desc = document.getElementById('anomalyDesc');
-  if (desc) desc.textContent = ANOMALY_DESCS[type] || '';
-  loadAnomalies(type, 1);
-};
-
-async function loadAnomalies(type, page) {
-  const body = document.getElementById('anomalyBody');
-  if (!body) return;
-  body.innerHTML = '<tr><td colspan="6" class="table-empty">Loading…</td></tr>';
-  try {
-    const res  = await fetch(`/api/anomalies?type=${type}&page=${page}`);
-    const data = await res.json();
-    if (!data.results || data.results.length === 0) {
-      body.innerHTML = '<tr><td colspan="6" class="table-empty">No anomalies of this type found.</td></tr>';
-      return;
-    }
-    body.innerHTML = data.results.map(r => {
-      const extraInfo = r.extra_info ? JSON.stringify(r.extra_info).replace(/[{}"]/g,'').replace(/,/g,' · ') : '';
-      return `<tr>
-        <td class="td-org">${r.org_name || '—'}</td>
-        <td class="td-title" title="${r.title || ''}">${(r.title || '—').substring(0, 60)}${(r.title || '').length > 60 ? '…' : ''}</td>
-        <td class="td-value">₹${fmtNum(r.contract_value)}</td>
-        <td class="td-date">${r.aoc_date || '—'}</td>
-        <td>${portalBadge(r.portal_type)}</td>
-        <td style="font-size:11px;color:var(--text-muted);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${extraInfo}">${extraInfo}</td>
-      </tr>`;
-    }).join('');
-    const totalPages = Math.ceil(data.total / data.per_page);
-    buildPagination('anomalyPagination', page, totalPages, `window._loadAnom`);
-    window._loadAnom = (p) => loadAnomalies(currentAnomalyType, p);
-  } catch (e) {
-    body.innerHTML = `<tr><td colspan="6" class="table-empty">Error: ${e.message}</td></tr>`;
-  }
-}
 
 // ── SINGLE-BID CONTRACTS ──
 let currentSingleBidMin = 1000000;
@@ -309,122 +249,7 @@ async function loadRepeatWinners(minWins, page) {
   }
 }
 
-// ── CARTEL RINGS ──
-async function loadCartels(page) {
-  const body = document.getElementById('cartelBody');
-  if (!body) return;
-  body.innerHTML = '<tr><td colspan="5" class="table-empty">Loading…</td></tr>';
-  try {
-    const res  = await fetch(`/api/cartels?page=${page}`);
-    const data = await res.json();
-    if (!data.results || data.results.length === 0) {
-      body.innerHTML = '<tr><td colspan="5" class="table-empty">No cartel rings found. Note: requires nodes.csv and edges.csv network data.</td></tr>';
-      return;
-    }
-    body.innerHTML = data.results.map(r => {
-      const companies = r.companies.split(', ').map(c => 
-        `<a href="#" onclick="openNetworkEntity('${c.replace(/'/g, "\\'")}')" style="color:var(--accent);text-decoration:underline">${c}</a>`
-      ).join(', ');
-      
-      return `<tr>
-        <td style="font-family:monospace;font-size:11px;color:var(--text-muted)">${r.cluster_id}</td>
-        <td class="td-org">${r.org_name || '—'}</td>
-        <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px">${companies}</td>
-        <td style="font-weight:700;color:var(--danger)">${r.company_count}</td>
-        <td class="td-value">₹${r.total_value_crore ? r.total_value_crore.toFixed(2) : '—'} Cr</td>
-      </tr>`;
-    }).join('');
-    const totalPages = Math.ceil(data.total / data.per_page);
-    buildPagination('cartelPagination', page, totalPages, 'window._loadCartel');
-    window._loadCartel = (p) => loadCartels(p);
-  } catch (e) {
-    body.innerHTML = `<tr><td colspan="5" class="table-empty">Error: ${e.message}</td></tr>`;
-  }
-}
 
-// ── LIVE ALERTS (PRE-CRIME) ──
-async function loadLiveAlerts(page) {
-  const body = document.getElementById('liveAlertsBody');
-  if (!body) return;
-  body.innerHTML = '<tr><td colspan="6" class="table-empty">Loading…</td></tr>';
-  try {
-    const res  = await fetch(`/api/live-alerts?page=${page}`);
-    const data = await res.json();
-    if (!data.results || data.results.length === 0) {
-      body.innerHTML = '<tr><td colspan="6" class="table-empty">No live alerts found. Please run build_live_alerts.py to analyze live tenders.</td></tr>';
-      return;
-    }
-    body.innerHTML = data.results.map(r => {
-      let riskCol = 'var(--medium)';
-      if (r.ml_risk_score > 90) riskCol = 'var(--critical)';
-      else if (r.ml_risk_score > 75) riskCol = 'var(--high)';
-      
-      let flagStyle = r.nlp_flag.includes('NLP') ? 'color:#a855f7;font-weight:600;' : 'color:var(--text-muted);';
-      
-      return `<tr>
-        <td style="font-family:monospace;font-size:11px;color:var(--text-muted)">${r.tender_id}</td>
-        <td class="td-org">${r.org_name || '—'}</td>
-        <td class="td-title" title="${r.title || ''}">${(r.title || '—').substring(0, 60)}${(r.title || '').length > 60 ? '…' : ''}</td>
-        <td class="td-value">₹${r.contract_value ? r.contract_value.toFixed(0) : '—'}</td>
-        <td style="font-weight:700;color:${riskCol}">${r.ml_risk_score}%</td>
-        <td style="${flagStyle}">${r.nlp_flag}</td>
-      </tr>`;
-    }).join('');
-    const totalPages = Math.ceil(data.total / data.per_page);
-    buildPagination('liveAlertsPagination', page, totalPages, 'window._loadLive');
-    window._loadLive = (p) => loadLiveAlerts(p);
-  } catch (e) {
-    body.innerHTML = `<tr><td colspan="6" class="table-empty">Error: ${e.message}</td></tr>`;
-  }
-}
-
-// ── REPORT CARDS ──
-let currentRCSort = 'score_asc';
-
-window.switchReportCardSort = function(sort) {
-  currentRCSort = sort;
-  document.getElementById('btnGradeScore')?.classList.toggle('active', sort === 'score_asc');
-  document.getElementById('btnGradeValue')?.classList.toggle('active', sort === 'value_desc');
-  loadReportCards(1);
-};
-
-async function loadReportCards(page) {
-  const container = document.getElementById('reportCardsContainer');
-  if (!container) return;
-  container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted)">Loading…</div>';
-  try {
-    const res  = await fetch(`/api/report-cards?sort=${currentRCSort}&page=${page}&per_page=30`);
-    const data = await res.json();
-    if (!data.results || data.results.length === 0) {
-      container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted)">No report card data available yet.</div>';
-      return;
-    }
-    const maxContracts = Math.max(...data.results.map(r => r.total_contracts || 0), 1);
-    container.innerHTML = data.results.map(r => {
-      const barPct = Math.round((r.total_contracts / maxContracts) * 100);
-      const gradeColor = { A: 'var(--low)', B: '#4ade80', C: 'var(--medium)', D: 'var(--high)', F: 'var(--critical)' };
-      const col = gradeColor[r.grade] || 'var(--text-muted)';
-      return `<div class="report-card-item">
-        ${gradeBadge(r.grade)}
-        <div class="rc-org" title="${r.org_name}">${r.org_name}</div>
-        <div class="rc-bar-wrap"><div class="rc-bar" style="width:${barPct}%;background:${col}"></div></div>
-        <div class="rc-stat">${r.total_contracts?.toLocaleString('en-IN') || '0'} contracts</div>
-        <div class="rc-stat" style="min-width:90px">₹${(r.total_value_crore || 0).toFixed(0)} Cr</div>
-        <div class="rc-stat" style="color:${r.single_bid_pct > 30 ? 'var(--critical)' : 'var(--text-muted)'};min-width:80px">
-          ${r.single_bid_pct?.toFixed(1) || 0}% single-bid
-        </div>
-        <div class="rc-stat" style="min-width:70px" title="Herfindahl-Hirschman Index (Monopoly Score)">
-          HHI: <span style="color:${r.hhi_score > 2500 ? 'var(--critical)' : 'inherit'}">${r.hhi_score || 'N/A'}</span>
-        </div>
-      </div>`;
-    }).join('');
-    const totalPages = Math.ceil(data.total / (data.per_page || 30));
-    buildPagination('reportCardsPagination', page, totalPages, 'window._loadRC');
-    window._loadRC = (p) => loadReportCards(p);
-  } catch (e) {
-    container.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text-muted)">Error loading data.</div>`;
-  }
-}
 
 // ── MODAL (Tender Detail) ──
 window.openTenderDetail = async function(id) {
@@ -498,7 +323,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       await Promise.all([
         loadKPIs(),
         initCharts(),
-        loadAnomalies('round_number', 1),
+
         loadSingleBid(1000000, 1),
         loadRepeatWinners(3, 1),
         loadSanctions(),
@@ -548,3 +373,5 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Re-render icons (some may have been added dynamically)
   if (window.lucide) lucide.createIcons();
 });
+
+

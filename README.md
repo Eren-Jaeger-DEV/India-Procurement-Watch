@@ -46,6 +46,7 @@ India Procurement Watch is a robust analytical dashboard designed for exploring 
     ```
 2.  **Add Raw Data**:
     Drop your raw SQLite dumps (e.g., `aoc_tenders.db` and `tenders_vps.db`) into the `data_dump/` folder.
+    *Note: For the Cartel Ring detection to work, you must also place your corporate linkage files (`nodes.csv` and `edges.csv`) in the `data_dump/` folder.*
 3.  **Run the Server**:
     ```bash
     python app.py

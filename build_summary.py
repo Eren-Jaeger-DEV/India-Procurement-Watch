@@ -44,7 +44,7 @@ BRACKETS = [
 ]
 
 TOP_ORGS_LIMIT = 100
-ANOMALY_LIMIT  = 500   # max anomalies per type stored
+SINGLE_BID_LIMIT = 500   # max single-bid contracts stored
 
 # ─────────────────────────────────────────────
 # HELPERS
@@ -208,18 +208,6 @@ def create_summary_db(conn):
             count     INTEGER
         );
 
-        DROP TABLE IF EXISTS anomalies;
-        CREATE TABLE anomalies (
-            anom_type       TEXT,
-            internal_id     TEXT,
-            org_name        TEXT,
-            title           TEXT,
-            contract_value  REAL,
-            aoc_date        TEXT,
-            portal_type     TEXT,
-            extra_info      TEXT
-        );
-
         DROP TABLE IF EXISTS tenders_status;
         CREATE TABLE tenders_status (
             status TEXT,
@@ -366,10 +354,6 @@ def aggregate_aoc_data(aoc_conn, sum_conn):
 
     seen_sigs = set()
 
-    anom_round    = []
-    anom_quick    = []
-    anom_hv_state = []
-
     # Repeat winner: (bidder_name, org_name) → {wins, value, first, last}
     winner_stats = defaultdict(lambda: {'wins': 0, 'value': 0.0, 'first': '', 'last': ''})
     # Single-bid accumulator (store up to 2000, filter later)
@@ -397,9 +381,9 @@ def aggregate_aoc_data(aoc_conn, sum_conn):
 
         # ── OUTLIER TRIMMING ──
         # If contract is > ₹10,000 Crore, it's almost certainly a data entry typo.
-        if cv is not None and cv > 100_000_000_000:
-            cv = None
+        if cv is not None and cv > 1_000_000_000_000: # 1 Trillion INR filter
             outliers += 1
+            continue
 
         dedup_count += 1
         ptype = ptype or "unknown"
@@ -459,33 +443,6 @@ def aggregate_aoc_data(aoc_conn, sum_conn):
                 if not winner_stats[key]['last'] or aoc_date > winner_stats[key]['last']:
                     winner_stats[key]['last'] = aoc_date
 
-        # ── Anomaly: round numbers ──
-        if cv and is_round_number(cv):
-            org_stats[org]['round_number_count'] += 1
-            if cv >= 1_000_000 and len(anom_round) < ANOMALY_LIMIT:
-                anom_round.append((
-                    'round_number', iid, org, (title or '')[:200], cv,
-                    aoc_date or '', ptype, json.dumps({'tender_type': tt})
-                ))
-
-        # ── Anomaly: quick award ──
-        if aoc_date and closing_date and len(anom_quick) < ANOMALY_LIMIT:
-            d = days_between(aoc_date, closing_date)
-            if d is not None and d <= 1:
-                anom_quick.append((
-                    'quick_award', iid, org, (title or '')[:200],
-                    cv or 0, aoc_date, ptype,
-                    json.dumps({'closing_date': closing_date, 'days_to_award': d})
-                ))
-
-        # ── Anomaly: high-value state contracts (> ₹10 Cr) ──
-        if ptype == 'state' and cv and cv >= 100_000_000 and len(anom_hv_state) < ANOMALY_LIMIT:
-            anom_hv_state.append((
-                'high_value_state', iid, org, (title or '')[:200],
-                cv, aoc_date, ptype,
-                json.dumps({'contract_value_crore': round(cv/1e7, 2)})
-            ))
-
         j += 1
         if j % 500_000 == 0:
             elapsed = time.time() - t1
@@ -533,11 +490,6 @@ def aggregate_aoc_data(aoc_conn, sum_conn):
     sum_conn.executemany(
         "INSERT INTO value_brackets(bracket, min_val, max_val, count) VALUES (?,?,?,?)",
         [(BRACKETS[i][0], BRACKETS[i][1], BRACKETS[i][2], bracket_counts[i]) for i in range(len(BRACKETS))]
-    )
-    # Anomalies
-    sum_conn.executemany(
-        "INSERT INTO anomalies(anom_type, internal_id, org_name, title, contract_value, aoc_date, portal_type, extra_info) VALUES (?,?,?,?,?,?,?,?)",
-        anom_round + anom_quick + anom_hv_state
     )
 
     # Single-bid contracts — sort by value descending
@@ -696,70 +648,7 @@ def aggregate_vps(vps_conn, sum_conn):
     else:
         log("  (no recognised date column — skipping monthly published)")
 
-    log("Phase 2d: Deep Procurement Flags (Short Window, Low EMD, High Fee)...")
-    try:
-        cur.execute("SELECT tender_id, details_json FROM tender_details")
-        anom_short = []
-        anom_low_emd = []
-        anom_high_fee = []
-        
-        pk = 0
-        ANOMALY_LIMIT = 500  # match the limit from phase 1
-        
-        for tid, djson in cur:
-            if not djson: continue
-            try:
-                d = json.loads(djson)
-                pub_date = d.get('ePublished Date')
-                end_date = d.get('Bid Submission End Date') or d.get('closing_date')
-                org = str(d.get('Organisation Name', ''))
-                title = str(d.get('Tender Title', ''))
-                val_raw = str(d.get('Tender Value', ''))
-                emd_raw = str(d.get('EMD', ''))
-                fee_raw = str(d.get('Tender Fee', ''))
-                ptype = str(d.get('Organisation Type', ''))
-                
-                cv = parse_contract_value(val_raw) or 0.0
-                emd = parse_contract_value(emd_raw) or 0.0
-                fee = parse_contract_value(fee_raw) or 0.0
-                
-                # Short Window (< 7 days)
-                if pub_date and end_date and len(anom_short) < ANOMALY_LIMIT:
-                    days = days_between(pub_date, end_date)
-                    if days is not None and days < 7 and days >= 0:
-                        anom_short.append((
-                            'short_window', tid, org, title[:200], cv, pub_date, ptype,
-                            json.dumps({'days_open': days})
-                        ))
-                        
-                # High Fee (> 10,000)
-                if fee > 10000 and len(anom_high_fee) < ANOMALY_LIMIT:
-                    anom_high_fee.append((
-                        'high_fee', tid, org, title[:200], cv, pub_date or '', ptype,
-                        json.dumps({'tender_fee': fee})
-                    ))
-                    
-                # Low EMD (< 0.5% on large contracts >= 1 Cr)
-                if cv >= 100_000_00 and emd > 0 and len(anom_low_emd) < ANOMALY_LIMIT:
-                    if (emd / cv) < 0.005:
-                        anom_low_emd.append((
-                            'low_emd', tid, org, title[:200], cv, pub_date or '', ptype,
-                            json.dumps({'emd': emd, 'pct': round((emd/cv)*100, 3)})
-                        ))
-            except Exception:
-                pass
-                
-            pk += 1
-            if pk % 250_000 == 0:
-                log(f"  Processed {pk:,} details for deep flags...")
-                
-        sum_conn.executemany(
-            "INSERT INTO anomalies(anom_type, internal_id, org_name, title, contract_value, aoc_date, portal_type, extra_info) VALUES (?,?,?,?,?,?,?,?)",
-            anom_short + anom_low_emd + anom_high_fee
-        )
-        log(f"  OK Generated {len(anom_short)} short-window, {len(anom_low_emd)} low-emd, {len(anom_high_fee)} high-fee flags.")
-    except Exception as e:
-        log(f"  (Skipping deep flags due to missing tables/data: {e})")
+
 
     sum_conn.commit()
 
@@ -955,7 +844,6 @@ def main():
     sum_conn.executescript("""
         CREATE INDEX IF NOT EXISTS idx_monthly_ym ON monthly_trends(year, month);
         CREATE INDEX IF NOT EXISTS idx_yearly ON yearly_trends(year);
-        CREATE INDEX IF NOT EXISTS idx_anomaly_type ON anomalies(anom_type);
         CREATE INDEX IF NOT EXISTS idx_pub_monthly ON published_monthly(year, month);
     """)
     sum_conn.commit()

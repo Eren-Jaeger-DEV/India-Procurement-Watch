@@ -153,7 +153,60 @@ function renderProfile(focusId, nodes, label, kind) {
     `;
   }
 
+  html += `<div id="mcaIdentityBlock"></div>`;
+
   profileEl.innerHTML = html;
+  
+  if (kind === 'vendor' || node.kind === 'company') {
+    const mcaBlock = document.getElementById('mcaIdentityBlock');
+    if (mcaBlock) {
+      mcaBlock.innerHTML = `<div style="margin-top:15px;padding-top:10px;border-top:1px solid var(--border);color:var(--text-muted);font-size:12px;">Searching MCA records...</div>`;
+      fetch(`/api/vendor-mca/${encodeURIComponent(node.label)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.match) {
+            const m = data.match;
+            let mcaHtml = `
+              <div style="margin-top:15px;padding-top:10px;border-top:1px solid var(--border);">
+                <div style="font-weight:700;font-size:13px;color:var(--text-primary);margin-bottom:8px;">MCA Corporate Identity</div>
+                <div class="modal-body-field">
+                  <div class="modal-field-label">Official Name (Fuzzy Match: ${Math.round(data.score)}%)</div>
+                  <div class="modal-field-value" style="font-weight:600">${m.CompanyName || 'N/A'}</div>
+                </div>
+                <div class="modal-body-field">
+                  <div class="modal-field-label">CIN</div>
+                  <div class="modal-field-value" style="font-family:monospace;font-size:11px">${m.CIN || 'N/A'}</div>
+                </div>
+                <div class="modal-body-field">
+                  <div class="modal-field-label">Status</div>
+                  <div class="modal-field-value">
+                    <span class="portal-badge ${m.CompanyStatus === 'Active' ? 'portal-central' : 'portal-state'}">${m.CompanyStatus || 'Unknown'}</span>
+                  </div>
+                </div>
+                <div class="modal-body-field">
+                  <div class="modal-field-label">Registration Date</div>
+                  <div class="modal-field-value">${m.CompanyRegistrationdate_date || 'N/A'}</div>
+                </div>
+                <div class="modal-body-field">
+                  <div class="modal-field-label">Paid-up Capital</div>
+                  <div class="modal-field-value">₹ ${parseFloat(m.PaidupCapital || 0).toLocaleString('en-IN')}</div>
+                </div>
+                <div class="modal-body-field">
+                  <div class="modal-field-label">Registered Office</div>
+                  <div class="modal-field-value" style="font-size:11px;line-height:1.4;">${m.Registered_Office_Address || 'N/A'}</div>
+                </div>
+              </div>
+            `;
+            mcaBlock.innerHTML = mcaHtml;
+          } else {
+             mcaBlock.innerHTML = `<div style="margin-top:15px;padding-top:10px;border-top:1px solid var(--border);color:var(--text-muted);font-size:11px;">No confident MCA record found.</div>`;
+          }
+        })
+        .catch(err => {
+          mcaBlock.innerHTML = '';
+        });
+    }
+  }
 }
 
 // Render the Vis.js Graph Canvas
@@ -312,13 +365,25 @@ window.openNetworkEntity = async function(label) {
       }
     } else {
       if (listEl) {
-        listEl.innerHTML = '<div style="color:var(--text-muted);font-size:12px">No network matches found for this name. Only companies matched to the MCA company registry appear in this view.</div>';
+        listEl.innerHTML = '<div style="color:var(--text-muted);font-size:12px">No network matches found. Note: Only companies matched to the MCA company registry show up in this view.</div>';
       }
       if (resultsDiv) resultsDiv.style.display = 'block';
       
-      // Hide workspace, show empty state
-      document.getElementById('networkGraphWorkspace').style.display = 'none';
-      document.getElementById('networkEmptyState').style.display = 'block';
+      // Even if no graph edges exist, show the profile workspace so the MCA Corporate Identity card can render
+      document.getElementById('networkGraphWorkspace').style.display = 'block';
+      document.getElementById('networkEmptyState').style.display = 'none';
+      
+      // Create a dummy node just for the profile rendering
+      const dummyNode = [{ id: 'unknown', label: label, kind: 'vendor', state: 'Unknown' }];
+      renderProfile('unknown', dummyNode, label, 'vendor');
+      
+      // Clear the graph canvas since there's no network data
+      const canvasContainer = document.getElementById('networkGraphCanvas');
+      if (canvasContainer) canvasContainer.innerHTML = '<div style="padding:20px;color:var(--text-muted);text-align:center;margin-top:100px;">No neighborhood network data available for this entity.</div>';
+      if (_networkInstance) {
+        _networkInstance.destroy();
+        _networkInstance = null;
+      }
     }
   } catch (e) {
     console.warn("Failed to automatically load network entity:", e);

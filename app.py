@@ -95,11 +95,19 @@ def rows_to_list(cursor_result):
 
 @app.route("/")
 def index():
-    return send_from_directory(STATIC_DIR, "index.html")
+    resp = send_from_directory(STATIC_DIR, "index.html")
+    resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+    resp.headers["Pragma"] = "no-cache"
+    resp.headers["Expires"] = "0"
+    return resp
 
 @app.route("/<path:path>")
 def static_proxy(path):
-    return send_from_directory(STATIC_DIR, path)
+    resp = send_from_directory(STATIC_DIR, path)
+    resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+    resp.headers["Pragma"] = "no-cache"
+    resp.headers["Expires"] = "0"
+    return resp
 
 # ─────────────────────────────────────────────
 # API: STATUS

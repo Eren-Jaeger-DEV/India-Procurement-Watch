@@ -1344,6 +1344,200 @@ body {
 
 .btn-theme, .btn-primary, .stat-card, tr, .nav-item, .macro-pill {
   transition: all 0.2s ease;
+/* ── REPORT CARDS ── */
+.report-card-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  transition: background var(--transition);
+  cursor: pointer;
+}
+.report-card-item:hover { background: var(--bg-card-hover); }
+
+.rc-org { flex: 1; font-size: 13px; font-weight: 600; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rc-stat { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+.rc-bar-wrap { width: 80px; height: 4px; background: var(--bg-input); border-radius: 2px; }
+.rc-bar { height: 100%; border-radius: 2px; }
+
+/* ── PULSE DOT ── */
+.pulse-dot {
+  display: inline-block;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--critical);
+  margin-right: 4px;
+  animation: pulse 1.5s infinite;
+}
+
+/* ── FOOTER ── */
+.footer {
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.8;
+}
+.footer a { color: var(--accent); text-decoration: none; }
+.footer a:hover { text-decoration: underline; }
+
+/* ── EMPTY STATES ── */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-muted);
+}
+.empty-state-icon { font-size: 48px; margin-bottom: 16px; }
+.empty-state h3 { font-size: 16px; color: var(--text-secondary); margin-bottom: 8px; }
+.empty-state p { font-size: 13px; line-height: 1.6; max-width: 360px; margin: 0 auto; }
+
+/* ── EXPORT BUTTON ── */
+.btn-export {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+  text-decoration: none;
+}
+.btn-export:hover { border-color: var(--accent); color: var(--accent); }
+.btn-export svg { width: 13px; height: 13px; }
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-base); }
+::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 1100px) {
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  .charts-grid-3 { grid-template-columns: repeat(2, 1fr); }
+  .import-steps { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 768px) {
+  .kpi-grid { grid-template-columns: 1fr 1fr; }
+  .charts-grid-3, .charts-grid-2 { grid-template-columns: 1fr; }
+  .main { padding: 16px; }
+  .sidebar { width: 64px; }
+  .sidebar .brand-text,
+  .sidebar .nav-item span,
+  .sidebar .nav-section-label,
+  .sidebar .btn-theme span { display: none; }
+  .main-wrapper { margin-left: 64px; }
+
+  .header { flex-wrap: wrap; height: auto; padding: 10px 16px; }
+  .header-actions { margin-top: 10px; width: 100%; justify-content: space-between; }
+  
+  .investigation-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 5px;
+  }
+  
+  .table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .report-card-item {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  .network-sidebar {
+    width: 100% !important;
+    z-index: 999;
+  }
+}
+
+/* PDF Export Styles */
+.pdf-export-container { padding: 20px; background: white; }
+.pdf-watermark { position: absolute; top: 0; left: 0; right: 0; bottom: 0; opacity: 0.05; pointer-events: none; background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text x="10" y="50" transform="rotate(-45 50 50)" font-size="14" fill="black">CONFIDENTIAL - IPW</text></svg>'); z-index: 9999; }
+
+/* ── Darshi Custom UI Styles ── */
+.macro-pill {
+  background: rgba(25, 25, 25, 0.6);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+.macro-pill:hover {
+  background: rgba(35, 35, 35, 0.9);
+  color: #fff;
+  border-color: var(--accent);
+  box-shadow: 0 0 12px rgba(217, 119, 87, 0.2);
+  transform: translateY(-1px);
+}
+.macro-pill i {
+  color: var(--accent);
+}
+
+.darshi-input-wrapper {
+  background: rgba(18, 18, 18, 0.7);
+  backdrop-filter: blur(12px);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 14px 20px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  transition: all 0.3s ease;
+}
+.darshi-input-wrapper:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 0 0 1px var(--accent);
+}
+
+#chatInputContainer {
+  transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+#view-ai-chat.active {
+  display: flex !important;
+}
+
+/* ── UI Enhancements: Smoothness & Animations ── */
+@keyframes slideUpFadeIn {
+  0% { opacity: 0; transform: translateY(12px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes spin-slow {
+  100% { transform: rotate(360deg); }
+}
+
+.chat-msg-animated {
+  animation: slideUpFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+[data-lucide="loader"] {
+  animation: spin-slow 1.5s linear infinite;
+}
+
+.btn-theme, .btn-primary, .stat-card, tr, .nav-item, .macro-pill {
+  transition: all 0.2s ease;
 }
 
 details summary {
@@ -1351,4 +1545,30 @@ details summary {
 }
 details summary:hover {
   opacity: 0.8;
+}
+
+/* ── Global Micro-Animations ── */
+
+.view-section {
+  animation: slideUpFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.6);
+  border-color: var(--border-light);
+}
+
+.data-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.03);
+  transform: scale(1.002);
+}
+
+.btn-primary:active, .btn-theme:active, .macro-pill:active {
+  transform: scale(0.96);
+}
+
+.nav-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  transform: translateX(4px);
 }

@@ -1,4 +1,4 @@
-# India Procurement Watch — Power Analysis Tool (v3.0)
+# India Procurement Watch — Power Analysis Tool (v6.0)
 
 India Procurement Watch is a robust analytical dashboard designed for exploring public procurement data in India. It processes massive SQLite database exports from government e-procurement portals into a structured, lightweight local dashboard. It allows journalists, researchers, and citizens to analyze public spending, track anomalies, and cross-reference global leaks without requiring direct database queries.
 

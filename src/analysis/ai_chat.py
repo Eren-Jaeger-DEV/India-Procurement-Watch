@@ -186,6 +186,34 @@ def ask_database(user_query, model="gemini-3.5-flash"):
     # Yield the actual data first so UI can build table
     yield f"data: {json.dumps({'type': 'data', 'query': sql_query, 'columns': columns, 'data': rows})}\n\n"
 
+        # Phase 2.5: Visualizer
+    visualizer_messages = [
+        {"role": "system", "content": "You are a data visualization AI. Given a JSON array of data from a SQL query, decide the best way to visualize it.\n\nRules:\n1. If it's a single aggregate number (e.g. sum, count), output a JSON object: {\"type\": \"kpi\", \"value\": \"formatted string (e.g. 1.2K)\", \"label\": \"Short description\"} (Make the label max 3 words).\n2. If it is categorical or trend data, output a JSON object: {\"type\": \"chart\", \"chart_type\": \"bar\" or \"pie\" or \"line\", \"labels\": [\"x1\", \"x2\"], \"dataset_label\": \"Metric Name\", \"data\": [10, 20]}\n3. If it has many string columns or doesn't make sense as a chart, output: {\"type\": \"none\"}\n\nOutput ONLY raw valid JSON, no markdown blocks."},
+        {"role": "user", "content": f"Data:\n{json.dumps(rows)}"}
+    ]
+    try:
+        if len(rows) > 0:
+            viz_res = create_chat_completion_with_fallback(
+                client=client,
+                models=["gemini-3.5-flash", "gpt-3.5-turbo", "gpt-4o"],
+                messages=visualizer_messages,
+                temperature=0.1,
+                timeout=15.0
+            )
+            viz_text = viz_res.choices[0].message.content.strip()
+            if viz_text.startswith("```json"): viz_text = viz_text[7:]
+            if viz_text.startswith("```"): viz_text = viz_text[3:]
+            if viz_text.endswith("```"): viz_text = viz_text[:-3]
+            viz_json = json.loads(viz_text.strip())
+            
+            if viz_json.get("type") == "kpi":
+                yield f"data: {json.dumps({'type': 'kpi_box', 'kpi': viz_json})}\n\n"
+            elif viz_json.get("type") == "chart":
+                yield f"data: {json.dumps({'type': 'chart_data', 'chart': viz_json})}\n\n"
+    except Exception as e:
+        print(f"Visualizer error: {e}")
+        pass # Ignore visualizer errors, fallback to table
+
     # Phase 3: Interpreter
     yield f"data: {json.dumps({'type': 'summary_start'})}\n\n"
     interpreter_messages = [

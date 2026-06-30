@@ -151,6 +151,45 @@ window.sendAiQuery = function() {
                   chatHistory.scrollTop = chatHistory.scrollHeight;
                 }
               }
+                            else if (data.type === 'kpi_box') {
+                let kpiContainer = document.createElement('div');
+                kpiContainer.style.cssText = 'margin-bottom: 16px; padding: 20px; background: rgba(0,0,0,0.4); border: 1px solid var(--accent); border-radius: 8px; text-align: center;';
+                kpiContainer.innerHTML = `<div style="font-size: 14px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">${data.kpi.label}</div><div style="font-size: 32px; font-weight: bold; color: var(--accent);">${data.kpi.value}</div>`;
+                aiMsg.appendChild(kpiContainer);
+                chatHistory.scrollTop = chatHistory.scrollHeight;
+                if (dataContainer) dataContainer.style.display = 'none';
+              }
+              else if (data.type === 'chart_data') {
+                let chartWrapper = document.createElement('div');
+                chartWrapper.style.cssText = 'margin-bottom: 16px; padding: 16px; background: rgba(0,0,0,0.3); border-radius: 8px; border: 1px solid var(--border);';
+                let canvas = document.createElement('canvas');
+                canvas.id = 'chat-chart-' + Math.random().toString(36).substr(2, 9);
+                chartWrapper.appendChild(canvas);
+                aiMsg.appendChild(chartWrapper);
+                chatHistory.scrollTop = chatHistory.scrollHeight;
+                if (dataContainer) dataContainer.style.display = 'none';
+                
+                try {
+                  new Chart(canvas, {
+                    type: data.chart.chart_type || 'bar',
+                    data: {
+                      labels: data.chart.labels || [],
+                      datasets: [{
+                        label: data.chart.dataset_label || '',
+                        data: data.chart.data || [],
+                        backgroundColor: ['rgba(217, 119, 87, 0.7)', 'rgba(56, 189, 248, 0.7)', 'rgba(167, 139, 250, 0.7)', 'rgba(251, 191, 36, 0.7)', 'rgba(52, 211, 153, 0.7)'],
+                        borderColor: 'rgba(255,255,255,0.1)',
+                        borderWidth: 1
+                      }]
+                    },
+                    options: {
+                      responsive: true,
+                      plugins: { legend: { display: data.chart.chart_type === 'pie' } },
+                      scales: data.chart.chart_type !== 'pie' ? { y: { beginAtZero: true, grid: {color: 'rgba(255,255,255,0.05)'} }, x: { grid: {color: 'rgba(255,255,255,0.05)'} } } : {}
+                    }
+                  });
+                } catch(e) { console.error("Chart render error", e); }
+              }
               else if (data.type === 'data') {
                 dataContainer = document.createElement('div');
                 let html = '';

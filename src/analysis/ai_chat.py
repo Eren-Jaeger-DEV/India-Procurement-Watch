@@ -31,6 +31,18 @@ def get_api_key():
                     return line.strip().split("=", 1)[1]
     return None
 
+def create_chat_completion_with_fallback(client, models, **kwargs):
+    last_exception = None
+    for m in models:
+        try:
+            kwargs["model"] = m
+            return client.chat.completions.create(**kwargs)
+        except Exception as e:
+            last_exception = e
+            print(f"Model {m} failed: {e}. Trying next...")
+            continue
+    raise last_exception
+
 def ask_database(user_query, model="gemini-3.5-flash"):
     api_key = get_api_key()
     if not api_key:
@@ -47,14 +59,21 @@ def ask_database(user_query, model="gemini-3.5-flash"):
         }
     )
 
+    router_models = ["gemini-3.5-flash", "gpt-3.5-turbo"]
+    convo_models = [model, "gpt-4o", "gemini-3.5-flash"]
+    planner_models = [model, "gpt-4o", "deepseek-v4-pro"]
+    sql_models = ["deepseek-v4-pro", "gpt-4o", "claude-3-opus"]
+    interpreter_models = [model, "gpt-4o", "gemini-3.5-flash"]
+
     # Phase 0: Intent Router (Fast, No Schema)
     router_messages = [
         {"role": "system", "content": "You are a routing AI. If the user's query is conversational (e.g., 'hello', 'who are you', 'what is this') or asks for general knowledge, reply ONLY with 'CONVO'. If the query asks for data, statistics, reports, or search results that would require querying a database of public tenders, reply ONLY with 'DATA'."},
         {"role": "user", "content": user_query}
     ]
     try:
-        router_res = client.chat.completions.create(
-            model="gemini-3.5-flash",
+        router_res = create_chat_completion_with_fallback(
+            client=client,
+            models=router_models,
             messages=router_messages,
             temperature=0.0,
             timeout=10.0
@@ -66,8 +85,9 @@ def ask_database(user_query, model="gemini-3.5-flash"):
     if "CONVO" in intent:
         yield f"data: {json.dumps({'type': 'summary_start'})}\n\n"
         try:
-            convo_res = client.chat.completions.create(
-                model=model,
+            convo_res = create_chat_completion_with_fallback(
+                client=client,
+                models=convo_models,
                 messages=[
                     {"role": "system", "content": "You are Darshi, an expert Data Analyst assistant for India Procurement Watch. Answer the user conversationally and concisely."},
                     {"role": "user", "content": user_query}
@@ -76,9 +96,10 @@ def ask_database(user_query, model="gemini-3.5-flash"):
                 stream=True
             )
             for chunk in convo_res:
-                content = chunk.choices[0].delta.content
-                if content:
-                    yield f"data: {json.dumps({'type': 'summary_chunk', 'content': content})}\n\n"
+                if chunk.choices:
+                    content = chunk.choices[0].delta.content
+                    if content:
+                        yield f"data: {json.dumps({'type': 'summary_chunk', 'content': content})}\n\n"
         except Exception as e:
             yield f"data: {json.dumps({'type': 'error', 'content': str(e)})}\n\n"
         yield f"data: {json.dumps({'type': 'end'})}\n\n"
@@ -93,17 +114,19 @@ def ask_database(user_query, model="gemini-3.5-flash"):
     yield f"data: {json.dumps({'type': 'thought_start'})}\n\n"
     thought_process = ""
     try:
-        planner_response = client.chat.completions.create(
-            model="gpt-5.5", 
+        planner_response = create_chat_completion_with_fallback(
+            client=client,
+            models=planner_models, 
             messages=planner_messages,
             temperature=0.3,
             stream=True
         )
         for chunk in planner_response:
-            content = chunk.choices[0].delta.content
-            if content:
-                thought_process += content
-                yield f"data: {json.dumps({'type': 'thought_chunk', 'content': content})}\n\n"
+            if chunk.choices:
+                content = chunk.choices[0].delta.content
+                if content:
+                    thought_process += content
+                    yield f"data: {json.dumps({'type': 'thought_chunk', 'content': content})}\n\n"
     except Exception as e:
         yield f"data: {json.dumps({'type': 'error', 'content': f'Planner failed: {str(e)}'})}\n\n"
         return
@@ -124,8 +147,9 @@ def ask_database(user_query, model="gemini-3.5-flash"):
 
     for attempt in range(max_retries):
         try:
-            sql_response = client.chat.completions.create(
-                model="deepseek-v4-pro",
+            sql_response = create_chat_completion_with_fallback(
+                client=client,
+                models=sql_models,
                 messages=sql_coder_messages,
                 temperature=0.0,
                 timeout=60.0
@@ -169,16 +193,18 @@ def ask_database(user_query, model="gemini-3.5-flash"):
         {"role": "user", "content": f"User's Question: {user_query}\n\nData Returned:\n{json.dumps(rows[:5])}"}
     ]
     try:
-        interpreter_response = client.chat.completions.create(
-            model=model,
+        interpreter_response = create_chat_completion_with_fallback(
+            client=client,
+            models=interpreter_models,
             messages=interpreter_messages,
             temperature=0.5,
             stream=True
         )
         for chunk in interpreter_response:
-            content = chunk.choices[0].delta.content
-            if content:
-                yield f"data: {json.dumps({'type': 'summary_chunk', 'content': content})}\n\n"
+            if chunk.choices:
+                content = chunk.choices[0].delta.content
+                if content:
+                    yield f"data: {json.dumps({'type': 'summary_chunk', 'content': content})}\n\n"
     except Exception as e:
         yield f"data: {json.dumps({'type': 'summary_chunk', 'content': 'I found the data, but had trouble summarizing it.'})}\n\n"
 

@@ -63,7 +63,8 @@ def ask_database(user_query, model="gemini-3.5-flash"):
     except Exception as e:
         return {"error": f"Planner failed: {str(e)}"}
 
-    if "<think>" not in thought_process and not user_query.lower().startswith("select"):
+    is_sql_like = thought_process.strip().upper().startswith("SELECT") or "```sql" in thought_process.lower()
+    if "<think>" not in thought_process and not user_query.lower().startswith("select") and not is_sql_like:
         # The AI decided to just answer conversationally
         return {
             "success": True,

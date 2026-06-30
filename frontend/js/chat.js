@@ -146,7 +146,7 @@ window.sendAiQuery = function() {
                 summaryContainer = document.createElement('div');
                 summaryContainer.style.cssText = 'margin-bottom: 16px; font-size: 14px; line-height: 1.6; white-space: pre-wrap;';
                 summaryContainer.dataset.rawText = '';
-                aiMsg.insertBefore(summaryContainer, dataContainer); // Insert before data table if it exists
+                aiMsg.appendChild(summaryContainer); // Insert after data table
                 chatHistory.scrollTop = chatHistory.scrollHeight;
               }
               else if (data.type === 'summary_chunk') {

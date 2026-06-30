@@ -22,10 +22,14 @@ India Procurement Watch is a robust analytical dashboard designed for exploring 
 *   **Mobile-Responsive Field View:** A fully responsive UI layout allowing field reporters to seamlessly browse the Investigation Desk and Risk Cards on smartphones and tablets.
 *   **Narrative Analysis Reports**: An automated rules engine that highlights unusual patterns, explains their implications, and suggests specific followup actions in plain English.
 *   **Darshi AI Intelligence Desk:** An embedded, multi-agent AI chat interface built directly into the dashboard. Allows investigators to ask natural language questions (e.g., "Flag single bid contracts over 1 crore") and receive instant SQL-backed answers, data tables, and conversational summaries.
-*   **Multi-Model LLM Orchestrator:** A powerful 3-phase ReAct pipeline that dynamically routes AI tasks:
+    *   **True Real-Time SSE Streaming:** Enjoy a Claude/Gemini-style real-time "thinking out loud" streaming experience via Python generators and Server-Sent Events (SSE).
+    *   **Auto-Rotational Fallbacks:** A highly resilient pipeline that automatically swaps to backup models (e.g., from DeepSeek to GPT-4o) if an API rate-limit or timeout is hit, ensuring zero downtime.
+    *   **Dynamic Data Export:** Instantly export massive AI-generated data tables as perfectly formatted Markdown (`.md`) or PDF (`.pdf`) documents directly from the chat UI without breaking the layout.
+*   **Multi-Model LLM Orchestrator:** A powerful 4-phase ReAct pipeline that dynamically routes AI tasks:
     *   **Phase 1 (Planner):** Analyzes conversational intent and plans database queries.
     *   **Phase 2 (SQL Expert):** Writes and self-corrects SQLite queries directly against the `summary.db`.
-    *   **Phase 3 (Interpreter):** Summarizes the raw data rows into a friendly, narrative response using your choice of advanced models (Gemini Flash, GPT-5.5, Claude Sonnet 4.6, DeepSeek V4).
+    *   **Phase 3 (Visualizer):** High-speed model that evaluates the shape of returned data to dynamically render Chart.js graphs (Pie, Bar, Line) or KPI Metric Cards right in the chat.
+    *   **Phase 4 (Interpreter):** Summarizes the raw data rows into a friendly, narrative response using your choice of advanced models (Gemini Flash, GPT-5.5, Claude Sonnet 4.6, DeepSeek V4).
 *   **Geographical Analysis**: View contract distributions and total spending mapped across states on a fully interactive, zoomable map.
 *   **Full-Text Search**: Instantly query tender titles and departments using an optimized SQLite FTS5 index.
 

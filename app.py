@@ -809,14 +809,14 @@ def api_agentic_search():
 @app.route("/api/ai-chat", methods=["POST"])
 def api_ai_chat():
     from src.analysis.ai_chat import ask_database
+    from flask import Response
     data = request.get_json() or {}
     text = data.get("text", "")
     model = data.get("model", "gemini-3.5-flash")
     if not text:
         return jsonify({"error": "No query provided"})
         
-    result = ask_database(text, model=model)
-    return jsonify(result)
+    return Response(ask_database(text, model=model), mimetype="text/event-stream")
 
 @app.route("/api/search")
 def api_search():

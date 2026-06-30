@@ -1581,9 +1581,3 @@ details summary:hover {
   border: 1px solid var(--border);
   overflow: hidden;
 }
-
-@keyframes typing {
-  from { width: 0; opacity: 0; }
-  1% { opacity: 1; }
-  to { width: 100%; opacity: 1; }
-}

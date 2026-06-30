@@ -34,11 +34,11 @@ def get_api_key():
 def ask_database(user_query, model="gemini-3.5-flash"):
     api_key = get_api_key()
     if not api_key:
-        return {"error": "API Key not found in .env"}
+        yield f"data: {json.dumps({'type': 'error', 'content': 'API Key not found in .env'})}\n\n"
+        return
 
-    # Initialize OpenAI client pointing to the user's aggregator
     client = OpenAI(
-        base_url="https://api.routing.run/v1", # The custom aggregator URL
+        base_url="https://api.routing.run/v1",
         api_key=api_key,
         default_headers={
             "HTTP-Referer": "http://localhost:5000", 
@@ -54,52 +54,63 @@ def ask_database(user_query, model="gemini-3.5-flash"):
     ]
     try:
         router_res = client.chat.completions.create(
-            model="gemini-3.5-flash", # Use a fast model for routing
+            model="gemini-3.5-flash",
             messages=router_messages,
             temperature=0.0,
             timeout=10.0
         )
         intent = router_res.choices[0].message.content.strip().upper()
     except Exception:
-        intent = "DATA" # Default to data if router fails
+        intent = "DATA"
         
     if "CONVO" in intent:
-        # Fast conversational response
-        convo_res = client.chat.completions.create(
-            model=model, # user selected model
-            messages=[
-                {"role": "system", "content": "You are Darshi, an expert Data Analyst assistant for India Procurement Watch. Answer the user conversationally and concisely."},
-                {"role": "user", "content": user_query}
-            ],
-            temperature=0.5,
-            timeout=30.0
-        )
-        return {
-            "success": True,
-            "thought_process": "",
-            "summary": convo_res.choices[0].message.content.strip(),
-            "query": "",
-            "columns": [],
-            "data": []
-        }
+        yield f"data: {json.dumps({'type': 'summary_start'})}\n\n"
+        try:
+            convo_res = client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": "You are Darshi, an expert Data Analyst assistant for India Procurement Watch. Answer the user conversationally and concisely."},
+                    {"role": "user", "content": user_query}
+                ],
+                temperature=0.5,
+                stream=True
+            )
+            for chunk in convo_res:
+                content = chunk.choices[0].delta.content
+                if content:
+                    yield f"data: {json.dumps({'type': 'summary_chunk', 'content': content})}\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'error', 'content': str(e)})}\n\n"
+        yield f"data: {json.dumps({'type': 'end'})}\n\n"
+        return
 
     # Phase 1: Planner
     planner_messages = [
         {"role": "system", "content": f"You are Darshi, an expert Data Analyst and assistant.\n\nYou must outline a logical plan to answer the user's query inside a <think>...</think> block. Inside this block, perform 'Keyword Expansion' (list 5-10 synonyms/alternative spellings for core concepts to simulate semantic search) and instruct the SQL Coder to use extensive `LIKE` chains.\n\nSchema:\n{DB_SCHEMA}"},
         {"role": "user", "content": user_query}
     ]
+    
+    yield f"data: {json.dumps({'type': 'thought_start'})}\n\n"
+    thought_process = ""
     try:
         planner_response = client.chat.completions.create(
             model="gpt-5.5", 
             messages=planner_messages,
             temperature=0.3,
-            timeout=60.0
+            stream=True
         )
-        thought_process = planner_response.choices[0].message.content.strip()
+        for chunk in planner_response:
+            content = chunk.choices[0].delta.content
+            if content:
+                thought_process += content
+                yield f"data: {json.dumps({'type': 'thought_chunk', 'content': content})}\n\n"
     except Exception as e:
-        return {"error": f"Planner failed: {str(e)}"}
+        yield f"data: {json.dumps({'type': 'error', 'content': f'Planner failed: {str(e)}'})}\n\n"
+        return
 
-    # Phase 2: SQL Coder (with self-correction loop)
+    yield f"data: {json.dumps({'type': 'status', 'content': 'Writing SQL query...'})}\n\n"
+
+    # Phase 2: SQL Coder
     sql_coder_messages = [
         {"role": "system", "content": f"You are an elite SQL developer. Given the schema and the architect's plan, write the exact SQLite query to answer the question. Reply ONLY with the SQL string.\nSchema:\n{DB_SCHEMA}"},
         {"role": "user", "content": f"Question: {user_query}\n\nArchitect Plan:\n{thought_process}"}
@@ -121,7 +132,6 @@ def ask_database(user_query, model="gemini-3.5-flash"):
             )
             sql_query = sql_response.choices[0].message.content.strip()
             
-            # Clean up markdown
             if sql_query.startswith("```sql"): sql_query = sql_query[6:]
             if sql_query.startswith("```"): sql_query = sql_query[3:]
             if sql_query.endswith("```"): sql_query = sql_query[:-3]
@@ -130,7 +140,6 @@ def ask_database(user_query, model="gemini-3.5-flash"):
             if not sql_query.upper().startswith("SELECT"):
                 raise ValueError("Query must start with SELECT")
                 
-            # Execute
             db_uri = f"file:{SUMMARY_DB}?mode=ro"
             conn = sqlite3.connect(db_uri, uri=True)
             conn.row_factory = sqlite3.Row
@@ -141,41 +150,36 @@ def ask_database(user_query, model="gemini-3.5-flash"):
             rows = [dict(row) for row in fetched]
             conn.close()
             success = True
-            break # It worked!
-
+            break
         except Exception as e:
-            # Feed the error back to the LLM to self-correct
             sql_coder_messages.append({"role": "assistant", "content": sql_query})
             sql_coder_messages.append({"role": "user", "content": f"That query failed with error: {str(e)}\nPlease rewrite the SQL query to fix this error. Reply ONLY with the exact SQL string."})
             
     if not success:
-        return {
-            "error": "Darshi could not translate this request into a valid database query.",
-            "thought_process": thought_process,
-            "query": sql_query
-        }
+        yield f"data: {json.dumps({'type': 'error', 'content': 'Darshi could not translate this request into a valid database query.', 'query': sql_query})}\n\n"
+        return
+
+    # Yield the actual data first so UI can build table
+    yield f"data: {json.dumps({'type': 'data', 'query': sql_query, 'columns': columns, 'data': rows})}\n\n"
 
     # Phase 3: Interpreter
+    yield f"data: {json.dumps({'type': 'summary_start'})}\n\n"
     interpreter_messages = [
         {"role": "system", "content": "You are Darshi, a helpful AI assistant. Summarize the following data into a friendly, 1-2 sentence conversational answer for the user. Do not explain the SQL, just interpret the data."},
         {"role": "user", "content": f"User's Question: {user_query}\n\nData Returned:\n{json.dumps(rows[:5])}"}
     ]
     try:
         interpreter_response = client.chat.completions.create(
-            model=model, # Use the user's selected model for the final touch
+            model=model,
             messages=interpreter_messages,
             temperature=0.5,
-            timeout=60.0
+            stream=True
         )
-        summary = interpreter_response.choices[0].message.content.strip()
+        for chunk in interpreter_response:
+            content = chunk.choices[0].delta.content
+            if content:
+                yield f"data: {json.dumps({'type': 'summary_chunk', 'content': content})}\n\n"
     except Exception as e:
-        summary = "I found the data, but had trouble summarizing it."
+        yield f"data: {json.dumps({'type': 'summary_chunk', 'content': 'I found the data, but had trouble summarizing it.'})}\n\n"
 
-    return {
-        "success": True,
-        "thought_process": thought_process,
-        "summary": summary,
-        "query": sql_query,
-        "columns": columns,
-        "data": rows
-    }
+    yield f"data: {json.dumps({'type': 'end'})}\n\n"

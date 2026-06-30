@@ -58,14 +58,17 @@ window.sendAiQuery = function() {
   const modelSelect = document.getElementById('aiModelSelect');
   const selectedModel = modelSelect ? modelSelect.value : 'gemini-3.5-flash';
 
-  // Send to backend
+
+  // Send to backend via streaming fetch
   fetch('/api/ai-chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ text: query, model: selectedModel })
   })
-  .then(res => res.json())
-  .then(data => {
+  .then(async res => {
+    if (!res.ok) throw new Error("Network response was not ok");
+    
+    // Create the message wrapper immediately
     const wrapper = document.createElement('div');
     wrapper.classList.add('chat-msg-animated');
     wrapper.style.cssText = 'display: flex; gap: 16px; margin-bottom: 32px; padding: 0; margin-right: 15%;';
@@ -76,79 +79,126 @@ window.sendAiQuery = function() {
     
     const aiMsg = document.createElement('div');
     aiMsg.style.cssText = 'flex: 1; line-height: 1.6; color: #d4d4d8; font-size: 15px; word-break: break-word;';
-
-    if (data.error) {
-      aiMsg.innerHTML = `<span style="color:var(--danger)"><strong>Oops!</strong> ${data.error}</span>`;
-      if (data.query) {
-        aiMsg.innerHTML += `
-          <details style="margin-top: 12px; background: rgba(239, 68, 68, 0.05); border-radius: 6px; border: 1px solid rgba(239, 68, 68, 0.2);">
-            <summary style="padding: 8px 12px; font-size: 12px; font-weight: 500; cursor: pointer; color: var(--danger); display: flex; align-items: center; gap: 8px;">
-              <i data-lucide="code" style="width: 14px; height: 14px;"></i> View Attempted Output
-            </summary>
-            <div style="padding: 12px; font-size: 12px; border-top: 1px solid rgba(239, 68, 68, 0.2); overflow-x: auto; background: rgba(0,0,0,0.2);">
-              <code style="white-space: pre-wrap; color: var(--text-muted); font-family: monospace; line-height: 1.5;">${data.query.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</code>
-            </div>
-          </details>
-        `;
-      }
-    } else if (data.success) {
-      // Build the results
-      let html = '';
-      
-      if (data.thought_process) {
-        html += `
-          <div style="margin-bottom: 16px; background: rgba(0,0,0,0.3); border-radius: 8px; border-left: 3px solid var(--accent); padding: 12px 16px; overflow: hidden;">
-            <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--accent); display: flex; align-items: center; gap: 6px; margin-bottom: 8px;">
-              <i data-lucide="brain-circuit" style="width: 12px; height: 12px;"></i> Reasoning Process
-            </div>
-            <div style="font-size: 13px; color: var(--text-secondary); white-space: pre-wrap; line-height: 1.6; font-family: 'JetBrains Mono', 'Fira Code', monospace; animation: typing 2s steps(40, end);">${data.thought_process.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</div>
-          </div>
-        `;
-      }
-      
-      if (data.summary) {
-        html += `<div style="margin-bottom: 16px; font-size: 14px; line-height: 1.6;">${data.summary}</div>`;
-      }
-
-      if (data.query) {
-        html += `<div style="margin-bottom:10px; font-size: 12px;"><strong style="color:var(--accent)">SQL Generated:</strong> <code style="background:rgba(0,0,0,0.2);padding:2px 6px;border-radius:4px;">${data.query}</code></div>`;
-        if (data.data && data.data.length > 0) {
-          html += `<table class="data-table" style="width:100%;margin-top:10px;"><thead><tr>`;
-          data.columns.forEach(col => {
-            html += `<th>${col}</th>`;
-          });
-          html += `</tr></thead><tbody>`;
-          
-          data.data.forEach(row => {
-            html += `<tr>`;
-            data.columns.forEach(col => {
-              html += `<td>${row[col] !== null ? row[col] : '-'}</td>`;
-            });
-            html += `</tr>`;
-          });
-          html += `</tbody></table>`;
-          if (data.data.length === 20) {
-              html += `<div style="font-size:11px;color:var(--text-muted);margin-top:8px;">Showing top 20 rows.</div>`;
-          }
-        } else {
-          html += `<em>No results found for that query.</em>`;
-        }
-      }
-      
-      aiMsg.innerHTML = html;
-    }
-
-    const tBubble = document.getElementById('aiThinkingBubble');
-    if (tBubble) tBubble.remove();
-
+    
     wrapper.appendChild(avatar);
     wrapper.appendChild(aiMsg);
-    chatHistory.appendChild(wrapper);
     
-    if (window.lucide) {
-      window.lucide.createIcons();
+    const tBubble = document.getElementById('aiThinkingBubble');
+    if (tBubble) tBubble.remove();
+    
+    chatHistory.appendChild(wrapper);
+    if (window.lucide) window.lucide.createIcons();
+    
+    // Stream Reader setup
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+    let done = false;
+    
+    // UI elements to dynamically populate
+    let thoughtContainer = null;
+    let thoughtTextNode = null;
+    let summaryContainer = null;
+    let dataContainer = null;
+    
+    while (!done) {
+      const { value, done: readerDone } = await reader.read();
+      done = readerDone;
+      if (value) {
+        const chunkStr = decoder.decode(value, { stream: true });
+        const lines = chunkStr.split('\n\n');
+        
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.substring(6));
+              
+              if (data.type === 'thought_start') {
+                thoughtContainer = document.createElement('div');
+                thoughtContainer.style.cssText = 'margin-bottom: 16px; background: rgba(0,0,0,0.3); border-radius: 8px; border-left: 3px solid var(--accent); padding: 12px 16px; overflow: hidden;';
+                thoughtContainer.innerHTML = `
+                  <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--accent); display: flex; align-items: center; gap: 6px; margin-bottom: 8px;">
+                    <i data-lucide="brain-circuit" style="width: 12px; height: 12px;"></i> Reasoning Process
+                  </div>
+                  <div class="thought-text" style="font-size: 13px; color: var(--text-secondary); white-space: pre-wrap; line-height: 1.6; font-family: 'JetBrains Mono', 'Fira Code', monospace;"></div>
+                `;
+                aiMsg.appendChild(thoughtContainer);
+                thoughtTextNode = thoughtContainer.querySelector('.thought-text');
+                if (window.lucide) window.lucide.createIcons();
+                chatHistory.scrollTop = chatHistory.scrollHeight;
+              } 
+              else if (data.type === 'thought_chunk') {
+                if (thoughtTextNode) {
+                  thoughtTextNode.textContent += data.content;
+                  chatHistory.scrollTop = chatHistory.scrollHeight;
+                }
+              }
+              else if (data.type === 'status') {
+                 let statusEl = document.createElement('div');
+                 statusEl.style.cssText = 'font-size: 12px; color: var(--text-muted); font-style: italic; margin-bottom: 16px;';
+                 statusEl.textContent = data.content;
+                 aiMsg.appendChild(statusEl);
+                 chatHistory.scrollTop = chatHistory.scrollHeight;
+              }
+              else if (data.type === 'summary_start') {
+                summaryContainer = document.createElement('div');
+                summaryContainer.style.cssText = 'margin-bottom: 16px; font-size: 14px; line-height: 1.6;';
+                aiMsg.insertBefore(summaryContainer, dataContainer); // Insert before data table if it exists
+                chatHistory.scrollTop = chatHistory.scrollHeight;
+              }
+              else if (data.type === 'summary_chunk') {
+                if (summaryContainer) {
+                  summaryContainer.textContent += data.content;
+                  chatHistory.scrollTop = chatHistory.scrollHeight;
+                }
+              }
+              else if (data.type === 'data') {
+                dataContainer = document.createElement('div');
+                let html = '';
+                if (data.query) {
+                  html += `<div style="margin-bottom:10px; font-size: 12px;"><strong style="color:var(--accent)">SQL Generated:</strong> <code style="background:rgba(0,0,0,0.2);padding:2px 6px;border-radius:4px;">${data.query}</code></div>`;
+                  if (data.data && data.data.length > 0) {
+                    html += `<table class="data-table" style="width:100%;margin-top:10px;"><thead><tr>`;
+                    data.columns.forEach(col => {
+                      html += `<th>${col}</th>`;
+                    });
+                    html += `</tr></thead><tbody>`;
+                    
+                    data.data.forEach(row => {
+                      html += `<tr>`;
+                      data.columns.forEach(col => {
+                        html += `<td>${row[col] !== null ? row[col] : '-'}</td>`;
+                      });
+                      html += `</tr>`;
+                    });
+                    html += `</tbody></table>`;
+                    if (data.data.length === 20) {
+                        html += `<div style="font-size:11px;color:var(--text-muted);margin-top:8px;">Showing top 20 rows.</div>`;
+                    }
+                  } else {
+                    html += `<em>No results found for that query.</em>`;
+                  }
+                }
+                dataContainer.innerHTML = html;
+                aiMsg.appendChild(dataContainer);
+                chatHistory.scrollTop = chatHistory.scrollHeight;
+              }
+              else if (data.type === 'error') {
+                 let errEl = document.createElement('div');
+                 errEl.style.cssText = 'color: var(--danger); font-size: 14px; line-height: 1.6;';
+                 errEl.innerHTML = `<strong>Oops!</strong> ${data.content}`;
+                 if (data.query) {
+                     errEl.innerHTML += `<div style="margin-top:10px; font-size: 12px;"><strong style="color:var(--danger)">SQL Generated:</strong> <code style="background:rgba(0,0,0,0.2);padding:2px 6px;border-radius:4px;color:var(--danger);">${data.query}</code></div>`;
+                 }
+                 aiMsg.appendChild(errEl);
+                 chatHistory.scrollTop = chatHistory.scrollHeight;
+              }
+            } catch (e) {
+              console.error("Error parsing JSON chunk:", e, line);
+            }
+          }
+        }
+      }
     }
-    chatHistory.scrollTop = chatHistory.scrollHeight;
   })
   .catch(err => {
     console.error(err);
@@ -176,7 +226,6 @@ window.sendAiQuery = function() {
     }
   })
   .finally(() => {
-
     inputEl.disabled = false;
     btn.innerHTML = 'Execute <i data-lucide="arrow-right" style="width: 14px; height: 14px; margin-left: 6px;"></i>';
     btn.disabled = false;

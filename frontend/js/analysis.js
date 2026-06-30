@@ -195,13 +195,7 @@ async function loadNarrativeReport() {
     if (expBtnPrint) expBtnPrint.style.display = 'flex';
     if (expBtnReport) expBtnReport.style.display = 'flex';
 
-    // Show badge on nav
-    const badge = document.getElementById('reportBadge');
-    const summary = report.executive_summary || {};
-    if (badge && (summary.critical_count > 0 || summary.high_count > 0)) {
-      badge.style.display = 'inline';
-      badge.textContent = summary.critical_count > 0 ? summary.critical_count : summary.high_count;
-    }
+    // Show export button
   } catch (e) {
     console.warn('loadNarrativeReport:', e);
   }

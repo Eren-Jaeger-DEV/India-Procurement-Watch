@@ -83,6 +83,9 @@ def read_state():
 
 def build_collusion_finding(shared_clusters):
     """Sort and compile shared-contact collusion networks into a readable report card."""
+    import html as _html
+    esc = _html.escape
+
     shared_clusters.sort(key=lambda x: x["total_wins"], reverse=True)
     top_clusters = shared_clusters[:3]
     
@@ -96,9 +99,12 @@ def build_collusion_finding(shared_clusters):
     ]
     
     for idx, c in enumerate(top_clusters):
-        member_names = ", ".join(f"<strong>{m['label']}</strong> (won {m['n_contracts'] or 0} contracts)" for m in c["members"])
+        member_names = ", ".join(
+            f"<strong>{esc(str(m['label']))}</strong> (won {int(m.get('n_contracts') or 0)} contracts)"
+            for m in c["members"]
+        )
         explanation_lines.append(
-            f"<strong>Cluster {idx+1}</strong>: {len(c['members'])} contractors share the registered {c['contact_type']} (<code>{c['contact_value']}</code>), winning a total of <strong>{c['total_wins']} contracts</strong> valued at <strong>₹{c['total_val_crore']:.1f} Cr</strong>."
+            f"<strong>Cluster {idx+1}</strong>: {len(c['members'])} contractors share the registered {esc(str(c['contact_type']))} (<code>{esc(str(c['contact_value']))}</code>), winning a total of <strong>{c['total_wins']} contracts</strong> valued at <strong>₹{c['total_val_crore']:.1f} Cr</strong>."
         )
         explanation_lines.append(f"<ul><li>Contractors: {member_names}</li></ul>")
         
@@ -134,7 +140,7 @@ def find_db_files():
 
     for f in files:
         fl = f.lower()
-        if "aoc" in fl or "tender" in fl and "vps" not in fl and "summary" not in fl:
+        if "aoc" in fl or ("tender" in fl and "vps" not in fl and "summary" not in fl):
             aoc_file = os.path.join(DATA_DUMP, f)
         elif "vps" in fl or "published" in fl:
             vps_file = os.path.join(DATA_DUMP, f)

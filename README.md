@@ -115,7 +115,7 @@ The **V4 Statistical Rigor Update** was deeply inspired by the mathematical rigo
 *   [abcde-stack/tender-watch](https://github.com/abcde-stack/tender-watch)
 Their use of the Herfindahl-Hirschman Index (HHI) for department concentration and their exact definitions for Deep Procurement Flags have been adapted and injected directly into our V4 engine.
 
-The **V5 "Unbeatable" Anti-Corruption Suite** (including Predictive Live Alerts, Cartel Ring Detection via Graph Theory, and Fuzzy PEP matching) was implemented directly in this repository to provide an unmatched investigative intelligence tool.
+The **V5 Investigative Intelligence Suite** (including MCA Corporate Identity extraction and Fuzzy PEP matching) was implemented directly in this repository to flag potential risks for human review.
 
 ## ⚠️ Disclaimer & Caution
 
@@ -126,7 +126,7 @@ The **V5 "Unbeatable" Anti-Corruption Suite** (including Predictive Live Alerts,
 
 ## 🔒 Privacy Policy
 
-*   **100% Local Processing:** When running this tool locally, all data ingestion, machine learning, graph processing, and search querying happens directly on your machine.
-*   **No Data Exfiltration:** The application does not upload your search queries, generated narrative reports, or imported SQLite databases to any external servers.
+*   **Local Data Ingestion:** All database aggregation and index building happens locally on your machine. SQLite databases are never uploaded to any external server.
+*   **AI API Requests:** If you configure the `.env` API key to use the Darshi Intelligence Desk, your natural language search queries and company names are securely sent to the `api.routing.run` LLM aggregator to generate analysis. If you do not provide an API key, the tool functions entirely offline.
 *   **No Telemetry:** We do not use tracking cookies, analytics, or telemetry of any kind.
 *   **VPS Deployment Caution:** If you choose to host this dashboard publicly on a VPS, you are solely responsible for securing the endpoint, managing user access, and complying with the data privacy laws (such as the DPDP Act in India) applicable to your jurisdiction.

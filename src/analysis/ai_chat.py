@@ -47,9 +47,45 @@ def ask_database(user_query, model="gemini-3.5-flash"):
         }
     )
 
+    # Phase 0: Intent Router (Fast, No Schema)
+    router_messages = [
+        {"role": "system", "content": "You are a routing AI. If the user's query is conversational (e.g., 'hello', 'who are you', 'what is this') or asks for general knowledge, reply ONLY with 'CONVO'. If the query asks for data, statistics, reports, or search results that would require querying a database of public tenders, reply ONLY with 'DATA'."},
+        {"role": "user", "content": user_query}
+    ]
+    try:
+        router_res = client.chat.completions.create(
+            model="gemini-3.5-flash", # Use a fast model for routing
+            messages=router_messages,
+            temperature=0.0,
+            timeout=10.0
+        )
+        intent = router_res.choices[0].message.content.strip().upper()
+    except Exception:
+        intent = "DATA" # Default to data if router fails
+        
+    if "CONVO" in intent:
+        # Fast conversational response
+        convo_res = client.chat.completions.create(
+            model=model, # user selected model
+            messages=[
+                {"role": "system", "content": "You are Darshi, an expert Data Analyst assistant for India Procurement Watch. Answer the user conversationally and concisely."},
+                {"role": "user", "content": user_query}
+            ],
+            temperature=0.5,
+            timeout=30.0
+        )
+        return {
+            "success": True,
+            "thought_process": "",
+            "summary": convo_res.choices[0].message.content.strip(),
+            "query": "",
+            "columns": [],
+            "data": []
+        }
+
     # Phase 1: Planner
     planner_messages = [
-        {"role": "system", "content": f"You are Darshi, an expert Data Analyst and assistant.\n\nRULE 1: If the user's question is conversational (e.g. 'hello', 'who are you') or general knowledge, just answer directly. DO NOT write a <think> block and DO NOT perform keyword expansion.\n\nRULE 2: If the question requires querying the database, you MUST outline a logical plan inside a <think>...</think> block. Inside this block, perform 'Keyword Expansion' (list 5-10 synonyms/alternative spellings for core concepts to simulate semantic search) and instruct the SQL Coder to use extensive `LIKE` chains.\n\nSchema:\n{DB_SCHEMA}"},
+        {"role": "system", "content": f"You are Darshi, an expert Data Analyst and assistant.\n\nYou must outline a logical plan to answer the user's query inside a <think>...</think> block. Inside this block, perform 'Keyword Expansion' (list 5-10 synonyms/alternative spellings for core concepts to simulate semantic search) and instruct the SQL Coder to use extensive `LIKE` chains.\n\nSchema:\n{DB_SCHEMA}"},
         {"role": "user", "content": user_query}
     ]
     try:
@@ -62,18 +98,6 @@ def ask_database(user_query, model="gemini-3.5-flash"):
         thought_process = planner_response.choices[0].message.content.strip()
     except Exception as e:
         return {"error": f"Planner failed: {str(e)}"}
-
-    is_sql_like = thought_process.strip().upper().startswith("SELECT") or "```sql" in thought_process.lower()
-    if "<think>" not in thought_process and not user_query.lower().startswith("select") and not is_sql_like:
-        # The AI decided to just answer conversationally
-        return {
-            "success": True,
-            "thought_process": "",
-            "summary": thought_process,
-            "query": "",
-            "columns": [],
-            "data": []
-        }
 
     # Phase 2: SQL Coder (with self-correction loop)
     sql_coder_messages = [

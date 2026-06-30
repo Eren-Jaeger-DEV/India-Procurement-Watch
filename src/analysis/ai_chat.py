@@ -124,7 +124,11 @@ def ask_database(user_query, model="gemini-3.5-flash"):
             sql_coder_messages.append({"role": "user", "content": f"That query failed with error: {str(e)}\nPlease rewrite the SQL query to fix this error. Reply ONLY with the exact SQL string."})
             
     if not success:
-        return {"error": "SQL Expert failed to write a valid query after 3 attempts.", "thought_process": thought_process}
+        return {
+            "error": "Darshi could not translate this request into a valid database query.",
+            "thought_process": thought_process,
+            "query": sql_query
+        }
 
     # Phase 3: Interpreter
     interpreter_messages = [

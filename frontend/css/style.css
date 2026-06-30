@@ -1576,11 +1576,12 @@ details summary:hover {
 /* ── AI Chat Responsive Constraints ── */
 #view-ai-chat.active {
   display: flex !important;
+  flex-direction: column !important;
 }
 
 #view-ai-chat {
   height: calc(100vh - 110px);
-  flex-direction: column;
+  flex-direction: column !important;
   background: var(--bg-surface);
   border-radius: 12px;
   border: 1px solid var(--border);

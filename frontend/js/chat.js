@@ -120,7 +120,7 @@ window.sendAiQuery = function() {
                   <summary style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--accent); display: flex; align-items: center; gap: 6px; margin-bottom: 8px; list-style: none;">
                     <i data-lucide="brain-circuit" style="width: 12px; height: 12px;"></i> Reasoning Process
                   </summary>
-                  <div class="thought-text" style="font-size: 13px; color: var(--text-secondary); white-space: pre-wrap; line-height: 1.6; font-family: 'JetBrains Mono', 'Fira Code', monospace; max-height: 200px; overflow-y: auto; padding-right: 8px;"></div>
+                  <div class="thought-text" style="font-size: 13px; color: var(--text-secondary); white-space: pre-wrap; line-height: 1.6; font-family: 'JetBrains Mono', 'Fira Code', monospace; max-height: 200px; overflow-y: auto; overflow-x: hidden; word-break: break-word; padding-right: 8px;"></div>
                 `;
                 aiMsg.appendChild(thoughtContainer);
                 thoughtTextNode = thoughtContainer.querySelector('.thought-text');

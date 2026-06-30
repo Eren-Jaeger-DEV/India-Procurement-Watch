@@ -107,27 +107,29 @@ window.sendAiQuery = function() {
         html += `<div style="margin-bottom: 16px; font-size: 14px; line-height: 1.6;">${data.summary}</div>`;
       }
 
-      html += `<div style="margin-bottom:10px; font-size: 12px;"><strong style="color:var(--accent)">SQL Generated:</strong> <code style="background:rgba(0,0,0,0.2);padding:2px 6px;border-radius:4px;">${data.query}</code></div>`;
-      if (data.data && data.data.length > 0) {
-        html += `<table class="data-table" style="width:100%;margin-top:10px;"><thead><tr>`;
-        data.columns.forEach(col => {
-          html += `<th>${col}</th>`;
-        });
-        html += `</tr></thead><tbody>`;
-        
-        data.data.forEach(row => {
-          html += `<tr>`;
+      if (data.query) {
+        html += `<div style="margin-bottom:10px; font-size: 12px;"><strong style="color:var(--accent)">SQL Generated:</strong> <code style="background:rgba(0,0,0,0.2);padding:2px 6px;border-radius:4px;">${data.query}</code></div>`;
+        if (data.data && data.data.length > 0) {
+          html += `<table class="data-table" style="width:100%;margin-top:10px;"><thead><tr>`;
           data.columns.forEach(col => {
-            html += `<td>${row[col] !== null ? row[col] : '-'}</td>`;
+            html += `<th>${col}</th>`;
           });
-          html += `</tr>`;
-        });
-        html += `</tbody></table>`;
-        if (data.data.length === 20) {
-            html += `<div style="font-size:11px;color:var(--text-muted);margin-top:8px;">Showing top 20 rows.</div>`;
+          html += `</tr></thead><tbody>`;
+          
+          data.data.forEach(row => {
+            html += `<tr>`;
+            data.columns.forEach(col => {
+              html += `<td>${row[col] !== null ? row[col] : '-'}</td>`;
+            });
+            html += `</tr>`;
+          });
+          html += `</tbody></table>`;
+          if (data.data.length === 20) {
+              html += `<div style="font-size:11px;color:var(--text-muted);margin-top:8px;">Showing top 20 rows.</div>`;
+          }
+        } else {
+          html += `<em>No results found for that query.</em>`;
         }
-      } else {
-        html += `<em>No results found for that query.</em>`;
       }
       
       aiMsg.innerHTML = html;

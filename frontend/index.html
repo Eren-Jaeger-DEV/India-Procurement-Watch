@@ -619,6 +619,17 @@
         <!-- ============================================== -->
         <!-- VIEW: AI CHAT (TALK TO DATA)                   -->
         <!-- ============================================== -->
+        <style>
+          #view-ai-chat.active {
+            display: flex !important;
+            flex-direction: column !important;
+            height: calc(100vh - 110px) !important;
+            background: var(--bg-surface);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+          }
+        </style>
         <div id="view-ai-chat" class="view-panel" style="position: relative;">
     
           <!-- Empty State Greeting (Only visible when chat history is empty) -->

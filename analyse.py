@@ -134,7 +134,7 @@ def find_db_files():
 
     for f in files:
         fl = f.lower()
-        if "aoc" in fl or "tender" in fl and "vps" not in fl and "summary" not in fl:
+        if "aoc" in fl or ("tender" in fl and "vps" not in fl and "summary" not in fl):
             aoc_file = os.path.join(DATA_DUMP, f)
         elif "vps" in fl or "published" in fl:
             vps_file = os.path.join(DATA_DUMP, f)

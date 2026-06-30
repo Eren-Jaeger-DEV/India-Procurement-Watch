@@ -322,9 +322,9 @@ def generate_executive_summary(kpis, all_findings):
     total_tenders = int(kpis.get("total_aoc_tenders", 0) or 0)
     total_value = float(kpis.get("total_value_crore", 0) or 0)
     
-    critical_count = len([f for f in all_findings if f["severity_level"] == 3])
-    high_count = len([f for f in all_findings if f["severity_level"] == 2])
-    medium_count = len([f for f in all_findings if f["severity_level"] == 1])
+    critical_count = len([f for f in all_findings if f["severity_level"] == 4])
+    high_count = len([f for f in all_findings if f["severity_level"] == 3])
+    medium_count = len([f for f in all_findings if f["severity_level"] == 2])
 
     summary_statement = ""
     if critical_count > 0:

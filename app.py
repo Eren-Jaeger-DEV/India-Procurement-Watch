@@ -8,6 +8,7 @@ Includes new endpoints for analysis triggering, progress polling, and narrative 
 
 import sqlite3
 import json
+import html
 import os
 import re as _re
 import threading
@@ -78,7 +79,7 @@ def get_search_conn():
 
 @app.teardown_appcontext
 def close_db(error):
-    for attr in ['sum', 'aoc', 'search']:
+    for attr in ['sum', 'aoc', 'search', 'mca']:
         conn = getattr(g, attr, None)
         if conn is not None:
             try:
@@ -617,20 +618,21 @@ def api_export_html():
         "MEDIUM": "#eab308", "LOW": "#22c55e", "INFO": "#6b7280"
     }
 
+    esc = html.escape
     findings_html = ""
     for f in findings:
         color = sev_colors.get(f["severity"], "#6b7280")
         emoji = f.get("severity_emoji", "")
-        ns_html = "".join(f"<li>{ns}</li>" for ns in f.get("next_steps", []))
+        ns_html = "".join(f"<li>{esc(ns)}</li>" for ns in f.get("next_steps", []))
         findings_html += f"""
         <div class="finding" style="border-left: 4px solid {color};">
           <div class="finding-header">
             <span class="badge" style="background:{color}">{emoji} {f['severity']}</span>
-            <h3>{f['title']}</h3>
+            <h3>{esc(f['title'])}</h3>
           </div>
-          <p class="summary">{f['summary']}</p>
+          <p class="summary">{esc(f['summary'])}</p>
           <p>{f['explanation']}</p>
-          <div class="box"><strong>What This Could Mean:</strong><p>{f['what_it_means']}</p></div>
+          <div class="box"><strong>What This Could Mean:</strong><p>{esc(f['what_it_means'])}</p></div>
           <div class="box"><strong>Next Steps for Investigation:</strong><ul>{ns_html}</ul></div>
         </div>"""
 
@@ -704,20 +706,21 @@ def api_export_print():
         "MEDIUM": "#eab308", "LOW": "#22c55e", "INFO": "#6b7280"
     }
 
+    esc = html.escape
     findings_html = ""
     for f in findings:
         color = sev_colors.get(f["severity"], "#6b7280")
         emoji = f.get("severity_emoji", "")
-        ns_html = "".join(f"<li>{ns}</li>" for ns in f.get("next_steps", []))
+        ns_html = "".join(f"<li>{esc(ns)}</li>" for ns in f.get("next_steps", []))
         findings_html += f"""
         <div class="finding" style="border-left: 4px solid {color};">
           <div class="finding-header">
             <span class="badge" style="background:{color}">{emoji} {f['severity']}</span>
-            <h3>{f['title']}</h3>
+            <h3>{esc(f['title'])}</h3>
           </div>
-          <p class="summary">{f['summary']}</p>
+          <p class="summary">{esc(f['summary'])}</p>
           <p>{f['explanation']}</p>
-          <div class="box"><strong>What This Could Mean:</strong><p>{f['what_it_means']}</p></div>
+          <div class="box"><strong>What This Could Mean:</strong><p>{esc(f['what_it_means'])}</p></div>
           <div class="box"><strong>Next Steps for Investigation:</strong><ul>{ns_html}</ul></div>
         </div>"""
 

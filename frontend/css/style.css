@@ -1514,9 +1514,7 @@ body {
   transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-#view-ai-chat.active {
-  display: flex !important;
-}
+
 
 /* ── UI Enhancements: Smoothness & Animations ── */
 @keyframes slideUpFadeIn {
@@ -1573,17 +1571,4 @@ details summary:hover {
   transform: translateX(4px);
 }
 
-/* ── AI Chat Responsive Constraints ── */
-#view-ai-chat.active {
-  display: flex !important;
-  flex-direction: column !important;
-}
 
-#view-ai-chat {
-  height: calc(100vh - 110px);
-  flex-direction: column !important;
-  background: var(--bg-surface);
-  border-radius: 12px;
-  border: 1px solid var(--border);
-  overflow: hidden;
-}

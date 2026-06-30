@@ -65,6 +65,9 @@
       <a class="nav-item" id="nav-view-network" onclick="switchView('view-network')" title="Director Networks">
         <i data-lucide="network"></i> <span>Director Networks</span>
       </a>
+      <a class="nav-item" id="nav-view-ai-chat" onclick="switchView('view-ai-chat')" title="Ask AI (Talk to Data)">
+        <i data-lucide="bot"></i> <span>Ask AI</span>
+      </a>
     </nav>
 
     <div class="sidebar-footer">
@@ -609,6 +612,70 @@
         </section>
       </div>
 
+        <!-- ============================================== -->
+        <!-- VIEW: AI CHAT (TALK TO DATA)                   -->
+        <!-- ============================================== -->
+        <!-- ============================================== -->
+        <!-- VIEW: AI CHAT (TALK TO DATA)                   -->
+        <!-- ============================================== -->
+        <div id="view-ai-chat" class="view-panel" style="height: 100vh; flex-direction: column; background: var(--bg-surface); position: relative;">
+    
+          <!-- Empty State Greeting (Only visible when chat history is empty) -->
+          <div id="aiEmptyState" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding-bottom: 20px; transition: opacity 0.3s;">
+              <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(217, 119, 87, 0.15); display: flex; align-items: center; justify-content: center; margin-bottom: 16px; border: 1px solid rgba(217, 119, 87, 0.3);">
+                  <i data-lucide="fingerprint" style="color: var(--accent); width: 24px; height: 24px;"></i>
+              </div>
+              <h1 style="font-family: 'Inter', sans-serif; font-size: 28px; font-weight: 700; color: #fff; margin-bottom: 8px; letter-spacing: -0.5px;">
+                  Darshi Intelligence
+              </h1>
+              <p style="color: var(--text-muted); font-size: 14px; max-width: 400px; text-align: center; line-height: 1.5;">
+                  Query the data warehouse. Identify red flags, map director networks, and extract procurement anomalies automatically.
+              </p>
+          </div>
+
+          <!-- Chat History (Hidden initially) -->
+          <div id="aiChatHistory" style="flex: 1; overflow-y: auto; display: none; flex-direction: column; padding: 40px 20px; max-width: 800px; margin: 0 auto; width: 100%;">
+              <!-- Dynamic chat messages go here -->
+          </div>
+
+          <!-- The Input Box Container -->
+          <div id="aiInputContainerWrapper" style="padding: 20px; width: 100%; max-width: 800px; margin: 0 auto;">
+              <!-- Input Box -->
+              <div id="chatInputContainer" class="darshi-input-wrapper">
+                  <textarea id="aiChatInput" style="width: 100%; border: none; background: transparent; padding: 4px; min-height: 48px; max-height: 200px; resize: none; color: #fff; font-family: 'Inter', sans-serif; font-size: 15px; outline: none; line-height: 1.5;" 
+                      placeholder="Ask Darshi to investigate..." 
+                      onkeydown="if(event.key==='Enter' && !event.shiftKey) { event.preventDefault(); sendAiQuery(); }"></textarea>
+                  
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 12px;">
+                      <div style="display: flex; align-items: center; gap: 8px;">
+                          <i data-lucide="cpu" style="width: 14px; height: 14px; color: var(--text-muted);"></i>
+                          <select id="aiModelSelect" style="background: transparent; border: none; color: var(--text-secondary); font-size: 12px; font-weight: 600; outline: none; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px;">
+                              <option value="gemini-3.5-flash">Gemini Flash Engine</option>
+                              <option value="gpt-5.5">GPT-5.5 Engine</option>
+                              <option value="claude-sonnet-4-6" selected>Sonnet 4.6 Engine</option>
+                              <option value="deepseek-v4-pro">DeepSeek Pro Engine</option>
+                          </select>
+                      </div>
+                      
+                      <button id="btnAiSend" onclick="sendAiQuery()" style="background: var(--accent); border: none; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 600; transition: 0.2s; box-shadow: 0 2px 8px rgba(217, 119, 87, 0.4);" onmouseover="this.style.background='#c56244'" onmouseout="this.style.background='var(--accent)'">
+                          Execute <i data-lucide="arrow-right" style="width: 14px; height: 14px; margin-left: 6px;"></i>
+                      </button>
+                  </div>
+              </div>
+              
+              <!-- Macro Pills (Only visible in empty state) -->
+              <div id="aiPills" style="display: flex; justify-content: center; flex-wrap: wrap; gap: 12px; margin-top: 24px;">
+                  <button class="macro-pill" onclick="document.getElementById('aiChatInput').value='Run anomaly detection on the top 10 winning organizations';"><i data-lucide="scan"></i> Detect Anomalies</button>
+                  <button class="macro-pill" onclick="document.getElementById('aiChatInput').value='Flag all single bid contracts over 1 crore INR';"><i data-lucide="flag"></i> Risk Flagging</button>
+                  <button class="macro-pill" onclick="document.getElementById('aiChatInput').value='Map the vendor network for recent highway tenders';"><i data-lucide="network"></i> Vendor Mapping</button>
+              </div>
+              
+              <div style="text-align: center; margin-top: 12px; font-size: 11px; color: #71717a;">
+                  Darshi is AI and can make mistakes. Please double-check responses.
+              </div>
+          </div>
+        </div>
+
     </main>
 
     <!-- TENDER DETAIL MODAL -->
@@ -634,6 +701,7 @@
 <script src="js/search.js?v=2"></script>
 <script src="js/analysis.js?v=1"></script>
 <script src="js/network.js?v=1"></script>
+<script src="js/chat.js?v=1"></script>
 <script src="js/main.js?v=5"></script>
 </body>
 </html>

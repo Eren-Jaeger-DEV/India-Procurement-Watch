@@ -20,7 +20,12 @@ India Procurement Watch is a robust analytical dashboard designed for exploring 
 *   **Risk Grading**: Assigns risk grades (A to F) to departments based on the percentage of single-bid awards and round-number contracts.
 *   **Exportable Evidence:** Generate clean, watermarked PDF reports of Contractor Network graphs and Risk Grades for direct attachment in investigative journalism articles.
 *   **Mobile-Responsive Field View:** A fully responsive UI layout allowing field reporters to seamlessly browse the Investigation Desk and Risk Cards on smartphones and tablets.
-*   **Narrative Analysis Reports**: An automated rules engine that highlights unusual patterns, explains their implications, and suggests specific follow-up actions in plain English.
+*   **Narrative Analysis Reports**: An automated rules engine that highlights unusual patterns, explains their implications, and suggests specific followup actions in plain English.
+*   **Darshi AI Intelligence Desk:** An embedded, multi-agent AI chat interface built directly into the dashboard. Allows investigators to ask natural language questions (e.g., "Flag single bid contracts over 1 crore") and receive instant SQL-backed answers, data tables, and conversational summaries.
+*   **Multi-Model LLM Orchestrator:** A powerful 3-phase ReAct pipeline that dynamically routes AI tasks:
+    *   **Phase 1 (Planner):** Analyzes conversational intent and plans database queries.
+    *   **Phase 2 (SQL Expert):** Writes and self-corrects SQLite queries directly against the `summary.db`.
+    *   **Phase 3 (Interpreter):** Summarizes the raw data rows into a friendly, narrative response using your choice of advanced models (Gemini Flash, GPT-5.5, Claude Sonnet 4.6, DeepSeek V4).
 *   **Geographical Analysis**: View contract distributions and total spending mapped across states on a fully interactive, zoomable map.
 *   **Full-Text Search**: Instantly query tender titles and departments using an optimized SQLite FTS5 index.
 
@@ -32,6 +37,7 @@ India Procurement Watch is a robust analytical dashboard designed for exploring 
 *   `build_ml_risk.py` — The machine learning engine for computing Risk Scores.
 *   `build_cartels.py` — Graph-based bid rotation and cartel ring detection.
 *   `build_live_alerts.py` — Predictive ML and NLP on live/open tenders.
+*   `src/analysis/ai_chat.py` — The multi-agent LLM orchestrator for the Darshi Intelligence Desk.
 *   `build_sanctions.py` & `match_sanctions.py` — OpenSanctions ingestion and fuzzy matching pipeline.
 *   `data_dump/` — The directory where raw SQLite files (`aoc_tenders.db`, etc.) should be placed.
 *   `frontend/` — HTML, CSS, and Javascript dashboard files.
@@ -44,7 +50,12 @@ India Procurement Watch is a robust analytical dashboard designed for exploring 
     cd India-Procurement-Watch
     pip install -r requirements.txt
     ```
-2.  **Add Raw Data**:
+2.  **Configuration**:
+    Create a `.env` file in the project root to enable the Darshi AI features:
+    ```env
+    ROUTING_RUN_API_KEY=your_api_key_here
+    ```
+3.  **Add Raw Data**:
     Drop your raw SQLite dumps (e.g., `aoc_tenders.db` and `tenders_vps.db`) into the `data_dump/` folder.
     *Note: For the Cartel Ring detection to work, you must also place your corporate linkage files (`nodes.csv` and `edges.csv`) in the `data_dump/` folder.*
 3.  **Run the Server**:

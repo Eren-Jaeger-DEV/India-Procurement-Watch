@@ -93,6 +93,18 @@ window.switchView = function(viewId) {
   const titleEl = document.getElementById('headerTitle');
   if (titleEl) titleEl.textContent = VIEW_TITLES[viewId] || 'Dashboard';
 
+  const header = document.querySelector('.header');
+  const main = document.querySelector('.main');
+  if (viewId === 'view-ai-chat') {
+    if (header) header.style.display = 'none';
+    if (main) main.style.padding = '0';
+    document.body.style.overflow = 'hidden'; // Ensure no page scroll
+  } else {
+    if (header) header.style.display = 'flex';
+    if (main) main.style.padding = '';
+    document.body.style.overflow = '';
+  }
+
   setTimeout(() => {
     window.dispatchEvent(new Event('resize'));
     if (window.leafletMapInstance) window.leafletMapInstance.invalidateSize();

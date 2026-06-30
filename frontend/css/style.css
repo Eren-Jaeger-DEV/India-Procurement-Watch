@@ -7,13 +7,13 @@
 
 /* ── CSS Variables ── */
 :root {
-  --bg-base:      #0a0e1a;
-  --bg-surface:   #0f1629;
-  --bg-card:      #141b2d;
-  --bg-card-hover:#1a2338;
-  --bg-input:     #1e2a42;
-  --border:       #1e2d4a;
-  --border-light: #253552;
+  --bg-base:      #000000;
+  --bg-surface:   #0a0a0a;
+  --bg-card:      #121212;
+  --bg-card-hover:#1a1a1a;
+  --bg-input:     #222222;
+  --border:       #2a2a2a;
+  --border-light: #333333;
 
   --text-primary: #e8eaf0;
   --text-secondary:#94a3b8;
@@ -1271,3 +1271,55 @@ body {
 /* PDF Export Styles */
 .pdf-export-container { padding: 20px; background: white; }
 .pdf-watermark { position: absolute; top: 0; left: 0; right: 0; bottom: 0; opacity: 0.05; pointer-events: none; background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text x="10" y="50" transform="rotate(-45 50 50)" font-size="14" fill="black">CONFIDENTIAL - IPW</text></svg>'); z-index: 9999; }
+
+/* ── Darshi Custom UI Styles ── */
+.macro-pill {
+  background: rgba(25, 25, 25, 0.6);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+.macro-pill:hover {
+  background: rgba(35, 35, 35, 0.9);
+  color: #fff;
+  border-color: var(--accent);
+  box-shadow: 0 0 12px rgba(217, 119, 87, 0.2);
+  transform: translateY(-1px);
+}
+.macro-pill i {
+  color: var(--accent);
+}
+
+.darshi-input-wrapper {
+  background: rgba(18, 18, 18, 0.7);
+  backdrop-filter: blur(12px);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 14px 20px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  transition: all 0.3s ease;
+}
+.darshi-input-wrapper:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 0 0 1px var(--accent);
+}
+
+#chatInputContainer {
+  transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+#view-ai-chat.active {
+  display: flex !important;
+}

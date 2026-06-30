@@ -791,15 +791,24 @@ def api_agentic_search():
     data = request.get_json() or {}
     text = data.get("text", "")
     
-    # Parse the natural language into constraints
     constraints = parse_natural_query(text)
     
-    # Return the constraints so the frontend can redirect to the normal /search page
-    # with these parameters appended as query strings.
     return jsonify({
         "success": True,
         "constraints": constraints
     })
+
+@app.route("/api/ai-chat", methods=["POST"])
+def api_ai_chat():
+    from src.analysis.ai_chat import ask_database
+    data = request.get_json() or {}
+    text = data.get("text", "")
+    model = data.get("model", "gemini-3.5-flash")
+    if not text:
+        return jsonify({"error": "No query provided"})
+        
+    result = ask_database(text, model=model)
+    return jsonify(result)
 
 @app.route("/api/search")
 def api_search():

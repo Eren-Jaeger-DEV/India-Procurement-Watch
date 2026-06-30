@@ -151,9 +151,9 @@ function animateCounter(elementId, targetValue, duration = 1200, formatter) {
 async function loadKPIs() {
   try {
     const res  = await fetch('/api/kpis');
-    if (!res.ok) return;
+    if (!res.ok) return null;
     const data = await res.json();
-    if (data.error) return;
+    if (data.error) return null;
 
     const total    = parseInt(data.total_aoc_tenders || 0);
     const valued   = parseInt(data.total_contracts_valued || 0);
@@ -180,8 +180,11 @@ async function loadKPIs() {
 
     const yrEl = document.getElementById('kpiYearRange');
     if (yrEl && minYr && maxYr) yrEl.textContent = `${minYr} – ${maxYr}`;
+
+    return data;
   } catch (e) {
     console.warn('loadKPIs:', e);
+    return null;
   }
 }
 
@@ -332,7 +335,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const status = await fetch('/api/status').then(r => r.json());
     if (status.summary_db_ready) {
       // We have data - load everything
-      await Promise.all([
+      const results = await Promise.all([
         loadKPIs(),
         initCharts(),
 
@@ -344,17 +347,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         updateHeaderStatus(),
       ]);
 
-      // Populate year filter
+      // Populate year filter using cached KPI data from loadKPIs() above
       try {
-        const kpis = await fetch('/api/kpis').then(r => r.json());
-        const minY = parseInt(kpis.min_year) || 2018;
-        const maxY = parseInt(kpis.max_year) || new Date().getFullYear();
-        const sel  = document.getElementById('filterYear');
-        if (sel) {
-          for (let y = maxY; y >= minY; y--) {
-            const o = document.createElement('option');
-            o.value = y; o.textContent = y;
-            sel.appendChild(o);
+        const kpis = results[0]; // loadKPIs() is the first promise
+        if (kpis) {
+          const minY = parseInt(kpis.min_year) || 2018;
+          const maxY = parseInt(kpis.max_year) || new Date().getFullYear();
+          const sel  = document.getElementById('filterYear');
+          if (sel) {
+            for (let y = maxY; y >= minY; y--) {
+              const o = document.createElement('option');
+              o.value = y; o.textContent = y;
+              sel.appendChild(o);
+            }
           }
         }
         if (document.getElementById('searchIndexNote') && status.search_db_ready) {

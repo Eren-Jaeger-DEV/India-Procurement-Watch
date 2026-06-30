@@ -375,7 +375,7 @@ let leafletMapInstance = null;
 async function createIndiaMap(containerId, stateData, mode = 'count') {
   if (!indiaTopoJson) {
     try {
-      const res = await fetch('/india-states.json?v=' + Date.now());
+      const res = await fetch('/india-states.json');
       indiaTopoJson = await res.json();
     } catch(e) {
       console.error("Map load failed", e);
@@ -537,39 +537,45 @@ let _currentSectorBy     = 'count';
 let _stateDataCache      = null;
 
 async function initCharts() {
-  await loadTrend('yearly', 'aoc');
-  await loadTopOrgs('count');
-  await loadSectorDistribution('count');
-
-  try {
-    const res  = await fetch('/api/tender-types');
-    const data = await res.json();
-    if (chartInstances['typeChart']) chartInstances['typeChart'].destroy();
-    chartInstances['typeChart'] = createDonutChart('typeChart', data.labels, data.counts);
-  } catch (e) { console.warn('tender-types:', e); }
-
-  try {
-    const res  = await fetch('/api/value-distribution');
-    const data = await res.json();
-    if (chartInstances['valueBracketChart']) chartInstances['valueBracketChart'].destroy();
-    chartInstances['valueBracketChart'] = createBarChart('valueBracketChart', data.labels, data.counts, 'contracts', COLORS.violet);
-  } catch (e) { console.warn('value-dist:', e); }
-
-  try {
-    const res  = await fetch('/api/portal-breakdown');
-    const data = await res.json();
-    if (chartInstances['portalChart']) chartInstances['portalChart'].destroy();
-    chartInstances['portalChart'] = createPieChart('portalChart', data.labels, data.counts);
-  } catch (e) { console.warn('portal-breakdown:', e); }
-
-  try {
-    const res  = await fetch('/api/top-orgs?dataset=published&limit=10');
-    const data = await res.json();
-    if (chartInstances['pubOrgsChart']) chartInstances['pubOrgsChart'].destroy();
-    chartInstances['pubOrgsChart'] = createBarChart('pubOrgsChart', data.labels, data.values, 'tenders', COLORS.emerald);
-  } catch (e) { console.warn('pub-orgs:', e); }
-
-  await loadIndiaMap('count');
+  // Fetch all chart data in parallel instead of sequentially
+  await Promise.all([
+    loadTrend('yearly', 'aoc'),
+    loadTopOrgs('count'),
+    loadSectorDistribution('count'),
+    (async () => {
+      try {
+        const res  = await fetch('/api/tender-types');
+        const data = await res.json();
+        if (chartInstances['typeChart']) chartInstances['typeChart'].destroy();
+        chartInstances['typeChart'] = createDonutChart('typeChart', data.labels, data.counts);
+      } catch (e) { console.warn('tender-types:', e); }
+    })(),
+    (async () => {
+      try {
+        const res  = await fetch('/api/value-distribution');
+        const data = await res.json();
+        if (chartInstances['valueBracketChart']) chartInstances['valueBracketChart'].destroy();
+        chartInstances['valueBracketChart'] = createBarChart('valueBracketChart', data.labels, data.counts, 'contracts', COLORS.violet);
+      } catch (e) { console.warn('value-dist:', e); }
+    })(),
+    (async () => {
+      try {
+        const res  = await fetch('/api/portal-breakdown');
+        const data = await res.json();
+        if (chartInstances['portalChart']) chartInstances['portalChart'].destroy();
+        chartInstances['portalChart'] = createPieChart('portalChart', data.labels, data.counts);
+      } catch (e) { console.warn('portal-breakdown:', e); }
+    })(),
+    (async () => {
+      try {
+        const res  = await fetch('/api/top-orgs?dataset=published&limit=10');
+        const data = await res.json();
+        if (chartInstances['pubOrgsChart']) chartInstances['pubOrgsChart'].destroy();
+        chartInstances['pubOrgsChart'] = createBarChart('pubOrgsChart', data.labels, data.values, 'tenders', COLORS.emerald);
+      } catch (e) { console.warn('pub-orgs:', e); }
+    })(),
+    loadIndiaMap('count'),
+  ]);
 }
 
 async function loadSectorDistribution(by) {

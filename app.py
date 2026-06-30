@@ -105,9 +105,7 @@ def index():
 @app.route("/<path:path>")
 def static_proxy(path):
     resp = send_from_directory(STATIC_DIR, path)
-    resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
-    resp.headers["Pragma"] = "no-cache"
-    resp.headers["Expires"] = "0"
+    resp.headers["Cache-Control"] = "public, max-age=3600"
     return resp
 
 # ─────────────────────────────────────────────
@@ -234,13 +232,13 @@ def api_vendor_mca(vendor_name):
     conn = get_mca_conn()
     cur = conn.cursor()
     
-    import re
+    
     try:
         from rapidfuzz import fuzz, process
     except ImportError:
         return jsonify({"error": "rapidfuzz not installed"}), 500
     
-    clean_name = re.sub(r'[^a-zA-Z0-9\s]', '', vendor_name).upper()
+    clean_name = _re.sub(r'[^a-zA-Z0-9\s]', '', vendor_name).upper()
     words = clean_name.split()
     if not words:
         return jsonify({"error": "Invalid vendor name"}), 400
@@ -631,12 +629,12 @@ def api_export_html():
             <h3>{esc(f['title'])}</h3>
           </div>
           <p class="summary">{esc(f['summary'])}</p>
-          <p>{f['explanation']}</p>
+          <p>{esc(f['explanation'])}</p>
           <div class="box"><strong>What This Could Mean:</strong><p>{esc(f['what_it_means'])}</p></div>
           <div class="box"><strong>Next Steps for Investigation:</strong><ul>{ns_html}</ul></div>
         </div>"""
 
-    html = f"""<!DOCTYPE html>
+    html_doc = f"""<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8">
 <title>India Procurement Watch — Analysis Report</title>
 <style>
@@ -685,7 +683,7 @@ def api_export_html():
 </body></html>"""
 
     from flask import Response
-    return Response(html, mimetype="text/html",
+    return Response(html_doc, mimetype="text/html",
                     headers={"Content-Disposition": "attachment; filename=procurement_report.html"})
 
 
@@ -719,12 +717,12 @@ def api_export_print():
             <h3>{esc(f['title'])}</h3>
           </div>
           <p class="summary">{esc(f['summary'])}</p>
-          <p>{f['explanation']}</p>
+          <p>{esc(f['explanation'])}</p>
           <div class="box"><strong>What This Could Mean:</strong><p>{esc(f['what_it_means'])}</p></div>
           <div class="box"><strong>Next Steps for Investigation:</strong><ul>{ns_html}</ul></div>
         </div>"""
 
-    html = f"""<!DOCTYPE html>
+    html_doc = f"""<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8">
 <title>India Procurement Watch — Analysis Report</title>
 <style>
@@ -780,7 +778,7 @@ def api_export_print():
 </body></html>"""
 
     from flask import Response
-    return Response(html, mimetype="text/html")
+    return Response(html_doc, mimetype="text/html")
 
 
 # ─────────────────────────────────────────────

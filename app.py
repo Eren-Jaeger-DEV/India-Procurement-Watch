@@ -629,7 +629,7 @@ def api_export_html():
             <h3>{esc(f['title'])}</h3>
           </div>
           <p class="summary">{esc(f['summary'])}</p>
-          <p>{esc(f['explanation'])}</p>
+          <p>{f['explanation']}</p>
           <div class="box"><strong>What This Could Mean:</strong><p>{esc(f['what_it_means'])}</p></div>
           <div class="box"><strong>Next Steps for Investigation:</strong><ul>{ns_html}</ul></div>
         </div>"""
@@ -717,7 +717,7 @@ def api_export_print():
             <h3>{esc(f['title'])}</h3>
           </div>
           <p class="summary">{esc(f['summary'])}</p>
-          <p>{esc(f['explanation'])}</p>
+          <p>{f['explanation']}</p>
           <div class="box"><strong>What This Could Mean:</strong><p>{esc(f['what_it_means'])}</p></div>
           <div class="box"><strong>Next Steps for Investigation:</strong><ul>{ns_html}</ul></div>
         </div>"""

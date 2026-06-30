@@ -5,13 +5,13 @@ First off, thank you for considering contributing to India Procurement Watch (IP
 ## How Can I Contribute?
 
 ### 1. Reporting Bugs
-If you find a bug in the dashboard, the data aggregation pipeline, or the ML engines, please open an issue on GitHub.
+If you find a bug in the dashboard, the data aggregation pipeline, or the AI integrations, please open an issue on GitHub.
 *   **Check existing issues** to make sure the bug hasn't already been reported.
 *   **Include steps to reproduce** the bug.
 *   **Attach screenshots** if the bug is UI-related (e.g., in the Darshi AI interface).
 
 ### 2. Suggesting Enhancements
-Have an idea for a new anomaly detection algorithm, a new graph theory application, or a UI improvement?
+Have an idea for a new data aggregation algorithm, a new AI feature, or a UI improvement?
 *   Open an issue clearly detailing the enhancement.
 *   Explain *why* this enhancement would be useful to investigators or journalists.
 

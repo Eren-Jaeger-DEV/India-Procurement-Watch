@@ -24,8 +24,11 @@ def verify_company(company_name):
             print(f"DDGS Error: {e}")
             
         if not results:
-            context = f"No recent web search results could be retrieved for {company_name}. Rely on your general knowledge to assess if this company has a history of scams, blacklisting, or corruption."
-            sources = []
+            return {
+                "risk_score": "Unknown",
+                "summary": "No verified sources available online to perform an OSINT analysis.",
+                "sources": []
+            }
         else:
             # 2. Format the search results to feed to the LLM
             context = ""

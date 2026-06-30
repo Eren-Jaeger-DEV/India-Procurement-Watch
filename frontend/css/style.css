@@ -1579,7 +1579,7 @@ details summary:hover {
 }
 
 #view-ai-chat {
-  height: calc(100vh - 165px);
+  height: calc(100vh - 110px);
   flex-direction: column;
   background: var(--bg-surface);
   border-radius: 12px;

@@ -29,6 +29,7 @@ window.sendAiQuery = function() {
     <div style="flex: 1; line-height: 1.6; color: #e8eaf0; font-size: 15px; font-weight: 500;"></div>
   `;
   userMsg.lastElementChild.textContent = query; // safe text insertion
+  userMsg.classList.add('chat-msg-animated');
   chatHistory.appendChild(userMsg);
   
   // Add Thinking Bubble
@@ -41,6 +42,7 @@ window.sendAiQuery = function() {
     </div>
     <div style="flex: 1; line-height: 1.6; color: var(--text-muted); font-size: 14px; font-style: italic;">Darshi is analyzing data...</div>
   `;
+  thinkingMsg.classList.add('chat-msg-animated');
   chatHistory.appendChild(thinkingMsg);
   if (window.lucide) window.lucide.createIcons();
   
@@ -65,6 +67,7 @@ window.sendAiQuery = function() {
   .then(res => res.json())
   .then(data => {
     const wrapper = document.createElement('div');
+    wrapper.classList.add('chat-msg-animated');
     wrapper.style.cssText = 'display: flex; gap: 16px; margin-bottom: 32px; padding: 0; margin-right: 15%;';
     
     const avatar = document.createElement('div');
@@ -135,6 +138,9 @@ window.sendAiQuery = function() {
       aiMsg.innerHTML = html;
     }
 
+    const tBubble = document.getElementById('aiThinkingBubble');
+    if (tBubble) tBubble.remove();
+
     wrapper.appendChild(avatar);
     wrapper.appendChild(aiMsg);
     chatHistory.appendChild(wrapper);
@@ -147,6 +153,7 @@ window.sendAiQuery = function() {
   .catch(err => {
     console.error(err);
     const wrapper = document.createElement('div');
+    wrapper.classList.add('chat-msg-animated');
     wrapper.style.cssText = 'display: flex; gap: 16px; margin-bottom: 32px; padding: 0; margin-right: 15%;';
     
     const avatar = document.createElement('div');
@@ -157,6 +164,9 @@ window.sendAiQuery = function() {
     errMsg.style.cssText = 'flex: 1; line-height: 1.6; color: var(--danger); font-size: 15px; overflow-x: auto;';
     errMsg.innerHTML = "<strong>Connection Error:</strong> I'm sorry, I encountered a network error while trying to connect to the brain.";
     
+    const tBubble = document.getElementById('aiThinkingBubble');
+    if (tBubble) tBubble.remove();
+
     wrapper.appendChild(avatar);
     wrapper.appendChild(errMsg);
     chatHistory.appendChild(wrapper);
@@ -166,8 +176,6 @@ window.sendAiQuery = function() {
     }
   })
   .finally(() => {
-    const tBubble = document.getElementById('aiThinkingBubble');
-    if (tBubble) tBubble.remove();
 
     inputEl.disabled = false;
     btn.innerHTML = 'Execute <i data-lucide="arrow-right" style="width: 14px; height: 14px; margin-left: 6px;"></i>';

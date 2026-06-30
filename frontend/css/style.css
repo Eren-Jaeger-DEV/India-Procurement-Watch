@@ -1323,3 +1323,32 @@ body {
 #view-ai-chat.active {
   display: flex !important;
 }
+
+/* ── UI Enhancements: Smoothness & Animations ── */
+@keyframes slideUpFadeIn {
+  0% { opacity: 0; transform: translateY(12px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes spin-slow {
+  100% { transform: rotate(360deg); }
+}
+
+.chat-msg-animated {
+  animation: slideUpFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+[data-lucide="loader"] {
+  animation: spin-slow 1.5s linear infinite;
+}
+
+.btn-theme, .btn-primary, .stat-card, tr, .nav-item, .macro-pill {
+  transition: all 0.2s ease;
+}
+
+details summary {
+  transition: opacity 0.2s ease;
+}
+details summary:hover {
+  opacity: 0.8;
+}

@@ -101,7 +101,7 @@ window.sendAiQuery = function() {
             <summary style="padding: 8px 12px; font-size: 12px; font-weight: 500; cursor: pointer; color: var(--text-muted); display: flex; align-items: center; gap: 8px;">
               <i data-lucide="brain-circuit" style="width: 14px; height: 14px;"></i> View Darshi's Thought Process
             </summary>
-            <div style="padding: 12px; font-size: 12px; color: var(--text-muted); border-top: 1px solid var(--border); white-space: pre-wrap; line-height: 1.5;">${data.thought_process}</div>
+            <div style="padding: 12px; font-size: 12px; color: var(--text-muted); border-top: 1px solid var(--border); white-space: pre-wrap; line-height: 1.5;">${data.thought_process.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</div>
           </details>
         `;
       }

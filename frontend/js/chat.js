@@ -97,12 +97,12 @@ window.sendAiQuery = function() {
       
       if (data.thought_process) {
         html += `
-          <details style="margin-bottom: 12px; background: rgba(0,0,0,0.2); border-radius: 6px; border: 1px solid var(--border);">
-            <summary style="padding: 8px 12px; font-size: 12px; font-weight: 500; cursor: pointer; color: var(--text-muted); display: flex; align-items: center; gap: 8px;">
-              <i data-lucide="brain-circuit" style="width: 14px; height: 14px;"></i> View Darshi's Thought Process
-            </summary>
-            <div style="padding: 12px; font-size: 12px; color: var(--text-muted); border-top: 1px solid var(--border); white-space: pre-wrap; line-height: 1.5;">${data.thought_process.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</div>
-          </details>
+          <div style="margin-bottom: 16px; background: rgba(0,0,0,0.3); border-radius: 8px; border-left: 3px solid var(--accent); padding: 12px 16px; overflow: hidden;">
+            <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--accent); display: flex; align-items: center; gap: 6px; margin-bottom: 8px;">
+              <i data-lucide="brain-circuit" style="width: 12px; height: 12px;"></i> Reasoning Process
+            </div>
+            <div style="font-size: 13px; color: var(--text-secondary); white-space: pre-wrap; line-height: 1.6; font-family: 'JetBrains Mono', 'Fira Code', monospace; animation: typing 2s steps(40, end);">${data.thought_process.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</div>
+          </div>
         `;
       }
       

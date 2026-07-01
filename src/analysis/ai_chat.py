@@ -19,7 +19,7 @@ Tables in summary.db:
 Rules:
 - You must output ONLY a valid SQL SELECT query. Do not include markdown formatting like ```sql or explanations. Just the raw SQL string.
 - The query must be READ-ONLY (only SELECT statements).
-- Use SQLite syntax.
+- Use PostgreSQL syntax (including ->> for JSONB queries if needed).
 - Limit results to 20 max to avoid overwhelming the chat UI.
 """
 
@@ -135,7 +135,7 @@ def ask_database(user_query, model="gemini-3.5-flash"):
 
     # Phase 2: SQL Coder
     sql_coder_messages = [
-        {"role": "system", "content": f"You are an elite SQL developer. Given the schema and the architect's plan, write the exact SQLite query to answer the question. Reply ONLY with the SQL string.\nSchema:\n{DB_SCHEMA}"},
+        {"role": "system", "content": f"You are an elite SQL developer. Given the schema and the architect's plan, write the exact PostgreSQL query to answer the question. Reply ONLY with the SQL string.\nSchema:\n{DB_SCHEMA}"},
         {"role": "user", "content": f"Question: {user_query}\n\nArchitect Plan:\n{thought_process}"}
     ]
     
@@ -164,10 +164,13 @@ def ask_database(user_query, model="gemini-3.5-flash"):
             if not sql_query.upper().startswith("SELECT"):
                 raise ValueError("Query must start with SELECT")
                 
-            db_uri = f"file:{SUMMARY_DB}?mode=ro"
-            conn = sqlite3.connect(db_uri, uri=True)
-            conn.row_factory = sqlite3.Row
-            cursor = conn.cursor()
+            from dotenv import load_dotenv
+            load_dotenv(ENV_FILE)
+            db_url = os.environ.get("DATABASE_URL")
+            import psycopg2
+            from psycopg2.extras import RealDictCursor
+            conn = psycopg2.connect(db_url)
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
             cursor.execute(sql_query)
             fetched = cursor.fetchall()
             columns = [description[0] for description in cursor.description] if cursor.description else []
@@ -217,7 +220,7 @@ def ask_database(user_query, model="gemini-3.5-flash"):
     # Phase 3: Interpreter
     yield f"data: {json.dumps({'type': 'summary_start'})}\n\n"
     interpreter_messages = [
-        {"role": "system", "content": "You are Darshi, a helpful AI assistant. Summarize the following data into a friendly, 1-2 sentence conversational answer for the user. Do not explain the SQL, just interpret the data."},
+        {"role": "system", "content": "You are Darshi, a helpful AI assistant. Summarize the following data into a friendly, 1-2 sentence conversational answer for the user. Do not explain the SQL, just interpret the data. If the user asked to delete, update, insert, or drop data, and the data returned is empty, you MUST explicitly state that you are operating in a strict Read-Only sandbox and cannot modify or delete any database records. DO NOT hallucinate that a deletion was successful."},
         {"role": "user", "content": f"User's Question: {user_query}\n\nData Returned:\n{json.dumps(rows[:5])}"}
     ]
     try:

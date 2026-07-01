@@ -13,6 +13,9 @@ import re as _re
 import threading
 from flask import Flask, jsonify, request, send_from_directory, abort, g
 from flask_cors import CORS
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # ─────────────────────────────────────────────
 # CONFIGURATION
@@ -52,25 +55,43 @@ def _get_conn(attr, path, read_only=False):
         setattr(g, attr, conn)
     return conn
 
-def get_sum_conn():
+def get_pg_conn():
     conn = _get_conn('sum', SUM_DB, read_only=True)
     if conn is None:
         abort(503, description="summary.db not found. Run analysis first.")
     return conn
 
-def get_mca_conn():
+import psycopg2
+from psycopg2.extras import RealDictCursor
+
+def get_pg_conn():
+    """Returns a PostgreSQL connection scoped to the request"""
+    conn = getattr(g, 'pg_conn', None)
+    if conn is None:
+        db_url = os.environ.get("DATABASE_URL")
+        if not db_url:
+            abort(503, description="DATABASE_URL not set in .env")
+        try:
+            conn = psycopg2.connect(db_url)
+            # Use RealDictCursor to act like sqlite3.Row
+            setattr(g, 'pg_conn', conn)
+        except Exception as e:
+            abort(503, description=f"Failed to connect to PostgreSQL: {e}")
+    return conn
+
+def get_pg_conn():
     conn = _get_conn('mca', MCA_DB, read_only=True)
     if conn is None:
         abort(503, description="mca_data.db not found.")
     return conn
 
-def get_aoc_conn():
+def get_pg_conn():
     conn = _get_conn('aoc', AOC_DB, read_only=True)
     if conn is None:
         abort(503, description="aoc_tenders.db not found.")
     return conn
 
-def get_search_conn():
+def get_pg_conn():
     conn = _get_conn('search', SEARCH_DB, read_only=True)
     if conn is None:
         abort(503, description="search.db not found.")
@@ -78,7 +99,7 @@ def get_search_conn():
 
 @app.teardown_appcontext
 def close_db(error):
-    for attr in ['sum', 'aoc', 'search']:
+    for attr in ['sum', 'aoc', 'search', 'pg_conn']:
         conn = getattr(g, attr, None)
         if conn is not None:
             try:
@@ -145,50 +166,18 @@ _analysis_lock = threading.Lock()
 
 @app.route("/api/trigger-analysis", methods=["POST"])
 def api_trigger_analysis():
-    """Start the analysis pipeline in a background thread."""
-    if not _analysis_lock.acquire(blocking=False):
-        return jsonify({"error": "Analysis already running."}), 409
-
-    def _run():
-        try:
-            from analyse import find_db_files, run_analysis, write_state
-            aoc_src, vps_src = find_db_files()
-            use_existing = (aoc_src is None)
-            if use_existing and not os.path.exists(AOC_DB):
-                write_state("error", 0, "No .db file found. Drop your file in the data_dump/ folder.", error="No data found", done=True)
-                return
-            run_analysis(aoc_src=aoc_src, vps_src=vps_src, use_existing=use_existing)
-        except Exception as e:
-            print(f"Analysis pipeline error: {e}")
-        finally:
-            _analysis_lock.release()
-
-    t = threading.Thread(target=_run, daemon=True)
-    t.start()
-    return jsonify({"status": "started", "message": "Analysis pipeline started."})
+    """Analysis pipeline is now managed entirely by the VPS scraper."""
+    return jsonify({"error": "Local analysis pipeline is disabled. Data is managed by the remote VPS."}), 403
 
 
 @app.route("/api/analysis-progress")
 def api_analysis_progress():
     """Poll current analysis progress."""
-    if not os.path.exists(STATE_FILE):
-        # Check if we already have data (from a previous run)
-        if os.path.exists(SUM_DB):
-            return jsonify({
-                "stage": "done", "progress": 100,
-                "message": "Analysis data is ready.",
-                "done": True
-            })
-        return jsonify({
-            "stage": "idle", "progress": 0,
-            "message": "Drop your .db file in the data_dump/ folder and click Analyse Data.",
-            "done": False
-        })
-    try:
-        with open(STATE_FILE, encoding="utf-8") as f:
-            return jsonify(json.load(f))
-    except Exception:
-        return jsonify({"stage": "idle", "progress": 0, "message": "No analysis running.", "done": False})
+    return jsonify({
+        "stage": "done", "progress": 100,
+        "message": "Connected to Live VPS Database.",
+        "done": True
+    })
 
 
 @app.route("/api/narrative-report")
@@ -230,7 +219,7 @@ def api_vendor_mca(vendor_name):
     if not os.path.exists(MCA_DB):
         return jsonify({"error": "MCA database not available"}), 404
         
-    conn = get_mca_conn()
+    conn = get_pg_conn()
     cur = conn.cursor()
     
     import re
@@ -253,7 +242,7 @@ def api_vendor_mca(vendor_name):
     params = []
     for w in top_words:
         if len(w) > 2:
-            conditions.append("CompanyName LIKE ?")
+            conditions.append("CompanyName ILIKE %s")
             params.append(f"%{w}%")
             
     if not conditions:
@@ -287,10 +276,8 @@ def api_vendor_mca(vendor_name):
 
 @app.route("/api/kpis")
 def api_kpis():
-    if not os.path.exists(SUM_DB):
-        return jsonify({"error": "summary.db not found. Run analysis first."}), 503
-    conn = get_sum_conn()
-    cur = conn.cursor()
+    conn = get_pg_conn()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
     cur.execute("SELECT key, value FROM kpi_stats")
     data = {row["key"]: row["value"] for row in cur.fetchall()}
     return jsonify(data)
@@ -307,7 +294,7 @@ def api_trends():
     grain   = request.args.get("grain", "monthly")
     dataset = request.args.get("dataset", "aoc")
 
-    conn = get_sum_conn()
+    conn = get_pg_conn()
     cur  = conn.cursor()
 
     if dataset == "published":
@@ -365,7 +352,7 @@ def api_top_orgs():
     limit   = min(int(request.args.get("limit", 25)), 100)
     dataset = request.args.get("dataset", "aoc")
 
-    conn = get_sum_conn()
+    conn = get_pg_conn()
     cur  = conn.cursor()
 
     if dataset == "published":
@@ -396,7 +383,7 @@ def api_top_orgs():
 
 @app.route("/api/tender-types")
 def api_tender_types():
-    conn = get_sum_conn()
+    conn = get_pg_conn()
     cur  = conn.cursor()
     cur.execute("SELECT tender_type, count, total_value_crore FROM tender_type_dist ORDER BY count DESC LIMIT 20")
     rows = cur.fetchall()
@@ -411,7 +398,7 @@ def api_tender_types():
 
 @app.route("/api/sector-distribution")
 def api_sector_distribution():
-    conn = get_sum_conn()
+    conn = get_pg_conn()
     cur  = conn.cursor()
     cur.execute("SELECT sector, count, total_value_crore FROM sector_distribution ORDER BY count DESC")
     rows = cur.fetchall()
@@ -427,7 +414,7 @@ def api_sector_distribution():
 
 @app.route("/api/portal-breakdown")
 def api_portal_breakdown():
-    conn = get_sum_conn()
+    conn = get_pg_conn()
     cur  = conn.cursor()
     cur.execute("SELECT portal_type, count FROM portal_breakdown ORDER BY count DESC")
     rows = cur.fetchall()
@@ -440,7 +427,7 @@ def api_portal_breakdown():
 
 @app.route("/api/value-distribution")
 def api_value_dist():
-    conn = get_sum_conn()
+    conn = get_pg_conn()
     cur  = conn.cursor()
     cur.execute("SELECT bracket, count FROM value_brackets ORDER BY min_val")
     rows = cur.fetchall()
@@ -459,17 +446,17 @@ def api_single_bid():
     offset   = (page - 1) * per_page
     min_val  = float(request.args.get("min_val", 0))
 
-    conn = get_sum_conn()
+    conn = get_pg_conn()
     cur  = conn.cursor()
 
-    cur.execute("SELECT COUNT(*) as cnt FROM single_bid_contracts WHERE contract_value >= ?", (min_val,))
+    cur.execute("SELECT COUNT(*) as cnt FROM single_bid_contracts WHERE contract_value >= %s", (min_val,))
     total = cur.fetchone()["cnt"]
 
     cur.execute("""
         SELECT internal_id, org_name, title, contract_value,
                aoc_date, portal_type, bidder_name, ref_no
-        FROM single_bid_contracts WHERE contract_value >= ?
-        ORDER BY contract_value DESC LIMIT ? OFFSET ?
+        FROM single_bid_contracts WHERE contract_value >= %s
+        ORDER BY contract_value DESC LIMIT %s OFFSET %s
     """, (min_val, per_page, offset))
 
     return jsonify({"total": total, "page": page, "per_page": per_page,
@@ -486,16 +473,16 @@ def api_repeat_winners():
     offset   = (page - 1) * per_page
     min_wins = int(request.args.get("min_wins", 3))
 
-    conn = get_sum_conn()
+    conn = get_pg_conn()
     cur  = conn.cursor()
 
-    cur.execute("SELECT COUNT(*) as cnt FROM repeat_winners WHERE wins >= ?", (min_wins,))
+    cur.execute("SELECT COUNT(*) as cnt FROM repeat_winners WHERE wins >= %s", (min_wins,))
     total = cur.fetchone()["cnt"]
 
     cur.execute("""
         SELECT rank_n, bidder_name, org_name, wins, total_value_crore, first_win, last_win
-        FROM repeat_winners WHERE wins >= ?
-        ORDER BY wins DESC LIMIT ? OFFSET ?
+        FROM repeat_winners WHERE wins >= %s
+        ORDER BY wins DESC LIMIT %s OFFSET %s
     """, (min_wins, per_page, offset))
 
     return jsonify({"total": total, "page": page, "per_page": per_page,
@@ -506,7 +493,7 @@ def api_repeat_winners():
 
 @app.route("/api/state-stats")
 def api_state_stats():
-    conn = get_sum_conn()
+    conn = get_pg_conn()
     cur  = conn.cursor()
     cur.execute("SELECT state_name, total_contracts, total_value_crore FROM state_stats")
     return jsonify([dict(r) for r in cur.fetchall()])
@@ -521,13 +508,13 @@ def api_org_profile(org_name):
     if not os.path.exists(SUM_DB):
         return jsonify({"error": "No data available"}), 404
 
-    conn = get_sum_conn()
+    conn = get_pg_conn()
     cur  = conn.cursor()
 
     # Basic stats
     cur.execute("""
         SELECT org_name, total_contracts, total_value_crore, single_bid_pct, round_number_pct, hhi_score
-        FROM org_report_cards WHERE org_name = ?
+        FROM org_report_cards WHERE org_name = %s
     """, (org_name,))
     rc_row = cur.fetchone()
     report_card = dict(rc_row) if rc_row else {}
@@ -537,7 +524,7 @@ def api_org_profile(org_name):
     # Top vendors (repeat winners) for this org
     cur.execute("""
         SELECT bidder_name, wins, total_value_crore, first_win, last_win
-        FROM repeat_winners WHERE org_name = ?
+        FROM repeat_winners WHERE org_name = %s
         ORDER BY wins DESC LIMIT 10
     """, (org_name,))
     top_vendors = [dict(r) for r in cur.fetchall()]
@@ -545,7 +532,7 @@ def api_org_profile(org_name):
     # Single bid contracts for this org
     cur.execute("""
         SELECT COUNT(*) as cnt, SUM(contract_value) as total_val
-        FROM single_bid_contracts WHERE org_name = ?
+        FROM single_bid_contracts WHERE org_name = %s
     """, (org_name,))
     sb_row = cur.fetchone()
     single_bid_stats = dict(sb_row) if sb_row else {}
@@ -568,19 +555,19 @@ def api_vendor_profile(vendor_name):
     if not os.path.exists(SUM_DB):
         return jsonify({"error": "No data available"}), 404
 
-    conn = get_sum_conn()
+    conn = get_pg_conn()
     cur  = conn.cursor()
 
     cur.execute("""
         SELECT org_name, wins, total_value_crore, first_win, last_win
-        FROM repeat_winners WHERE bidder_name = ?
+        FROM repeat_winners WHERE bidder_name = %s
         ORDER BY wins DESC
     """, (vendor_name,))
     department_wins = [dict(r) for r in cur.fetchall()]
 
     cur.execute("""
         SELECT org_name, title, contract_value, aoc_date, portal_type
-        FROM single_bid_contracts WHERE bidder_name = ?
+        FROM single_bid_contracts WHERE bidder_name = %s
         ORDER BY contract_value DESC LIMIT 20
     """, (vendor_name,))
     single_bid_wins = [dict(r) for r in cur.fetchall()]
@@ -830,67 +817,34 @@ def api_search():
     if not q and not year and not portal:
         return jsonify({"total": 0, "results": [], "page": 1})
 
-    if os.path.exists(SEARCH_DB) and q:
-        fts_q = _sanitize_fts(q)
-        if not fts_q:
-            return jsonify({"total": 0, "results": [], "page": 1})
-
-        conn = get_search_conn()
-        cur  = conn.cursor()
-
-        extra_where, extra_params = [], []
-        if year:
-            extra_where.append("year = ?")
-            extra_params.append(str(year))
-        if portal:
-            extra_where.append("portal_type = ?")
-            extra_params.append(portal)
-
-        extra_sql = (" AND " + " AND ".join(extra_where)) if extra_where else ""
-
-        try:
-            cur.execute(
-                f"""SELECT internal_id, org_name, title, year, portal_type, aoc_date, '' as closing_date
-                FROM aoc_fts WHERE aoc_fts MATCH ?{extra_sql} LIMIT ? OFFSET ?""",
-                [fts_q] + extra_params + [per_page + 1, offset]
-            )
-            all_rows = cur.fetchall()
-        except Exception as e:
-            return jsonify({"error": str(e), "total": 0, "results": [], "page": 1}), 400
-
-        has_more = len(all_rows) > per_page
-        results  = rows_to_list(all_rows[:per_page])
-        total    = (offset + per_page + 1) if has_more else (offset + len(results))
-        return jsonify({"total": total, "page": page, "per_page": per_page,
-                        "has_more": has_more, "results": results})
-
-    # LIKE fallback
-    conn = get_aoc_conn()
-    cur  = conn.cursor()
+    conn = get_pg_conn()
+    cur  = conn.cursor(cursor_factory=RealDictCursor)
 
     where_parts, params = [], []
     if q:
-        where_parts.append("(org_name LIKE ? OR title LIKE ?)")
+        # Using PostgreSQL ILIKE for fuzzy trigram matching
+        where_parts.append("(org_name ILIKE %s OR title ILIKE %s)")
         params += [f"%{q}%", f"%{q}%"]
     if year:
-        where_parts.append("year = ?")
+        where_parts.append("year = %s")
         params.append(int(year))
     if portal:
-        where_parts.append("portal_type = ?")
+        where_parts.append("portal_type = %s")
         params.append(portal)
 
     where_sql = "WHERE " + " AND ".join(where_parts) if where_parts else ""
 
     cur.execute(f"SELECT COUNT(*) as cnt FROM aoc_tenders {where_sql}", params)
     total = cur.fetchone()["cnt"]
+    
     cur.execute(f"""
         SELECT internal_id, org_name, title, year, portal_type, aoc_date, closing_date
         FROM aoc_tenders {where_sql}
-        ORDER BY year DESC, aoc_date DESC LIMIT ? OFFSET ?
+        ORDER BY year DESC, aoc_date DESC LIMIT %s OFFSET %s
     """, params + [per_page, offset])
 
     return jsonify({"total": total, "page": page, "per_page": per_page,
-                    "results": rows_to_list(cur.fetchall())})
+                    "results": [dict(r) for r in cur.fetchall()]})
 
 # ─────────────────────────────────────────────
 # API: TENDER DETAIL
@@ -898,22 +852,21 @@ def api_search():
 
 @app.route("/api/tender/<internal_id>")
 def api_tender_detail(internal_id):
-    conn = get_aoc_conn()
+    conn = get_pg_conn()
     cur  = conn.cursor()
     cur.execute("""
         SELECT t.*, d.details_json, d.scraped_at as details_scraped_at
         FROM aoc_tenders t LEFT JOIN aoc_details d ON t.internal_id = d.internal_id
-        WHERE t.internal_id = ?
+        WHERE t.internal_id = %s
     """, (internal_id,))
     row = cur.fetchone()
     if not row:
         abort(404)
     result = dict(row)
     if result.get("details_json"):
-        try:
-            result["details"] = json.loads(result.pop("details_json"))
-        except Exception:
-            result["details"] = {}
+        result["details"] = result.pop("details_json")
+    else:
+        result["details"] = {}
     return jsonify(result)
 
 
@@ -928,32 +881,32 @@ def api_network_search():
     if not q:
         return jsonify({"results": []})
     
-    conn = get_sum_conn()
+    conn = get_pg_conn()
     cur = conn.cursor()
     try:
         cur.execute("""
             SELECT id, label, kind, state, email, value, n_contracts, n_buyers
             FROM network_nodes
-            WHERE label LIKE ? OR id LIKE ? OR email LIKE ?
+            WHERE label ILIKE %s OR id ILIKE %s OR email ILIKE %s
             ORDER BY n_contracts DESC LIMIT 30
         """, (f"%{q}%", f"%{q}%", f"%{q}%"))
         results = [dict(row) for row in cur.fetchall()]
         return jsonify({"results": results})
-    except sqlite3.OperationalError:
+    except Exception:
         return jsonify({"error": "No network analysis data available. Place nodes.csv and edges.csv in data_dump/ and re-analyse."}), 404
 
 
 @app.route("/api/network/ego/<node_id>")
 def api_network_ego(node_id):
     """Fetch 1-hop ego network around a specific node (nodes and links)."""
-    conn = get_sum_conn()
+    conn = get_pg_conn()
     cur = conn.cursor()
     try:
         # Get edges
         cur.execute("""
             SELECT source, target, relationship, weight, total_value, label
             FROM network_edges
-            WHERE source = ? OR target = ?
+            WHERE source = %s OR target = %s
         """, (node_id, node_id))
         edges = [dict(row) for row in cur.fetchall()]
         
@@ -966,7 +919,7 @@ def api_network_ego(node_id):
         # Retrieve details for all connected nodes
         nodes = []
         if node_ids:
-            ph = ",".join(["?"] * len(node_ids))
+            ph = ",".join(["%s"] * len(node_ids))
             cur.execute(f"""
                 SELECT id, label, kind, state, email, value, n_contracts, n_buyers
                 FROM network_nodes
@@ -979,7 +932,7 @@ def api_network_ego(node_id):
             "nodes": nodes,
             "edges": edges
         })
-    except sqlite3.OperationalError:
+    except Exception:
         return jsonify({"error": "No network analysis data available."}), 404
 
 
@@ -1013,7 +966,7 @@ if __name__ == "__main__":
 
 @app.route('/api/sanctions')
 def api_sanctions():
-    conn = get_sum_conn()
+    conn = get_pg_conn()
     cur = conn.cursor()
     cur.execute('''
         SELECT s.bidder_name, s.sanction_id, s.schema, s.matched_name, s.dataset, n.value, n.n_contracts 

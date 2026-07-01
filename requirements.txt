@@ -8,3 +8,4 @@ python-dotenv
 requests
 duckduckgo-search
 rapidfuzz
+psycopg2-binary>=2.9.0

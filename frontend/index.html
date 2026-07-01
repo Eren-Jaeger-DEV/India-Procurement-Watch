@@ -181,33 +181,7 @@
           </div>
         </div>
 
-        <!-- Analysis trigger -->
-        <div class="chart-card">
-          <div class="chart-card-header">
-            <h3 class="chart-title">Run Analysis</h3>
-          </div>
-          <p style="font-size:13px;color:var(--text-secondary);margin-bottom:20px;line-height:1.7">
-            Click the button below to start the full analysis pipeline. The tool will process your data,
-            compute all statistics, detect anomalies, score risks, and generate a plain-English investigative report.
-            <strong style="color:var(--text-primary)">This may take 10–25 minutes for large datasets.</strong>
-          </p>
-          <button class="btn-analyse" id="btnAnalyse" onclick="triggerAnalysis()">
-            <i data-lucide="play-circle"></i>
-            Analyse Data
-          </button>
-        </div>
 
-        <!-- Progress Section (hidden by default) -->
-        <div class="progress-section" id="progressSection" style="display:none;margin-top:20px">
-          <div class="progress-header">
-            <span class="progress-stage" id="progressStage">Starting…</span>
-            <span class="progress-pct" id="progressPct">0%</span>
-          </div>
-          <div class="progress-bar-wrap">
-            <div class="progress-bar-fill" id="progressBarFill" style="width:0%"></div>
-          </div>
-          <div class="progress-message" id="progressMessage">Initialising analysis pipeline…</div>
-        </div>
       </div>
 
       <!-- ════════════════════════════════

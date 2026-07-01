@@ -40,3 +40,5 @@ narrative_report.json
 .agents/
 company-director-temp/
 *.pdf
+ssh.key
+cloudflared.exe

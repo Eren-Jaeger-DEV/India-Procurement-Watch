@@ -180,6 +180,29 @@ window.sendAiQuery = function() {
                 if (dataContainer) dataContainer.style.display = 'none';
                 
                 try {
+                  const ctx = canvas.getContext('2d');
+                  const isPie = data.chart.chart_type === 'pie';
+                  
+                  // Premium Gradient Generation
+                  const bgColors = [];
+                  const borderColors = [];
+                  const baseColors = [
+                    [56, 189, 248],   // Sky Blue
+                    [167, 139, 250],  // Purple
+                    [52, 211, 153],   // Emerald
+                    [251, 191, 36],   // Amber
+                    [244, 63, 94]     // Rose
+                  ];
+                  
+                  data.chart.data.forEach((_, i) => {
+                    const rgb = baseColors[i % baseColors.length];
+                    const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+                    gradient.addColorStop(0, `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, 0.8)`);
+                    gradient.addColorStop(1, `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, 0.1)`);
+                    bgColors.push(gradient);
+                    borderColors.push(`rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, 1)`);
+                  });
+
                   new Chart(canvas, {
                     type: data.chart.chart_type || 'bar',
                     data: {
@@ -187,15 +210,57 @@ window.sendAiQuery = function() {
                       datasets: [{
                         label: data.chart.dataset_label || '',
                         data: data.chart.data || [],
-                        backgroundColor: ['rgba(217, 119, 87, 0.7)', 'rgba(56, 189, 248, 0.7)', 'rgba(167, 139, 250, 0.7)', 'rgba(251, 191, 36, 0.7)', 'rgba(52, 211, 153, 0.7)'],
-                        borderColor: 'rgba(255,255,255,0.1)',
-                        borderWidth: 1
+                        backgroundColor: bgColors,
+                        borderColor: borderColors,
+                        borderWidth: 2,
+                        borderRadius: isPie ? 0 : 6,
+                        hoverOffset: isPie ? 15 : 0
                       }]
                     },
                     options: {
                       responsive: true,
-                      plugins: { legend: { display: data.chart.chart_type === 'pie' } },
-                      scales: data.chart.chart_type !== 'pie' ? { y: { beginAtZero: true, grid: {color: 'rgba(255,255,255,0.05)'} }, x: { grid: {color: 'rgba(255,255,255,0.05)'} } } : {}
+                      animation: { duration: 1500, easing: 'easeOutQuart' },
+                      plugins: {
+                        legend: { 
+                            display: isPie,
+                            labels: { color: 'rgba(255,255,255,0.8)', font: { family: 'Inter' } }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                            titleColor: '#fff',
+                            bodyColor: '#cbd5e1',
+                            borderColor: 'rgba(56, 189, 248, 0.3)',
+                            borderWidth: 1,
+                            padding: 12,
+                            displayColors: true,
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) { label += ': '; }
+                                    if (context.parsed.y !== null) {
+                                        // If it's a huge number, format as Crore
+                                        if (context.parsed.y > 100) {
+                                            label += new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 1 }).format(context.parsed.y) + ' Cr';
+                                        } else {
+                                            label += context.parsed.y;
+                                        }
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                      },
+                      scales: isPie ? {} : { 
+                        y: { 
+                            beginAtZero: true, 
+                            grid: { color: 'rgba(255,255,255,0.05)', drawBorder: false },
+                            ticks: { color: 'rgba(255,255,255,0.5)', font: { family: 'Inter' } }
+                        }, 
+                        x: { 
+                            grid: { display: false },
+                            ticks: { color: 'rgba(255,255,255,0.5)', font: { family: 'Inter' } }
+                        } 
+                      }
                     }
                   });
                 } catch(e) { console.error("Chart render error", e); }

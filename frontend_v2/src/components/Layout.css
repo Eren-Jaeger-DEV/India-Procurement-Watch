@@ -139,3 +139,200 @@
   background-color: var(--success);
   box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.1);
 }
+
+/* ────────────────────────────────────
+   MOBILE LAYOUT  (≤768px only)
+   Desktop sidebar is completely untouched.
+   ──────────────────────────────────── */
+@media (max-width: 768px) {
+
+  /* Hide the entire desktop sidebar */
+  .sidebar {
+    display: none !important;
+  }
+
+  /* Stack layout vertically */
+  .app-container {
+    flex-direction: column;
+  }
+
+  /* Main content: top padding for header, bottom padding for bottom nav */
+  .main-content {
+    padding: 12px;
+    padding-top: 70px;
+    padding-bottom: 80px;
+    height: auto;
+    min-height: 100vh;
+    overflow-y: auto;
+  }
+
+  /* ── Mobile Top Header ── */
+  .mobile-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    padding: 0 16px;
+    background: var(--bg-sidebar);
+    border-bottom: 1px solid var(--border-color);
+    z-index: 200;
+  }
+
+  .mobile-header-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .mobile-header-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: 0.02em;
+  }
+
+  .mobile-icon-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--text-secondary);
+    padding: 6px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .mobile-icon-btn:hover {
+    background: var(--bg-main);
+    color: var(--text-primary);
+  }
+
+  /* ── Mobile Bottom Nav Bar ── */
+  .mobile-bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 64px;
+    background: var(--bg-sidebar);
+    border-top: 1px solid var(--border-color);
+    z-index: 200;
+    align-items: stretch;
+  }
+
+  .mobile-nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    text-decoration: none;
+    color: var(--text-muted);
+    font-size: 10px;
+    font-weight: 500;
+    transition: color 0.2s ease;
+    padding: 6px 4px;
+  }
+
+  .mobile-nav-item:hover {
+    color: var(--text-primary);
+  }
+
+  .mobile-nav-item.active {
+    color: var(--accent-primary);
+  }
+
+  .mobile-nav-item.active svg {
+    stroke: var(--accent-primary);
+  }
+
+  /* ── Mobile slide-up secondary menu ── */
+  .mobile-menu-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 300;
+  }
+
+  .mobile-slide-menu {
+    position: fixed;
+    bottom: 64px;
+    left: 0;
+    right: 0;
+    background: var(--bg-card);
+    border-top: 1px solid var(--border-color);
+    border-radius: 16px 16px 0 0;
+    z-index: 301;
+    padding: 8px 0 16px;
+    animation: slideUp 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  @keyframes slideUp {
+    from { transform: translateY(100%); opacity: 0; }
+    to   { transform: translateY(0);   opacity: 1; }
+  }
+
+  .mobile-slide-menu-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 8px;
+  }
+
+  .mobile-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 20px;
+    text-decoration: none;
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 500;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+
+  .mobile-menu-item:hover {
+    background: var(--bg-main);
+    color: var(--text-primary);
+  }
+
+  .mobile-menu-item.active {
+    color: var(--accent-primary);
+    background: rgba(37, 99, 235, 0.06);
+  }
+
+  /* ── Table overflow fix ── */
+  table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* ── Card / grid fix ── */
+  .dashboard-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Hide mobile elements on desktop */
+@media (min-width: 769px) {
+  .mobile-header,
+  .mobile-bottom-nav,
+  .mobile-menu-backdrop,
+  .mobile-slide-menu {
+    display: none !important;
+  }
+}
+

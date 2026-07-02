@@ -59,11 +59,11 @@ def ask_database(user_query, model="gemini-3.5-flash"):
         }
     )
 
-    router_models = ["gemini-3.5-flash", "gpt-3.5-turbo"]
-    convo_models = [model, "gpt-4o", "gemini-3.5-flash"]
-    planner_models = [model, "gpt-4o", "deepseek-v4-pro"]
-    sql_models = ["deepseek-v4-pro", "gpt-4o", "claude-3-opus"]
-    interpreter_models = [model, "gpt-4o", "gemini-3.5-flash"]
+    router_models = ["gemini-3.5-flash", "gpt-5.5"]
+    convo_models = [model, "gpt-5.5", "gemini-3.5-flash"]
+    planner_models = [model, "gpt-5.5", "deepseek-v4-pro"]
+    sql_models = ["deepseek-v4-pro", "gpt-5.5", "grok-4.3"]
+    interpreter_models = [model, "gpt-5.5", "gemini-3.5-flash"]
 
     # Phase 0: Intent Router (Fast, No Schema)
     router_messages = [
@@ -170,6 +170,7 @@ def ask_database(user_query, model="gemini-3.5-flash"):
             import psycopg2
             from psycopg2.extras import RealDictCursor
             conn = psycopg2.connect(db_url)
+            conn.set_session(options={'statement_timeout': '30s'})
             cursor = conn.cursor(cursor_factory=RealDictCursor)
             cursor.execute(sql_query)
             fetched = cursor.fetchall()

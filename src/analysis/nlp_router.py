@@ -65,4 +65,4 @@ Return ONLY a valid JSON object matching this schema exactly (no markdown, no ba
     except Exception as e:
         print(f"LLM parsing failed: {e}")
         # Secure Fallback
-        return {"year": "", "portal": "", "q": f"{text} (LLM Error: {str(e)})"}
+        return {"year": "", "portal": "", "q": ""}

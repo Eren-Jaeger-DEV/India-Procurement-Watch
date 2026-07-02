@@ -20,7 +20,8 @@ load_dotenv()
 # ─────────────────────────────────────────────
 
 BASE_DIR   = os.path.dirname(os.path.abspath(__file__))
-STATIC_DIR = os.path.join(BASE_DIR, "frontend")
+REACT_DIST = os.path.join(BASE_DIR, "frontend_v2", "dist")
+STATIC_DIR = REACT_DIST if os.path.exists(REACT_DIST) else os.path.join(BASE_DIR, "frontend")
 STATE_FILE = os.path.join(BASE_DIR, "analysis_state.json")
 REPORT_FILE= os.path.join(BASE_DIR, "narrative_report.json")
 DATA_DUMP  = os.path.join(BASE_DIR, "data_dump")
@@ -927,5 +928,16 @@ def api_sanctions():
     ''')
     rows = cur.fetchall()
     return jsonify([dict(r) for r in rows])
+
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve_spa(path):
+    if path.startswith('api/'):
+        return jsonify({"error": "Endpoint not found"}), 404
+    file_path = os.path.join(STATIC_DIR, path)
+    if path != "" and os.path.exists(file_path):
+        return send_from_directory(STATIC_DIR, path)
+    return send_from_directory(STATIC_DIR, 'index.html')
+
 
 

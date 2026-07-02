@@ -1,13 +1,26 @@
-import { Outlet, NavLink } from 'react-router-dom';
-import { LayoutDashboard, Users, FileText, Search, Activity, Database, Map, FileSearch, Network, Bot, Sun, Moon, X, ChevronLeft, ChevronRight, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Outlet, NavLink, useLocation } from 'react-router-dom';
+import { LayoutDashboard, FileText, Search, FileSearch, Bot, Sun, Moon, X, PanelLeftClose, PanelLeftOpen, Database, Map, Network, Menu } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import './Layout.css';
 
+const NAV_ITEMS = [
+  { to: '/dashboard', icon: LayoutDashboard, label: 'Overview' },
+  { to: '/search',    icon: Search,          label: 'Search'   },
+  { to: '/chat',      icon: Bot,             label: 'Ask AI'   },
+  { to: '/investigation', icon: FileSearch,  label: 'Investigate' },
+  { to: '/report',    icon: FileText,        label: 'Report'   },
+];
+
 const Layout = () => {
-  const [isDark, setIsDark] = useState(true);
+  const [isDark, setIsDark]       = useState(true);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalData, setModalData] = useState(null);
+  const location = useLocation();
+
+  // Close mobile menu on route change
+  useEffect(() => { setMobileMenuOpen(false); }, [location]);
 
   useEffect(() => {
     document.body.className = isDark ? 'dark-theme' : 'light-theme';
@@ -108,9 +121,68 @@ const Layout = () => {
         </div>
       </aside>
 
+      {/* Mobile Top Header — hidden on desktop */}
+      <header className="mobile-header">
+        <div className="mobile-header-brand">
+          <div style={{ width: 28, height: 28, borderRadius: '50%', overflow: 'hidden', minWidth: 28 }}>
+            <img src="/logo.jpg" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          </div>
+          <span className="mobile-header-title">IPW</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button
+            className="mobile-icon-btn"
+            onClick={() => setIsDark(!isDark)}
+            title="Toggle Theme"
+          >
+            <div className={`theme-icon-wrapper ${isDark ? 'dark' : 'light'}`}>
+              {isDark ? <Sun size={18} /> : <Moon size={18} />}
+            </div>
+          </button>
+          <button
+            className="mobile-icon-btn"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            title="More pages"
+          >
+            <Menu size={20} />
+          </button>
+        </div>
+      </header>
+
+      {/* Mobile slide-up menu for secondary pages */}
+      {mobileMenuOpen && (
+        <>
+          <div className="mobile-menu-backdrop" onClick={() => setMobileMenuOpen(false)} />
+          <div className="mobile-slide-menu">
+            <div className="mobile-slide-menu-header">
+              <span>All Pages</span>
+              <button className="mobile-icon-btn" onClick={() => setMobileMenuOpen(false)}><X size={20} /></button>
+            </div>
+            <NavLink to="/geo"          className={({isActive}) => `mobile-menu-item ${isActive ? 'active' : ''}`}><Map size={18}/> Geographical</NavLink>
+            <NavLink to="/network"      className={({isActive}) => `mobile-menu-item ${isActive ? 'active' : ''}`}><Network size={18}/> Director Networks</NavLink>
+            <NavLink to="/organizations" className={({isActive}) => `mobile-menu-item ${isActive ? 'active' : ''}`}><LayoutDashboard size={18}/> Organizations</NavLink>
+            <NavLink to="/import"       className={({isActive}) => `mobile-menu-item ${isActive ? 'active' : ''}`}><Database size={18}/> Data Import</NavLink>
+          </div>
+        </>
+      )}
+
       <main className="main-content">
         <Outlet />
       </main>
+
+      {/* Mobile Bottom Nav — hidden on desktop */}
+      <nav className="mobile-bottom-nav">
+        {NAV_ITEMS.map(({ to, icon: Icon, label }) => (
+          <NavLink
+            key={to}
+            to={to}
+            className={({ isActive }) => `mobile-nav-item ${isActive ? 'active' : ''}`}
+          >
+            <Icon size={22} />
+            <span>{label}</span>
+          </NavLink>
+        ))}
+      </nav>
 
       {/* Global Tender Modal */}
       {modalOpen && (

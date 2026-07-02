@@ -65,15 +65,23 @@ const Investigation = () => {
       <div style={{ display: 'flex', gap: 12, marginBottom: 24, borderBottom: '1px solid var(--border-color)', paddingBottom: 16 }}>
         <button 
           onClick={() => setActiveTab('single')}
-          className={`search-button ${activeTab === 'single' ? '' : 'inactive'}`}
-          style={{ background: activeTab === 'single' ? 'var(--text-primary)' : 'var(--bg-card)', color: activeTab === 'single' ? 'white' : 'var(--text-secondary)', border: '1px solid var(--border-color)' }}
+          className="search-button"
+          style={{ 
+            background: activeTab === 'single' ? 'var(--accent-primary)' : 'transparent', 
+            color: activeTab === 'single' ? '#ffffff' : 'var(--text-secondary)', 
+            border: '1px solid var(--border-color)' 
+          }}
         >
           Single-Bid Contracts
         </button>
         <button 
           onClick={() => setActiveTab('repeat')}
-          className={`search-button ${activeTab === 'repeat' ? '' : 'inactive'}`}
-          style={{ background: activeTab === 'repeat' ? 'var(--text-primary)' : 'var(--bg-card)', color: activeTab === 'repeat' ? 'white' : 'var(--text-secondary)', border: '1px solid var(--border-color)' }}
+          className="search-button"
+          style={{ 
+            background: activeTab === 'repeat' ? 'var(--accent-primary)' : 'transparent', 
+            color: activeTab === 'repeat' ? '#ffffff' : 'var(--text-secondary)', 
+            border: '1px solid var(--border-color)' 
+          }}
         >
           Repeat Winners
         </button>

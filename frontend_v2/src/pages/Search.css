@@ -44,8 +44,8 @@
 }
 
 .search-button {
-  background: var(--text-primary);
-  color: white;
+  background: var(--accent-primary);
+  color: #ffffff;
   border: none;
   padding: 10px 24px;
   border-radius: var(--radius-md);
@@ -55,14 +55,15 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  white-space: nowrap;
 }
 
 .search-button:hover:not(:disabled) {
-  background: #374151;
+  background: var(--accent-hover);
 }
 
 .search-button:disabled {
-  opacity: 0.7;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
@@ -108,7 +109,7 @@
 
 .data-table th {
   padding: 12px 16px;
-  background: #f3f4f6;
+  background: var(--bg-main);
   color: var(--text-secondary);
   font-size: 12px;
   font-weight: 600;

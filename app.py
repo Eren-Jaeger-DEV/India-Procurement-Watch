@@ -20,8 +20,7 @@ load_dotenv()
 # ─────────────────────────────────────────────
 
 BASE_DIR   = os.path.dirname(os.path.abspath(__file__))
-REACT_DIST = os.path.join(BASE_DIR, "frontend_v2", "dist")
-STATIC_DIR = REACT_DIST if os.path.exists(REACT_DIST) else os.path.join(BASE_DIR, "frontend")
+STATIC_DIR = os.path.join(BASE_DIR, "frontend_v2", "dist")
 STATE_FILE = os.path.join(BASE_DIR, "analysis_state.json")
 REPORT_FILE= os.path.join(BASE_DIR, "narrative_report.json")
 DATA_DUMP  = os.path.join(BASE_DIR, "data_dump")

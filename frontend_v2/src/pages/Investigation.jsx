@@ -55,10 +55,10 @@ const Investigation = () => {
   const formatNumber = (num) => new Intl.NumberFormat('en-IN').format(num || 0);
 
   // Determine Severity Badge for Single Bids
-  const getSeverityBadge = (valueLakh) => {
-    if (!valueLakh) return <span className="badge-info">INFO</span>;
-    if (valueLakh > 500) return <span className="badge-critical">CRITICAL</span>; // > 5 Cr
-    if (valueLakh > 100) return <span className="badge-high">HIGH</span>; // > 1 Cr
+  const getSeverityBadge = (value) => {
+    if (!value) return <span className="badge-info">INFO</span>;
+    if (value > 50000000) return <span className="badge-critical">CRITICAL</span>; // > 5 Cr
+    if (value > 10000000) return <span className="badge-high">HIGH</span>; // > 1 Cr
     return <span className="badge-medium">MEDIUM</span>;
   };
 
@@ -143,11 +143,11 @@ const Investigation = () => {
                     <tr><td colSpan="5" style={{ textAlign: 'center', padding: 24 }}>Running Anomaly Scan...</td></tr>
                   ) : singleData.results.map((item, idx) => (
                     <tr key={idx} style={{ cursor: 'pointer' }} className="hover-row" onClick={() => window.dispatchEvent(new CustomEvent('openTenderModal', { detail: item }))}>
-                      <td>{getSeverityBadge(item.value_lakh)}</td>
+                      <td>{getSeverityBadge(item.contract_value)}</td>
                       <td className="truncate-cell">{item.org_name}</td>
-                      <td className="truncate-cell" title={item.tender_title}>{item.tender_title}</td>
-                      <td>{item.value_lakh ? `₹${item.value_lakh}L` : 'N/A'}</td>
-                      <td className="truncate-cell"><strong>{item.vendor_name || 'N/A'}</strong></td>
+                      <td className="truncate-cell" title={item.title}>{item.title}</td>
+                      <td>{item.contract_value ? `₹${(item.contract_value / 100000).toFixed(2)}L` : 'N/A'}</td>
+                      <td className="truncate-cell"><strong>{item.bidder_name || 'N/A'}</strong></td>
                     </tr>
                   ))}
                 </tbody>
@@ -209,10 +209,10 @@ const Investigation = () => {
                     <tr><td colSpan="4" style={{ textAlign: 'center', padding: 24 }}>Graphing Cartel Networks...</td></tr>
                   ) : repeatData.results.map((item, idx) => (
                     <tr key={idx} style={{ cursor: 'pointer' }} className="hover-row">
-                      <td className="truncate-cell" title={item.vendor_name}><strong>{item.vendor_name}</strong></td>
+                      <td className="truncate-cell" title={item.bidder_name}><strong>{item.bidder_name}</strong></td>
                       <td className="truncate-cell" title={item.org_name}>{item.org_name}</td>
                       <td><span style={{ fontWeight: 'bold', color: '#8b5cf6' }}>{item.wins}</span></td>
-                      <td>₹{item.total_value_cr?.toFixed(2) || '0.00'}</td>
+                      <td>₹{item.total_value_crore?.toFixed(2) || '0.00'}</td>
                     </tr>
                   ))}
                 </tbody>

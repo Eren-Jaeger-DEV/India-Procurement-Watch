@@ -39,13 +39,13 @@ The brain of the platform. A collection of Python modules that perform heavy lif
 ## 3. Server Infrastructure
 For production deployment, the platform is hosted across two dedicated Virtual Private Servers (VPS) to ensure security and performance.
 
-### 🌐 Server 1: Dashboard VPS (`100.119.181.36`)
+### 🌐 Server 1: Dashboard VPS (`[REDACTED_DASHBOARD_IP]`)
 The public-facing application server (4 Cores, 4GB RAM).
 *   **Hosts:** The React Frontend (via Nginx/Static routing) and the Flask Backend (via Gunicorn).
 *   **Network:** Open to the public internet (Ports 80/443).
 *   **User:** `victor`
 
-### 🗄️ Server 2: Database VPS (`100.112.20.56`)
+### 🗄️ Server 2: Database VPS (`[REDACTED_DATABASE_IP]`)
 The secure, heavy-duty data fortress (8 Cores, 8GB RAM).
 *   **Hosts:** PostgreSQL Database Server containing millions of rows of `aoc_tenders` and `mca_data`.
 *   **Security (Tailscale):** This server is **not** exposed to the public internet. It is only accessible via the private Tailscale mesh network. The Dashboard VPS queries this database securely over Tailscale.

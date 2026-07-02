@@ -42,3 +42,11 @@ company-director-temp/
 *.pdf
 ssh.key
 cloudflared.exe
+
+# ── Internal team / agent docs (never public) ──
+API_ENDPOINTS.md
+migrate*.py
+migrate*.md
+check_db.py
+*_audit.md
+*_plan.md

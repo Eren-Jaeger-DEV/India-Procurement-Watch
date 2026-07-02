@@ -59,7 +59,7 @@ export const aiChat = async (text, model = 'gemini-3.5-flash') => {
   return res.data;
 };
 
-export const streamAiChat = async (text, model, onChunk, onError, onDone) => {
+export const streamAiChat = async (text, model, onEvent, onError, onDone) => {
   try {
     const response = await fetch('/api/ai-chat', {
       method: 'POST',
@@ -74,13 +74,36 @@ export const streamAiChat = async (text, model, onChunk, onError, onDone) => {
 
     const reader = response.body.getReader();
     const decoder = new TextDecoder('utf-8');
+    let buffer = '';
 
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
-      const chunk = decoder.decode(value, { stream: true });
-      onChunk(chunk);
+      buffer += decoder.decode(value, { stream: true });
+
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || ''; // Keep partial line in buffer
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (trimmed.startsWith('data: ')) {
+          try {
+            const payload = JSON.parse(trimmed.slice(6));
+            onEvent(payload);
+          } catch (e) {
+            // Ignore parse errors on incomplete chunks
+          }
+        }
+      }
     }
+
+    if (buffer.trim().startsWith('data: ')) {
+      try {
+        const payload = JSON.parse(buffer.trim().slice(6));
+        onEvent(payload);
+      } catch (e) {}
+    }
+
     if (onDone) onDone();
   } catch (err) {
     if (onError) onError(err);

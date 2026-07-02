@@ -17,7 +17,7 @@
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <!-- PDF Export -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-  <link rel="stylesheet" href="css/style.css?v=5" />
+  <link rel="stylesheet" href="css/style_v2.css" />
 </head>
 <body>
 
@@ -83,6 +83,9 @@
 
     <!-- ── HEADER ── -->
     <header class="header">
+      <button class="mobile-menu-btn" style="display: none;" onclick="toggleSidebarMobile()" aria-label="Menu" id="mobileMenuBtn">
+        <i data-lucide="menu"></i>
+      </button>
       <div class="header-title" id="headerTitle">Overview</div>
       <div class="header-actions">
         <div class="status-indicator">
@@ -685,6 +688,7 @@
 <script src="js/analysis.js?v=1"></script>
 <script src="js/network.js?v=1"></script>
 <script src="js/chat.js?v=10"></script>
-<script src="js/main.js?v=5"></script>
+<script src="js/main.js?v=6"></script>
+<div class="mobile-overlay" id="mobileOverlay" onclick="toggleSidebarMobile()"></div>
 </body>
 </html>

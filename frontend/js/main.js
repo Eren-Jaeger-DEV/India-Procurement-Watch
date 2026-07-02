@@ -69,6 +69,13 @@ window.toggleSidebar = function() {
   if (sidebar) sidebar.classList.toggle('collapsed');
 };
 
+window.toggleSidebarMobile = function() {
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('mobileOverlay');
+  if (sidebar) sidebar.classList.toggle('mobile-open');
+  if (overlay) overlay.classList.toggle('active');
+};
+
 // ── VIEW SWITCHING ──
 const VIEW_TITLES = {
   'view-import':      'Data Import',

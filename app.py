@@ -97,36 +97,9 @@ def api_status():
         "message": "Connected to PostgreSQL"
     })
 
-@app.route("/api/narrative-report")
-def api_narrative_report():
-    if os.path.exists(REPORT_FILE):
-        with open(REPORT_FILE, "r", encoding="utf-8") as f:
-            return jsonify(json.load(f))
-    abort(404, description="No report available")
-
 @app.route("/api/analysis-progress")
 def api_analysis_progress():
     return jsonify({"status": "completed", "progress": 100})
-
-# ─────────────────────────────────────────────
-# FRONTEND SERVE
-# ─────────────────────────────────────────────
-
-@app.route("/")
-def index():
-    resp = send_from_directory(STATIC_DIR, "index.html")
-    resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
-    resp.headers["Pragma"] = "no-cache"
-    resp.headers["Expires"] = "0"
-    return resp
-
-@app.route("/<path:path>")
-def static_proxy(path):
-    resp = send_from_directory(STATIC_DIR, path)
-    resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
-    resp.headers["Pragma"] = "no-cache"
-    resp.headers["Expires"] = "0"
-    return resp
 
 
 

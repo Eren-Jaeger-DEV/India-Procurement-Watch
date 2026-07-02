@@ -2,11 +2,9 @@
 app.py
 ======
 Flask API backend for India Procurement Watch — Power Analysis Tool.
-Serves pre-computed data from summary.db and live search from aoc_tenders.db.
-Includes new endpoints for analysis triggering, progress polling, and narrative reports.
+Serves data from a local PostgreSQL database (ipw).
 """
 
-import sqlite3
 import json
 import os
 import re as _re
@@ -22,11 +20,6 @@ load_dotenv()
 # ─────────────────────────────────────────────
 
 BASE_DIR   = os.path.dirname(os.path.abspath(__file__))
-SUM_DB     = os.path.join(BASE_DIR, "summary.db")
-AOC_DB     = os.path.join(BASE_DIR, "aoc_tenders.db")
-VPS_DB     = os.path.join(BASE_DIR, "tenders_vps.db")
-SEARCH_DB  = os.path.join(BASE_DIR, "search.db")
-MCA_DB     = os.path.join(BASE_DIR, "data_dump", "mca_data.db")
 STATIC_DIR = os.path.join(BASE_DIR, "frontend")
 STATE_FILE = os.path.join(BASE_DIR, "analysis_state.json")
 REPORT_FILE= os.path.join(BASE_DIR, "narrative_report.json")
@@ -36,36 +29,14 @@ app = Flask(__name__, static_folder=STATIC_DIR, static_url_path="")
 CORS(app)
 
 # ─────────────────────────────────────────────
-# DB HELPERS — request-scoped database connections
+# DB HELPERS — PostgreSQL connection (request-scoped)
 # ─────────────────────────────────────────────
-
-def _get_conn(attr, path, read_only=False):
-    if not os.path.exists(path):
-        return None
-    conn = getattr(g, attr, None)
-    if conn is None:
-        if read_only:
-            uri = f"file:{path}?mode=ro"
-            conn = sqlite3.connect(uri, uri=True, check_same_thread=False)
-            conn.execute("PRAGMA query_only=1")
-            conn.execute("PRAGMA cache_size=-32000")
-        else:
-            conn = sqlite3.connect(path, check_same_thread=False)
-        conn.row_factory = sqlite3.Row
-        setattr(g, attr, conn)
-    return conn
-
-def get_pg_conn():
-    conn = _get_conn('sum', SUM_DB, read_only=True)
-    if conn is None:
-        abort(503, description="summary.db not found. Run analysis first.")
-    return conn
 
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
 def get_pg_conn():
-    """Returns a PostgreSQL connection scoped to the request"""
+    """Returns a request-scoped PostgreSQL connection to the local ipw database."""
     conn = getattr(g, 'pg_conn', None)
     if conn is None:
         db_url = os.environ.get("DATABASE_URL")
@@ -73,42 +44,46 @@ def get_pg_conn():
             abort(503, description="DATABASE_URL not set in .env")
         try:
             conn = psycopg2.connect(db_url)
-            # Use RealDictCursor to act like sqlite3.Row
             setattr(g, 'pg_conn', conn)
         except Exception as e:
             abort(503, description=f"Failed to connect to PostgreSQL: {e}")
     return conn
 
-def get_pg_conn():
-    conn = _get_conn('mca', MCA_DB, read_only=True)
-    if conn is None:
-        abort(503, description="mca_data.db not found.")
-    return conn
-
-def get_pg_conn():
-    conn = _get_conn('aoc', AOC_DB, read_only=True)
-    if conn is None:
-        abort(503, description="aoc_tenders.db not found.")
-    return conn
-
-def get_pg_conn():
-    conn = _get_conn('search', SEARCH_DB, read_only=True)
-    if conn is None:
-        abort(503, description="search.db not found.")
-    return conn
-
 @app.teardown_appcontext
 def close_db(error):
-    for attr in ['sum', 'aoc', 'search', 'pg_conn']:
-        conn = getattr(g, attr, None)
-        if conn is not None:
-            try:
-                conn.close()
-            except Exception:
-                pass
+    conn = getattr(g, 'pg_conn', None)
+    if conn is not None:
+        try:
+            conn.close()
+        except Exception:
+            pass
 
 def rows_to_list(cursor_result):
     return [dict(row) for row in cursor_result]
+
+# ─────────────────────────────────────────────
+# UI STATE ENDPOINTS
+# ─────────────────────────────────────────────
+
+@app.route("/api/status")
+def api_status():
+    return jsonify({
+        "summary_db_ready": True,
+        "search_db_ready": True,
+        "aoc_in_dump": False,
+        "message": "Connected to PostgreSQL"
+    })
+
+@app.route("/api/narrative-report")
+def api_narrative_report():
+    if os.path.exists(REPORT_FILE):
+        with open(REPORT_FILE, "r", encoding="utf-8") as f:
+            return jsonify(json.load(f))
+    abort(404, description="No report available")
+
+@app.route("/api/analysis-progress")
+def api_analysis_progress():
+    return jsonify({"status": "completed", "progress": 100})
 
 # ─────────────────────────────────────────────
 # FRONTEND SERVE
@@ -130,66 +105,7 @@ def static_proxy(path):
     resp.headers["Expires"] = "0"
     return resp
 
-# ─────────────────────────────────────────────
-# API: STATUS
-# ─────────────────────────────────────────────
 
-@app.route("/api/status")
-def api_status():
-    summary_ready  = os.path.exists(SUM_DB)
-    search_ready   = os.path.exists(SEARCH_DB)
-    report_ready   = os.path.exists(REPORT_FILE)
-    aoc_in_dump    = False
-    vps_in_dump    = False
-
-    if os.path.exists(DATA_DUMP):
-        files = [f.lower() for f in os.listdir(DATA_DUMP) if f.endswith(".db")]
-        aoc_in_dump = any("aoc" in f or ("tender" in f and "vps" not in f) for f in files) or len(files) > 0
-        vps_in_dump = any("vps" in f or "published" in f for f in files)
-
-    return jsonify({
-        "summary_db_ready":  summary_ready,
-        "search_db_ready":   search_ready,
-        "report_ready":      report_ready,
-        "aoc_db_exists":     os.path.exists(AOC_DB),
-        "vps_db_exists":     os.path.exists(VPS_DB),
-        "aoc_in_dump":       aoc_in_dump,
-        "vps_in_dump":       vps_in_dump,
-        "data_dump_path":    DATA_DUMP,
-    })
-
-# ─────────────────────────────────────────────
-# API: ANALYSIS CONTROL
-# ─────────────────────────────────────────────
-
-_analysis_lock = threading.Lock()
-
-@app.route("/api/trigger-analysis", methods=["POST"])
-def api_trigger_analysis():
-    """Analysis pipeline is now managed entirely by the VPS scraper."""
-    return jsonify({"error": "Local analysis pipeline is disabled. Data is managed by the remote VPS."}), 403
-
-
-@app.route("/api/analysis-progress")
-def api_analysis_progress():
-    """Poll current analysis progress."""
-    return jsonify({
-        "stage": "done", "progress": 100,
-        "message": "Connected to Live VPS Database.",
-        "done": True
-    })
-
-
-@app.route("/api/narrative-report")
-def api_narrative_report():
-    """Return the full narrative analysis report."""
-    if not os.path.exists(REPORT_FILE):
-        return jsonify({"error": "Report not generated yet. Run analysis first."}), 404
-    try:
-        with open(REPORT_FILE, encoding="utf-8") as f:
-            return jsonify(json.load(f))
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
 
 
 # ─────────────────────────────────────────────
@@ -220,7 +136,7 @@ def api_vendor_mca(vendor_name):
         return jsonify({"error": "MCA database not available"}), 404
         
     conn = get_pg_conn()
-    cur = conn.cursor()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
     
     import re
     try:
@@ -295,7 +211,7 @@ def api_trends():
     dataset = request.args.get("dataset", "aoc")
 
     conn = get_pg_conn()
-    cur  = conn.cursor()
+    cur  = conn.cursor(cursor_factory=RealDictCursor)
 
     if dataset == "published":
         if grain == "yearly":
@@ -353,7 +269,7 @@ def api_top_orgs():
     dataset = request.args.get("dataset", "aoc")
 
     conn = get_pg_conn()
-    cur  = conn.cursor()
+    cur  = conn.cursor(cursor_factory=RealDictCursor)
 
     if dataset == "published":
         cur.execute(f"SELECT org_name, count FROM top_published_orgs ORDER BY count DESC LIMIT {limit}")
@@ -384,7 +300,7 @@ def api_top_orgs():
 @app.route("/api/tender-types")
 def api_tender_types():
     conn = get_pg_conn()
-    cur  = conn.cursor()
+    cur  = conn.cursor(cursor_factory=RealDictCursor)
     cur.execute("SELECT tender_type, count, total_value_crore FROM tender_type_dist ORDER BY count DESC LIMIT 20")
     rows = cur.fetchall()
     return jsonify({"labels": [r["tender_type"] for r in rows],
@@ -399,7 +315,7 @@ def api_tender_types():
 @app.route("/api/sector-distribution")
 def api_sector_distribution():
     conn = get_pg_conn()
-    cur  = conn.cursor()
+    cur  = conn.cursor(cursor_factory=RealDictCursor)
     cur.execute("SELECT sector, count, total_value_crore FROM sector_distribution ORDER BY count DESC")
     rows = cur.fetchall()
     return jsonify({
@@ -415,7 +331,7 @@ def api_sector_distribution():
 @app.route("/api/portal-breakdown")
 def api_portal_breakdown():
     conn = get_pg_conn()
-    cur  = conn.cursor()
+    cur  = conn.cursor(cursor_factory=RealDictCursor)
     cur.execute("SELECT portal_type, count FROM portal_breakdown ORDER BY count DESC")
     rows = cur.fetchall()
     return jsonify({"labels": [r["portal_type"] for r in rows],
@@ -428,7 +344,7 @@ def api_portal_breakdown():
 @app.route("/api/value-distribution")
 def api_value_dist():
     conn = get_pg_conn()
-    cur  = conn.cursor()
+    cur  = conn.cursor(cursor_factory=RealDictCursor)
     cur.execute("SELECT bracket, count FROM value_brackets ORDER BY min_val")
     rows = cur.fetchall()
     return jsonify({"labels": [r["bracket"] for r in rows],
@@ -447,7 +363,7 @@ def api_single_bid():
     min_val  = float(request.args.get("min_val", 0))
 
     conn = get_pg_conn()
-    cur  = conn.cursor()
+    cur  = conn.cursor(cursor_factory=RealDictCursor)
 
     cur.execute("SELECT COUNT(*) as cnt FROM single_bid_contracts WHERE contract_value >= %s", (min_val,))
     total = cur.fetchone()["cnt"]
@@ -474,7 +390,7 @@ def api_repeat_winners():
     min_wins = int(request.args.get("min_wins", 3))
 
     conn = get_pg_conn()
-    cur  = conn.cursor()
+    cur  = conn.cursor(cursor_factory=RealDictCursor)
 
     cur.execute("SELECT COUNT(*) as cnt FROM repeat_winners WHERE wins >= %s", (min_wins,))
     total = cur.fetchone()["cnt"]
@@ -494,7 +410,7 @@ def api_repeat_winners():
 @app.route("/api/state-stats")
 def api_state_stats():
     conn = get_pg_conn()
-    cur  = conn.cursor()
+    cur  = conn.cursor(cursor_factory=RealDictCursor)
     cur.execute("SELECT state_name, total_contracts, total_value_crore FROM state_stats")
     return jsonify([dict(r) for r in cur.fetchall()])
 
@@ -509,7 +425,7 @@ def api_org_profile(org_name):
         return jsonify({"error": "No data available"}), 404
 
     conn = get_pg_conn()
-    cur  = conn.cursor()
+    cur  = conn.cursor(cursor_factory=RealDictCursor)
 
     # Basic stats
     cur.execute("""
@@ -556,7 +472,7 @@ def api_vendor_profile(vendor_name):
         return jsonify({"error": "No data available"}), 404
 
     conn = get_pg_conn()
-    cur  = conn.cursor()
+    cur  = conn.cursor(cursor_factory=RealDictCursor)
 
     cur.execute("""
         SELECT org_name, wins, total_value_crore, first_win, last_win
@@ -853,7 +769,7 @@ def api_search():
 @app.route("/api/tender/<internal_id>")
 def api_tender_detail(internal_id):
     conn = get_pg_conn()
-    cur  = conn.cursor()
+    cur  = conn.cursor(cursor_factory=RealDictCursor)
     cur.execute("""
         SELECT t.*, d.details_json, d.scraped_at as details_scraped_at
         FROM aoc_tenders t LEFT JOIN aoc_details d ON t.internal_id = d.internal_id
@@ -882,7 +798,7 @@ def api_network_search():
         return jsonify({"results": []})
     
     conn = get_pg_conn()
-    cur = conn.cursor()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
     try:
         cur.execute("""
             SELECT id, label, kind, state, email, value, n_contracts, n_buyers
@@ -900,7 +816,7 @@ def api_network_search():
 def api_network_ego(node_id):
     """Fetch 1-hop ego network around a specific node (nodes and links)."""
     conn = get_pg_conn()
-    cur = conn.cursor()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
     try:
         # Get edges
         cur.execute("""
@@ -967,7 +883,7 @@ if __name__ == "__main__":
 @app.route('/api/sanctions')
 def api_sanctions():
     conn = get_pg_conn()
-    cur = conn.cursor()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
     cur.execute('''
         SELECT s.bidder_name, s.sanction_id, s.schema, s.matched_name, s.dataset, n.value, n.n_contracts 
         FROM sanction_matches s 
@@ -976,4 +892,5 @@ def api_sanctions():
     ''')
     rows = cur.fetchall()
     return jsonify([dict(r) for r in rows])
+
 

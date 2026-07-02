@@ -25,8 +25,30 @@ STATE_FILE = os.path.join(BASE_DIR, "analysis_state.json")
 REPORT_FILE= os.path.join(BASE_DIR, "narrative_report.json")
 DATA_DUMP  = os.path.join(BASE_DIR, "data_dump")
 
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+
 app = Flask(__name__, static_folder=STATIC_DIR, static_url_path="")
-CORS(app)
+CORS(app, origins=["https://tender.darshi.app", "http://localhost:3000", "http://127.0.0.1:3000"])
+
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["1000 per day", "100 per hour"]
+)
+
+@app.after_request
+def set_security_headers(response):
+    response.headers['Content-Security-Policy'] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
+        "style-src 'self' 'unsafe-inline'; "
+        "connect-src 'self' https://tender.darshi.app; "
+        "img-src 'self' data: https://*;"
+    )
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'DENY'
+    return response
 
 # ─────────────────────────────────────────────
 # DB HELPERS — PostgreSQL connection (request-scoped)
@@ -129,6 +151,7 @@ def api_dump_files():
 # API: VENDOR CORPORATE IDENTITY (MCA)
 # ─────────────────────────────────────────────
 
+@limiter.limit("30 per minute")
 @app.route("/api/vendor-mca/<path:vendor_name>")
 def api_vendor_mca(vendor_name):
     """Fuzzy match a vendor name against the MCA dataset to fetch corporate identity."""
@@ -170,7 +193,8 @@ def api_vendor_mca(vendor_name):
         cur.execute(query, params)
         rows = [dict(r) for r in cur.fetchall()]
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        app.logger.error(f"vendor_mca error: {e}")
+        return jsonify({"error": "Database lookup failed. Please try again."}), 500
         
     if not rows:
         return jsonify({"match": None})
@@ -265,25 +289,33 @@ def api_trends():
 @app.route("/api/top-orgs")
 def api_top_orgs():
     by      = request.args.get("by", "count")
-    limit   = min(int(request.args.get("limit", 25)), 100)
+    if by not in ("count", "value"):
+        by = "count"
     dataset = request.args.get("dataset", "aoc")
+    if dataset not in ("aoc", "published"):
+        dataset = "aoc"
+        
+    try:
+        limit = min(int(request.args.get("limit", 25)), 100)
+    except (ValueError, TypeError):
+        limit = 25
 
     conn = get_pg_conn()
     cur  = conn.cursor(cursor_factory=RealDictCursor)
 
     if dataset == "published":
-        cur.execute(f"SELECT org_name, count FROM top_published_orgs ORDER BY count DESC LIMIT {limit}")
+        cur.execute("SELECT org_name, count FROM top_published_orgs ORDER BY count DESC LIMIT %s", (limit,))
         rows = cur.fetchall()
         return jsonify({"labels": [r["org_name"] for r in rows],
                         "values": [r["count"] for r in rows], "metric": "count"})
 
     if by == "value":
-        cur.execute(f"""
+        cur.execute("""
             SELECT org_name, total_value_crore, count FROM top_orgs
-            WHERE total_value_crore > 0 ORDER BY total_value_crore DESC LIMIT {limit}
-        """)
+            WHERE total_value_crore > 0 ORDER BY total_value_crore DESC LIMIT %s
+        """, (limit,))
     else:
-        cur.execute(f"SELECT org_name, count, total_value_crore FROM top_orgs ORDER BY count DESC LIMIT {limit}")
+        cur.execute("SELECT org_name, count, total_value_crore FROM top_orgs ORDER BY count DESC LIMIT %s", (limit,))
 
     rows = cur.fetchall()
     if by == "value":
@@ -520,20 +552,21 @@ def api_export_html():
         "MEDIUM": "#eab308", "LOW": "#22c55e", "INFO": "#6b7280"
     }
 
+    import html
     findings_html = ""
     for f in findings:
-        color = sev_colors.get(f["severity"], "#6b7280")
+        color = sev_colors.get(f.get("severity"), "#6b7280")
         emoji = f.get("severity_emoji", "")
-        ns_html = "".join(f"<li>{ns}</li>" for ns in f.get("next_steps", []))
+        ns_html = "".join(f"<li>{html.escape(str(ns))}</li>" for ns in f.get("next_steps", []))
         findings_html += f"""
         <div class="finding" style="border-left: 4px solid {color};">
           <div class="finding-header">
-            <span class="badge" style="background:{color}">{emoji} {f['severity']}</span>
-            <h3>{f['title']}</h3>
+            <span class="badge" style="background:{color}">{html.escape(emoji)} {html.escape(str(f.get('severity', '')))}</span>
+            <h3>{html.escape(str(f.get('title', '')))}</h3>
           </div>
-          <p class="summary">{f['summary']}</p>
-          <p>{f['explanation']}</p>
-          <div class="box"><strong>What This Could Mean:</strong><p>{f['what_it_means']}</p></div>
+          <p class="summary">{html.escape(str(f.get('summary', '')))}</p>
+          <p>{html.escape(str(f.get('explanation', '')))}</p>
+          <div class="box"><strong>What This Could Mean:</strong><p>{html.escape(str(f.get('what_it_means', '')))}</p></div>
           <div class="box"><strong>Next Steps for Investigation:</strong><ul>{ns_html}</ul></div>
         </div>"""
 
@@ -607,20 +640,21 @@ def api_export_print():
         "MEDIUM": "#eab308", "LOW": "#22c55e", "INFO": "#6b7280"
     }
 
+    import html
     findings_html = ""
     for f in findings:
-        color = sev_colors.get(f["severity"], "#6b7280")
+        color = sev_colors.get(f.get("severity"), "#6b7280")
         emoji = f.get("severity_emoji", "")
-        ns_html = "".join(f"<li>{ns}</li>" for ns in f.get("next_steps", []))
+        ns_html = "".join(f"<li>{html.escape(str(ns))}</li>" for ns in f.get("next_steps", []))
         findings_html += f"""
         <div class="finding" style="border-left: 4px solid {color};">
           <div class="finding-header">
-            <span class="badge" style="background:{color}">{emoji} {f['severity']}</span>
-            <h3>{f['title']}</h3>
+            <span class="badge" style="background:{color}">{html.escape(emoji)} {html.escape(str(f.get('severity', '')))}</span>
+            <h3>{html.escape(str(f.get('title', '')))}</h3>
           </div>
-          <p class="summary">{f['summary']}</p>
-          <p>{f['explanation']}</p>
-          <div class="box"><strong>What This Could Mean:</strong><p>{f['what_it_means']}</p></div>
+          <p class="summary">{html.escape(str(f.get('summary', '')))}</p>
+          <p>{html.escape(str(f.get('explanation', '')))}</p>
+          <div class="box"><strong>What This Could Mean:</strong><p>{html.escape(str(f.get('what_it_means', '')))}</p></div>
           <div class="box"><strong>Next Steps for Investigation:</strong><ul>{ns_html}</ul></div>
         </div>"""
 
@@ -709,15 +743,16 @@ def api_agentic_search():
         "constraints": constraints
     })
 
+@limiter.limit("10 per minute")
 @app.route("/api/ai-chat", methods=["POST"])
 def api_ai_chat():
     from src.analysis.ai_chat import ask_database
     from flask import Response
     data = request.get_json() or {}
-    text = data.get("text", "")
+    text = data.get("text", "")[:2000]
     model = data.get("model", "gemini-3.5-flash")
-    if not text:
-        return jsonify({"error": "No query provided"})
+    if not text.strip():
+        return jsonify({"error": "No query provided"}), 400
         
     return Response(ask_database(text, model=model), mimetype="text/event-stream")
 

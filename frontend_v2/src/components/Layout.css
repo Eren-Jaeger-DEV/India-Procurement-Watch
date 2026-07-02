@@ -1,0 +1,141 @@
+.sidebar {
+  width: 260px;
+  background-color: var(--bg-sidebar);
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.4s ease, border-color 0.4s ease;
+  will-change: width;
+}
+
+.sidebar.collapsed {
+  width: 72px;
+}
+
+.sidebar-header {
+  padding: 20px 16px;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--border-color);
+  transition: border-color 0.4s ease;
+  min-height: 73px;
+}
+
+.sidebar.collapsed .sidebar-header {
+  padding: 20px 0;
+  justify-content: center;
+}
+
+.logo-icon {
+  font-size: 24px;
+  background: var(--bg-main);
+  padding: 8px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+}
+
+.logo-title {
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--text-primary);
+}
+
+.logo-subtitle {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.nav-section {
+  padding: 20px 12px 0;
+}
+
+.sidebar.collapsed .nav-section {
+  padding: 16px 8px 0;
+}
+
+.nav-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  font-weight: 600;
+  margin-bottom: 8px;
+  padding-left: 12px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  text-decoration: none;
+  color: var(--text-secondary);
+  font-weight: 500;
+  font-size: 14px;
+  border-radius: var(--radius-md);
+  transition: all 0.2s ease;
+  margin-bottom: 4px;
+  white-space: nowrap;
+}
+
+.sidebar.collapsed .nav-item {
+  justify-content: center;
+  padding: 10px 0;
+}
+
+.nav-item:hover {
+  background-color: var(--bg-main);
+  color: var(--text-primary);
+}
+
+.nav-item.active {
+  background-color: rgba(37, 99, 235, 0.1);
+  color: var(--accent-primary);
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  padding: 16px;
+  border-top: 1px solid var(--border-color);
+  transition: border-color 0.4s ease;
+}
+
+/* Theme Icon Morph & Rotation Animation */
+.theme-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.4s ease;
+}
+
+.theme-icon-wrapper.dark {
+  transform: rotate(360deg);
+  color: #f59e0b;
+}
+
+.theme-icon-wrapper.light {
+  transform: rotate(-360deg);
+  color: #6366f1;
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--text-muted);
+}
+
+.status-dot.ready {
+  background-color: var(--success);
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.1);
+}

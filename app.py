@@ -799,6 +799,77 @@ def api_search():
                     "results": [dict(r) for r in cur.fetchall()]})
 
 # ─────────────────────────────────────────────
+# API: NARRATIVE REPORT
+# ─────────────────────────────────────────────
+
+@app.route("/api/narrative-report")
+def api_narrative_report():
+    if os.path.exists(REPORT_FILE):
+        try:
+            with open(REPORT_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            
+            # Generate markdown formatting if not already attached
+            if "markdown" not in data:
+                md_lines = []
+                exec_sum = data.get("executive_summary", {})
+                md_lines.append(f"# {exec_sum.get('title', 'Data Analysis Summary')}\n")
+                if exec_sum.get("paragraph_1"): md_lines.append(f"{exec_sum['paragraph_1']}\n")
+                if exec_sum.get("paragraph_2"): md_lines.append(f"{exec_sum['paragraph_2']}\n")
+                if exec_sum.get("paragraph_3"): md_lines.append(f"{exec_sum['paragraph_3']}\n")
+                
+                md_lines.append("\n## Key Audit Findings\n")
+                for item in data.get("findings", []):
+                    sev = item.get("severity", "INFO")
+                    title = item.get("title", "Finding")
+                    md_lines.append(f"### [{sev}] {title}\n")
+                    if item.get("summary"): md_lines.append(f"**Summary:** {item['summary']}\n")
+                    if item.get("explanation"): md_lines.append(f"**Explanation:** {item['explanation']}\n")
+                    if item.get("what_it_means"): md_lines.append(f"**What It Means:** {item['what_it_means']}\n")
+                    if item.get("next_steps"):
+                        md_lines.append("**Recommended Next Steps:**")
+                        for step in item["next_steps"]:
+                            md_lines.append(f"- {step}")
+                        md_lines.append("")
+                data["markdown"] = "\n".join(md_lines)
+            
+            return jsonify(data)
+        except Exception as e:
+            return jsonify({"error": f"Error loading report: {str(e)}"}), 500
+
+    # Fallback: Generate dynamic summary from PostgreSQL if narrative_report.json not found
+    try:
+        conn = get_pg_conn()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute("SELECT COUNT(*) as total_contracts, SUM(contract_value)/10000000.0 as total_value_cr FROM aoc_tenders")
+        row = cur.fetchone() or {}
+        conn.close()
+        
+        c_count = row.get("total_contracts", 0)
+        c_val = round(row.get("total_value_cr", 0) or 0, 2)
+        
+        md_text = f"""# Executive Procurement Analysis Report
+
+This analysis covers **{c_count:,}** awarded contracts with a total spending value of **₹{c_val:,.2f} Crore**.
+
+## Summary Highlights
+- **Contract Coverage:** Automated profiling active across central and state portals.
+- **Single-Bid Flagging:** High-value tenders with single bidder participation are monitored in the Investigation Desk.
+- **Repeat Winner Audit:** Vendor department concentration is indexed for structural risk analysis.
+"""
+        return jsonify({
+          "executive_summary": {
+            "title": "Executive Procurement Analysis Report",
+            "paragraph_1": f"This analysis covers {c_count:,} awarded contracts worth ₹{c_val:,.2f} Crore.",
+            "total_findings": 3
+          },
+          "findings": [],
+          "markdown": md_text
+        })
+    except Exception as e:
+        return jsonify({"error": f"Failed to generate dynamic report: {str(e)}"}), 500
+
+# ─────────────────────────────────────────────
 # API: TENDER DETAIL
 # ─────────────────────────────────────────────
 

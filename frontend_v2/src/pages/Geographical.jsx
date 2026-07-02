@@ -13,7 +13,7 @@ const Geographical = () => {
     const loadMapAndData = async () => {
       try {
         const [geoRes, statsData] = await Promise.all([
-          fetch('/india-states.json').then(res => res.json()),
+          fetch('/india-states.json?v=2').then(res => res.json()),
           fetchStateStats()
         ]);
         

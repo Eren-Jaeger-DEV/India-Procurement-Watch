@@ -7,9 +7,8 @@ def setup_logger():
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     log_dir = os.path.join(base_dir, 'logs')
     
-    # Create the logs directory if it doesn't exist
-    if not os.path.exists(log_dir):
-        os.makedirs(log_dir)
+    # Create the logs directory safely (handles multi-worker race conditions)
+    os.makedirs(log_dir, exist_ok=True)
 
     log_file = os.path.join(log_dir, 'ipw.log')
 

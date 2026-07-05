@@ -653,7 +653,7 @@ def _sanitize_fts(q):
 
 @app.route("/api/agentic-search", methods=["POST"])
 def api_agentic_search():
-    from src.analysis.nlp_router import parse_natural_query
+    from analysis.nlp_router import parse_natural_query
     
     data = request.get_json() or {}
     text = data.get("text", "")
@@ -668,7 +668,7 @@ def api_agentic_search():
 @limiter.limit("10 per minute")
 @app.route("/api/ai-chat", methods=["POST"])
 def api_ai_chat():
-    from src.analysis.ai_chat import ask_database
+    from analysis.ai_chat import ask_database
     from flask import Response
     data = request.get_json() or {}
     text = data.get("text", "")[:2000]

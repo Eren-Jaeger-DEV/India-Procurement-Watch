@@ -672,7 +672,7 @@ def api_ai_chat():
     from flask import Response
     data = request.get_json() or {}
     text = data.get("text", "")[:2000]
-    model = data.get("model", "gemini-3.5-flash")
+    model = data.get("model", "claude-opus-4-8")
     if not text.strip():
         return jsonify({"error": "No query provided"}), 400
         

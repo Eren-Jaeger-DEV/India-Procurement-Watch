@@ -10,7 +10,9 @@ import os
 import re as _re
 import threading
 from flask import Flask, jsonify, request, send_from_directory, abort, g
+import time
 from flask_cors import CORS
+import traceback
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -28,8 +30,11 @@ DATA_DUMP  = os.path.abspath(os.path.join(BASE_DIR, "..", "databases", "data_dum
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from core.cache import cache
+from core.logger import setup_logger
 from routes.kpi import kpi_bp
 from routes.trends import trends_bp
+
+ipw_logger = setup_logger()
 
 app = Flask(__name__, static_folder=STATIC_DIR, static_url_path="")
 CORS(app, origins=["https://tender.darshi.app", "http://localhost:3000", "http://127.0.0.1:3000"])
@@ -76,6 +81,26 @@ from core.db import get_pg_conn, close_db, rows_to_list
 @app.teardown_appcontext
 def teardown_db(error):
     close_db(error)
+
+@app.before_request
+def start_timer():
+    g.start_time = time.time()
+
+@app.after_request
+def log_request(response):
+    if request.path.startswith('/api/'):
+        now = time.time()
+        duration = round((now - getattr(g, 'start_time', now)) * 1000, 2)
+        ip = get_remote_address()
+        ipw_logger.info(f"{ip} | {request.method} {request.path} | {response.status_code} | {duration}ms")
+    return response
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    ip = get_remote_address()
+    tb = traceback.format_exc()
+    ipw_logger.error(f"{ip} | {request.method} {request.path} | 500 INTERNAL SERVER ERROR\n{tb}")
+    return jsonify({"error": "Internal Server Error"}), 500
 
 # ─────────────────────────────────────────────
 # UI STATE ENDPOINTS

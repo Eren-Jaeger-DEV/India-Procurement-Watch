@@ -53,3 +53,7 @@ check_db.py
 
 # ── Local run scripts ──
 *.bat
+
+# ── Logs ──
+*.log
+logs/

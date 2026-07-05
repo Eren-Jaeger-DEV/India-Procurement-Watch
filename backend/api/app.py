@@ -36,7 +36,7 @@ from routes.trends import trends_bp
 
 ipw_logger = setup_logger()
 
-app = Flask(__name__, static_folder=STATIC_DIR, static_url_path="")
+app = Flask(__name__)
 CORS(app, origins=["https://tender.darshi.app", "http://localhost:3000", "http://127.0.0.1:3000"])
 
 cache.init_app(app)
@@ -111,8 +111,17 @@ def log_request(response):
         ipw_logger.info(f"{ip} | {request.method} {request.path} | {response.status_code} | {duration}ms")
     return response
 
+@app.errorhandler(404)
+def not_found(e):
+    if request.path.startswith('/api/'):
+        return jsonify({"error": "Not Found"}), 404
+    return send_from_directory(STATIC_DIR, 'index.html')
+
 @app.errorhandler(Exception)
 def handle_exception(e):
+    from werkzeug.exceptions import HTTPException
+    if isinstance(e, HTTPException):
+        return e
     ip = get_remote_address()
     tb = traceback.format_exc()
     ipw_logger.error(f"{ip} | {request.method} {request.path} | 500 INTERNAL SERVER ERROR\n{tb}")

@@ -421,6 +421,8 @@ def aggregate_aoc_data(aoc_conn, sum_conn):
             sector_stats[sec]['value'] += cv
             total_value += cv
             valued_count += 1
+            if is_round_number(cv):
+                org_stats[org]['round_number_count'] += 1
 
         # ── Single-bid contracts (≥ ₹10 Lakh, only 1 bidder) ──
         if bids == 1:

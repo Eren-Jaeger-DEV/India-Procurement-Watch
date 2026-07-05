@@ -38,7 +38,7 @@ def api_export_html():
             <h3>{html.escape(str(f.get('title', '')))}</h3>
           </div>
           <p class="summary">{html.escape(str(f.get('summary', '')))}</p>
-          <p>{html.escape(str(f.get('explanation', '')))}</p>
+          <p>{f.get('explanation', '')}</p>
           <div class="box"><strong>What This Could Mean:</strong><p>{html.escape(str(f.get('what_it_means', '')))}</p></div>
           <div class="box"><strong>Next Steps for Investigation:</strong><ul>{ns_html}</ul></div>
         </div>"""

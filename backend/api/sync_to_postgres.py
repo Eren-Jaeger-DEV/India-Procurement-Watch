@@ -13,9 +13,9 @@ def sync_dbs():
     engine = create_engine(db_url)
     base_dir = os.path.dirname(os.path.abspath(__file__))
     
-    sum_db = os.path.join(base_dir, "..", "databases", "summary.db")
-    aoc_db = os.path.join(base_dir, "..", "databases", "aoc_tenders.db")
-    search_db = os.path.join(base_dir, "..", "databases", "search.db")
+    sum_db = os.path.join(base_dir, "..", "..", "data_dump", "summary.db")
+    aoc_db = os.path.join(base_dir, "..", "..", "data_dump", "aoc_tenders.db")
+    search_db = os.path.join(base_dir, "..", "..", "data_dump", "search.db")
     
     # Tables in summary.db
     sum_tables = [

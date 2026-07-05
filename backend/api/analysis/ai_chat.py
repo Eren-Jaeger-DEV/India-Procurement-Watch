@@ -3,8 +3,7 @@ import sqlite3
 import json
 from openai import OpenAI
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-SUMMARY_DB = os.path.join(BASE_DIR, "summary.db")
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ENV_FILE = os.path.join(BASE_DIR, ".env")
 
 # Basic schema definition to feed the LLM

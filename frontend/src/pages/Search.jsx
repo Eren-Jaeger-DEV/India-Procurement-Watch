@@ -122,7 +122,7 @@ const Search = () => {
         <div className="card ai-response-card" style={{ marginBottom: 24, borderLeft: '4px solid var(--accent-primary)' }}>
           <div className="card-header ai-header">
             <MessageSquare size={20} className="text-primary" />
-            <div className="card-title">Amogh AI Analysis</div>
+            <div className="card-title">Darshi AI Analysis</div>
           </div>
           <div className="ai-content">{chatResponse}</div>
         </div>

@@ -75,9 +75,23 @@ const SystemStatus = () => {
           )}
           <button
             onClick={loadStatus}
-            className="search-button"
             disabled={refreshing}
-            style={{ padding: '8px 16px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, opacity: refreshing ? 0.6 : 1 }}
+            style={{
+              padding: '8px 16px',
+              fontSize: 13,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              opacity: refreshing ? 0.6 : 1,
+              background: 'var(--accent-primary)',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 'var(--radius-md, 8px)',
+              fontWeight: 500,
+              cursor: refreshing ? 'not-allowed' : 'pointer',
+              transition: 'background 0.2s',
+              whiteSpace: 'nowrap',
+            }}
           >
             <RefreshCw size={14} style={refreshing ? { animation: 'spin 1s linear infinite' } : {}} />
             Refresh

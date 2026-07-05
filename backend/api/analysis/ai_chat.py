@@ -41,8 +41,13 @@ def create_chat_completion_with_fallback(client, models, **kwargs):
             print(f"Model {m} failed: {e}. Trying next...")
             continue
     raise last_exception
+CLAUDE_MODEL   = "claude-opus-4-8"
+GPT_MODEL      = "gpt-5.5"
+DEEPSEEK_MODEL = "deepseek-v4-pro"
+GEMINI_MODEL   = "gemini-3.5-flash"
+FAST_MODEL     = "deepseek-v4-flash"
 
-def ask_database(user_query, model="gemini-3.5-flash"):
+def ask_database(user_query, model=GEMINI_MODEL):
     api_key = get_api_key()
     if not api_key:
         yield f"data: {json.dumps({'type': 'error', 'content': 'API Key not found in .env'})}\n\n"
@@ -59,11 +64,11 @@ def ask_database(user_query, model="gemini-3.5-flash"):
         }
     )
 
-    router_models = [model, "gpt-5.5"]
-    convo_models = [model, "gpt-5.5", "gemini-3.5-flash"]
-    planner_models = [model, "gpt-5.5", "deepseek-v4-pro"]
-    sql_models = [model, "deepseek-v4-pro", "gpt-5.5", "grok-4.3"]
-    interpreter_models = [model, "gpt-5.5", "gemini-3.5-flash"]
+    router_models = [model, FAST_MODEL]
+    convo_models = [model, GPT_MODEL, GEMINI_MODEL]
+    planner_models = [model, GPT_MODEL, DEEPSEEK_MODEL]
+    sql_models = [model, DEEPSEEK_MODEL, GPT_MODEL, "grok-4.3"]
+    interpreter_models = [model, GPT_MODEL, GEMINI_MODEL]
 
     # Phase 0: Intent Router (Fast, No Schema)
     router_messages = [
@@ -195,7 +200,7 @@ def ask_database(user_query, model="gemini-3.5-flash"):
         if len(rows) > 0:
             viz_res = create_chat_completion_with_fallback(
                 client=client,
-                models=["gemini-3.5-flash", "gpt-3.5-turbo", "gpt-4o"],
+                models=[GEMINI_MODEL, FAST_MODEL, GPT_MODEL],
                 messages=visualizer_messages,
                 temperature=0.1,
                 timeout=15.0

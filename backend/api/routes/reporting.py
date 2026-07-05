@@ -221,7 +221,9 @@ def api_narrative_report():
             
             return jsonify(data)
         except Exception as e:
-            return jsonify({"error": f"Error loading report: {str(e)}"}), 500
+            from flask import current_app as app
+            app.logger.error(f"report_load error: {e}")
+            return jsonify({"error": "Failed to load report. Please try again."}), 500
 
     # Fallback: Generate dynamic summary from PostgreSQL if narrative_report.json not found
     try:
@@ -253,4 +255,6 @@ This analysis covers **{c_count:,}** awarded contracts with a total spending val
           "markdown": md_text
         })
     except Exception as e:
-        return jsonify({"error": f"Failed to generate dynamic report: {str(e)}"}), 500
+        from flask import current_app as app
+        app.logger.error(f"dynamic_report error: {e}")
+        return jsonify({"error": "Failed to generate report. Please try again."}), 500

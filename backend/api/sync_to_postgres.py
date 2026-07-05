@@ -41,13 +41,46 @@ def sync_dbs():
         print(f"Syncing {aoc_db} to PostgreSQL...")
         with sqlite3.connect(aoc_db) as conn:
             try:
-                df = pd.read_sql_query("SELECT * FROM aoc_tenders", conn)
-                df.to_sql("aoc_tenders", engine, if_exists='replace', index=False)
-                print(f"  -> Synced aoc_tenders ({len(df)} rows)")
+                # Chunked sync for large tables
+                CHUNK_SIZE = 10_000
                 
-                df_details = pd.read_sql_query("SELECT * FROM aoc_details", conn)
-                df_details.to_sql("aoc_details", engine, if_exists='replace', index=False)
-                print(f"  -> Synced aoc_details ({len(df_details)} rows)")
+                # Get total count first
+                total = pd.read_sql_query(
+                    "SELECT COUNT(*) as cnt FROM aoc_tenders", conn
+                ).iloc[0]['cnt']
+                print(f"  -> {total:,} rows to sync")
+
+                # Write in chunks
+                for i, chunk in enumerate(pd.read_sql_query(
+                    "SELECT * FROM aoc_tenders", conn, chunksize=CHUNK_SIZE
+                )):
+                    chunk.to_sql(
+                        "aoc_tenders", engine,
+                        if_exists='replace' if i == 0 else 'append',
+                        index=False
+                    )
+                    if i % 10 == 0:
+                        print(f"  -> {i * CHUNK_SIZE:,} rows synced...")
+
+                print(f"  -> aoc_tenders sync complete")
+                
+                # Same chunking for aoc_details
+                total_details = pd.read_sql_query(
+                    "SELECT COUNT(*) as cnt FROM aoc_details", conn
+                ).iloc[0]['cnt']
+                print(f"  -> {total_details:,} rows to sync for aoc_details")
+
+                for i, chunk in enumerate(pd.read_sql_query(
+                    "SELECT * FROM aoc_details", conn, chunksize=CHUNK_SIZE
+                )):
+                    chunk.to_sql(
+                        "aoc_details", engine,
+                        if_exists='replace' if i == 0 else 'append',
+                        index=False
+                    )
+                    if i % 10 == 0:
+                        print(f"  -> {i * CHUNK_SIZE:,} rows synced (aoc_details)...")
+                print(f"  -> aoc_details sync complete")
             except Exception as e:
                 print(f"  -> Error syncing aoc_tenders/aoc_details: {e}")
 

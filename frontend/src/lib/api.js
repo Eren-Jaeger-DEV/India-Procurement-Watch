@@ -116,6 +116,11 @@ export const fetchStatus = async () => {
   return res.data;
 };
 
+export const fetchSystemStatus = async () => {
+  const res = await api.get('/system-status');
+  return res.data;
+};
+
 export const fetchNarrativeReport = async () => {
   const res = await api.get('/narrative-report');
   return res.data;

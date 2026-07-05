@@ -1,5 +1,5 @@
 import { Outlet, NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, FileText, Search, FileSearch, Bot, Sun, Moon, X, PanelLeftClose, PanelLeftOpen, Database, Map, Network, Menu } from 'lucide-react';
+import { LayoutDashboard, FileText, Search, FileSearch, Bot, Sun, Moon, X, PanelLeftClose, PanelLeftOpen, Database, Map, Network, Menu, Activity } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import './Layout.css';
 
@@ -55,9 +55,9 @@ const Layout = () => {
         
         <div className="nav-section">
           {!isCollapsed && <div className="nav-label">Data</div>}
-          <NavLink to="/import" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isCollapsed ? "Data Import" : ""}>
-            <Database size={20} />
-            {!isCollapsed && <span>Data Import</span>}
+          <NavLink to="/import" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isCollapsed ? "System Status" : ""}>
+            <Activity size={20} />
+            {!isCollapsed && <span>System Status</span>}
           </NavLink>
         </div>
 
@@ -161,7 +161,7 @@ const Layout = () => {
             <NavLink to="/geo"          className={({isActive}) => `mobile-menu-item ${isActive ? 'active' : ''}`}><Map size={18}/> Geographical</NavLink>
             <NavLink to="/network"      className={({isActive}) => `mobile-menu-item ${isActive ? 'active' : ''}`}><Network size={18}/> Director Networks</NavLink>
             <NavLink to="/organizations" className={({isActive}) => `mobile-menu-item ${isActive ? 'active' : ''}`}><LayoutDashboard size={18}/> Organizations</NavLink>
-            <NavLink to="/import"       className={({isActive}) => `mobile-menu-item ${isActive ? 'active' : ''}`}><Database size={18}/> Data Import</NavLink>
+            <NavLink to="/import"       className={({isActive}) => `mobile-menu-item ${isActive ? 'active' : ''}`}><Activity size={18}/> System Status</NavLink>
           </div>
         </>
       )}

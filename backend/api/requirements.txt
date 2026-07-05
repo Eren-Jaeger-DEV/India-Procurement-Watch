@@ -12,3 +12,4 @@ psycopg2-binary>=2.9.0
 openai
 networkx
 Flask-Limiter
+Flask-Caching

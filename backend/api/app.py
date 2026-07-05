@@ -27,9 +27,16 @@ DATA_DUMP  = os.path.abspath(os.path.join(BASE_DIR, "..", "databases", "data_dum
 
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from core.cache import cache
+from routes.kpi import kpi_bp
+from routes.trends import trends_bp
 
 app = Flask(__name__, static_folder=STATIC_DIR, static_url_path="")
 CORS(app, origins=["https://tender.darshi.app", "http://localhost:3000", "http://127.0.0.1:3000"])
+
+cache.init_app(app)
+app.register_blueprint(kpi_bp)
+app.register_blueprint(trends_bp)
 
 limiter = Limiter(
     get_remote_address,
@@ -53,35 +60,11 @@ def set_security_headers(response):
 # ─────────────────────────────────────────────
 # DB HELPERS — PostgreSQL connection (request-scoped)
 # ─────────────────────────────────────────────
-
-import psycopg2
-from psycopg2.extras import RealDictCursor
-
-def get_pg_conn():
-    """Returns a request-scoped PostgreSQL connection to the local ipw database."""
-    conn = getattr(g, 'pg_conn', None)
-    if conn is None:
-        db_url = os.environ.get("DATABASE_URL")
-        if not db_url:
-            abort(503, description="DATABASE_URL not set in .env")
-        try:
-            conn = psycopg2.connect(db_url)
-            setattr(g, 'pg_conn', conn)
-        except Exception as e:
-            abort(503, description=f"Failed to connect to PostgreSQL: {e}")
-    return conn
+from core.db import get_pg_conn, close_db, rows_to_list
 
 @app.teardown_appcontext
-def close_db(error):
-    conn = getattr(g, 'pg_conn', None)
-    if conn is not None:
-        try:
-            conn.close()
-        except Exception:
-            pass
-
-def rows_to_list(cursor_result):
-    return [dict(row) for row in cursor_result]
+def teardown_db(error):
+    close_db(error)
 
 # ─────────────────────────────────────────────
 # UI STATE ENDPOINTS
@@ -183,77 +166,7 @@ def api_vendor_mca(vendor_name):
     return jsonify({"match": None})
 
 
-# ─────────────────────────────────────────────
-# API: KPIs
-# ─────────────────────────────────────────────
-
-@app.route("/api/kpis")
-def api_kpis():
-    conn = get_pg_conn()
-    cur = conn.cursor(cursor_factory=RealDictCursor)
-    cur.execute("SELECT key, value FROM kpi_stats")
-    data = {row["key"]: row["value"] for row in cur.fetchall()}
-    return jsonify(data)
-
-# ─────────────────────────────────────────────
-# API: TRENDS
-# ─────────────────────────────────────────────
-
-MONTH_NAMES = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-               "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-
-@app.route("/api/trends")
-def api_trends():
-    grain   = request.args.get("grain", "monthly")
-    dataset = request.args.get("dataset", "aoc")
-
-    conn = get_pg_conn()
-    cur  = conn.cursor(cursor_factory=RealDictCursor)
-
-    if dataset == "published":
-        if grain == "yearly":
-            cur.execute("""
-                SELECT year, SUM(count) as count
-                FROM published_monthly
-                WHERE year BETWEEN 2015 AND 2030
-                GROUP BY year ORDER BY year
-            """)
-            rows = cur.fetchall()
-            return jsonify({"labels": [str(r["year"]) for r in rows],
-                            "counts": [r["count"] for r in rows], "values": []})
-        else:
-            cur.execute("""
-                SELECT year, month, count
-                FROM published_monthly
-                WHERE year BETWEEN 2018 AND 2030
-                ORDER BY year, month
-            """)
-            rows = cur.fetchall()
-            return jsonify({"labels": [f"{MONTH_NAMES[r['month']]} {r['year']}" for r in rows],
-                            "counts": [r["count"] for r in rows], "values": []})
-
-    if grain == "yearly":
-        cur.execute("""
-            SELECT year, SUM(count) as count, SUM(total_value_crore) as total_value_crore
-            FROM yearly_trends WHERE year BETWEEN 2015 AND 2030
-            GROUP BY year ORDER BY year
-        """)
-        rows   = cur.fetchall()
-        labels = [str(r["year"]) for r in rows]
-        counts = [r["count"] for r in rows]
-        values = [round(r["total_value_crore"] or 0, 2) for r in rows]
-    else:
-        cur.execute("""
-            SELECT year, month, count, total_value_crore
-            FROM monthly_trends WHERE year BETWEEN 2018 AND 2030
-            ORDER BY year, month
-        """)
-        rows   = cur.fetchall()
-        labels = [f"{MONTH_NAMES[r['month']]} {r['year']}" for r in rows]
-        counts = [r["count"] for r in rows]
-        values = [round(r["total_value_crore"] or 0, 2) for r in rows]
-
-    return jsonify({"labels": labels, "counts": counts, "values": values})
+# KPI and TRENDS routes have been moved to their respective Blueprint files in routes/
 
 # ─────────────────────────────────────────────
 # API: TOP ORGS

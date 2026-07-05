@@ -67,8 +67,7 @@ def ask_database(user_query, model="gemini-3.5-flash"):
 
     # Phase 0: Intent Router (Fast, No Schema)
     router_messages = [
-        {"role": "system", "content": "You are a routing AI. If the user's query is conversational (e.g., 'hello', 'who are you', 'what is this') or asks for general knowledge, reply ONLY with 'CONVO'. If the query asks for data, statistics, reports, or search results that would require querying a database of public tenders, reply ONLY with 'DATA'."},
-        {"role": "user", "content": user_query}
+        {"role": "user", "content": f"System Instructions: You are a routing AI. If the user's query is conversational (e.g., 'hello', 'who are you', 'what is this') or asks for general knowledge, reply ONLY with 'CONVO'. If the query asks for data, statistics, reports, or search results that would require querying a database of public tenders, reply ONLY with 'DATA'.\n\nUser Query: {user_query}"}
     ]
     try:
         router_res = create_chat_completion_with_fallback(
@@ -89,8 +88,7 @@ def ask_database(user_query, model="gemini-3.5-flash"):
                 client=client,
                 models=convo_models,
                 messages=[
-                    {"role": "system", "content": "You are Darshi, an expert Data Analyst assistant for India Procurement Watch. Answer the user conversationally and concisely."},
-                    {"role": "user", "content": user_query}
+                    {"role": "user", "content": f"System Instructions: You are Darshi, an expert Data Analyst assistant for India Procurement Watch. Answer the user conversationally and concisely.\n\nUser Query: {user_query}"}
                 ],
                 temperature=0.5,
                 stream=True
@@ -107,8 +105,7 @@ def ask_database(user_query, model="gemini-3.5-flash"):
 
     # Phase 1: Planner
     planner_messages = [
-        {"role": "system", "content": f"You are Darshi, an expert Data Analyst and assistant.\n\nYou must outline a logical plan to answer the user's query inside a <think>...</think> block. Inside this block, perform 'Keyword Expansion' (list 5-10 synonyms/alternative spellings for core concepts to simulate semantic search) and instruct the SQL Coder to use extensive `LIKE` chains.\n\nSchema:\n{DB_SCHEMA}"},
-        {"role": "user", "content": user_query}
+        {"role": "user", "content": f"System Instructions: You are Darshi, an expert Data Analyst and assistant.\n\nYou must outline a logical plan to answer the user's query inside a <think>...</think> block. Inside this block, perform 'Keyword Expansion' (list 5-10 synonyms/alternative spellings for core concepts to simulate semantic search) and instruct the SQL Coder to use extensive `LIKE` chains.\n\nSchema:\n{DB_SCHEMA}\n\nUser Query: {user_query}"}
     ]
     
     yield f"data: {json.dumps({'type': 'thought_start'})}\n\n"
@@ -135,8 +132,7 @@ def ask_database(user_query, model="gemini-3.5-flash"):
 
     # Phase 2: SQL Coder
     sql_coder_messages = [
-        {"role": "system", "content": f"You are an elite SQL developer. Given the schema and the architect's plan, write the exact PostgreSQL query to answer the question. Reply ONLY with the SQL string.\nSchema:\n{DB_SCHEMA}"},
-        {"role": "user", "content": f"Question: {user_query}\n\nArchitect Plan:\n{thought_process}"}
+        {"role": "user", "content": f"System Instructions: You are an elite SQL developer. Given the schema and the architect's plan, write the exact PostgreSQL query to answer the question. Reply ONLY with the SQL string.\nSchema:\n{DB_SCHEMA}\n\nQuestion: {user_query}\n\nArchitect Plan:\n{thought_process}"}
     ]
     
     max_retries = 3
@@ -192,10 +188,9 @@ def ask_database(user_query, model="gemini-3.5-flash"):
     # Yield the actual data first so UI can build table
     yield f"data: {json.dumps({'type': 'data', 'query': sql_query, 'columns': columns, 'data': rows})}\n\n"
 
-        # Phase 2.5: Visualizer
+    # Phase 2.5: Visualizer
     visualizer_messages = [
-        {"role": "system", "content": "You are a data visualization AI. Given a JSON array of data from a SQL query, decide the best way to visualize it.\n\nRules:\n1. If it's a single aggregate number (e.g. sum, count), output a JSON object: {\"type\": \"kpi\", \"value\": \"formatted string (e.g. 1.2K)\", \"label\": \"Short description\"} (Make the label max 3 words).\n2. If it is categorical or trend data, output a JSON object: {\"type\": \"chart\", \"chart_type\": \"bar\" or \"pie\" or \"line\", \"labels\": [\"x1\", \"x2\"], \"dataset_label\": \"Metric Name\", \"data\": [10, 20]}\n3. If it has many string columns or doesn't make sense as a chart, output: {\"type\": \"none\"}\n\nOutput ONLY raw valid JSON, no markdown blocks."},
-        {"role": "user", "content": f"Data:\n{json.dumps(rows)}"}
+        {"role": "user", "content": f"System Instructions: You are a data visualization AI. Given a JSON array of data from a SQL query, decide the best way to visualize it.\n\nRules:\n1. If it's a single aggregate number (e.g. sum, count), output a JSON object: {{\"type\": \"kpi\", \"value\": \"formatted string (e.g. 1.2K)\", \"label\": \"Short description\"}} (Make the label max 3 words).\n2. If it is categorical or trend data, output a JSON object: {{\"type\": \"chart\", \"chart_type\": \"bar\" or \"pie\" or \"line\", \"labels\": [\"x1\", \"x2\"], \"dataset_label\": \"Metric Name\", \"data\": [10, 20]}}\n3. If it has many string columns or doesn't make sense as a chart, output: {{\"type\": \"none\"}}\n\nOutput ONLY raw valid JSON, no markdown blocks.\n\nData: {json.dumps(rows[:10])}"}
     ]
     try:
         if len(rows) > 0:
@@ -223,8 +218,7 @@ def ask_database(user_query, model="gemini-3.5-flash"):
     # Phase 3: Interpreter
     yield f"data: {json.dumps({'type': 'summary_start'})}\n\n"
     interpreter_messages = [
-        {"role": "system", "content": "You are Darshi, a helpful AI assistant. Summarize the following data into a friendly, 1-2 sentence conversational answer for the user. Do not explain the SQL, just interpret the data. If the user asked to delete, update, insert, or drop data, and the data returned is empty, you MUST explicitly state that you are operating in a strict Read-Only sandbox and cannot modify or delete any database records. DO NOT hallucinate that a deletion was successful."},
-        {"role": "user", "content": f"User's Question: {user_query}\n\nData Returned:\n{json.dumps(rows[:5])}"}
+        {"role": "user", "content": f"System Instructions: You are Darshi, a helpful AI assistant. Summarize the following data into a friendly, 1-2 sentence conversational answer for the user. Do not explain the SQL, just interpret the data. If the user asked to delete, update, insert, or drop data, and the data returned is empty, you MUST explicitly state that you are operating in a strict Read-Only sandbox and cannot modify or delete any database records. DO NOT hallucinate that a deletion was successful.\n\nUser's Question: {user_query}\n\nData Returned:\n{json.dumps(rows[:5])}"}
     ]
     try:
         interpreter_response = create_chat_completion_with_fallback(

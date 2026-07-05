@@ -20,10 +20,10 @@ load_dotenv()
 # ─────────────────────────────────────────────
 
 BASE_DIR   = os.path.dirname(os.path.abspath(__file__))
-STATIC_DIR = os.path.abspath(os.path.join(BASE_DIR, "..", "frontend", "dist"))
-STATE_FILE = os.path.join(BASE_DIR, "analysis_state.json")
-REPORT_FILE= os.path.join(BASE_DIR, "narrative_report.json")
-DATA_DUMP  = os.path.join(BASE_DIR, "data_dump")
+STATIC_DIR = os.path.abspath(os.path.join(BASE_DIR, "..", "..", "frontend", "dist"))
+STATE_FILE = os.path.abspath(os.path.join(BASE_DIR, "..", "databases", "analysis_state.json"))
+REPORT_FILE= os.path.abspath(os.path.join(BASE_DIR, "..", "databases", "narrative_report.json"))
+DATA_DUMP  = os.path.abspath(os.path.join(BASE_DIR, "..", "databases", "data_dump"))
 
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address

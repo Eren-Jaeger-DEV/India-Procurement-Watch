@@ -1,5 +1,5 @@
 @echo off
-cd backend
+cd backend\api
 echo Starting Backend Server...
-call venv\Scripts\activate.bat
+call ..\venv\Scripts\activate.bat
 python app.py

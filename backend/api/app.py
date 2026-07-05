@@ -43,22 +43,6 @@ cache.init_app(app)
 app.register_blueprint(kpi_bp)
 app.register_blueprint(trends_bp)
 
-from routes.system import system_bp
-from routes.analytics import analytics_bp
-from routes.profiles import profiles_bp
-from routes.ai_search import ai_search_bp
-from routes.reporting import reporting_bp
-from routes.network import network_bp
-from routes.tenders import tenders_bp
-
-app.register_blueprint(system_bp)
-app.register_blueprint(analytics_bp)
-app.register_blueprint(profiles_bp)
-app.register_blueprint(ai_search_bp)
-app.register_blueprint(reporting_bp)
-app.register_blueprint(network_bp)
-app.register_blueprint(tenders_bp)
-
 import redis
 
 limiter_storage = "memory://"
@@ -75,6 +59,22 @@ limiter = Limiter(
     storage_uri=limiter_storage,
     default_limits=["1000 per day", "100 per hour"]
 )
+
+from routes.system import system_bp
+from routes.analytics import analytics_bp
+from routes.profiles import profiles_bp
+from routes.ai_search import ai_search_bp
+from routes.reporting import reporting_bp
+from routes.network import network_bp
+from routes.tenders import tenders_bp
+
+app.register_blueprint(system_bp)
+app.register_blueprint(analytics_bp)
+app.register_blueprint(profiles_bp)
+app.register_blueprint(ai_search_bp)
+app.register_blueprint(reporting_bp)
+app.register_blueprint(network_bp)
+app.register_blueprint(tenders_bp)
 
 @app.after_request
 def set_security_headers(response):

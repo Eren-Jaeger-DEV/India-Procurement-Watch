@@ -13,3 +13,4 @@ openai
 networkx
 Flask-Limiter
 Flask-Caching
+redis

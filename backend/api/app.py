@@ -38,9 +38,20 @@ cache.init_app(app)
 app.register_blueprint(kpi_bp)
 app.register_blueprint(trends_bp)
 
+import redis
+
+limiter_storage = "memory://"
+try:
+    r = redis.Redis(host='localhost', port=6379, db=0, socket_connect_timeout=1)
+    if r.ping():
+        limiter_storage = "redis://localhost:6379"
+except Exception:
+    pass
+
 limiter = Limiter(
     get_remote_address,
     app=app,
+    storage_uri=limiter_storage,
     default_limits=["1000 per day", "100 per hour"]
 )
 

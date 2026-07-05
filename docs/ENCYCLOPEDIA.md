@@ -26,7 +26,7 @@ The core API server built with **Python Flask** and structured using a modular *
 *   **`app.py`:** The main entry point. It initializes CORS, Rate Limiting, and registers all blueprints.
 *   **`routes/`:** Contains the Flask Blueprints. Heavy endpoints like `/api/kpis` and `/api/trends` have their own dedicated files (`kpi.py`, `trends.py`) for clean separation.
 *   **`core/`:** Contains core backend utilities. `db.py` handles the request-scoped PostgreSQL connections, and `cache.py` initializes the in-memory cache.
-*   **In-Memory Caching:** Uses `Flask-Caching` on heavy aggregation routes (like Trends). Results are cached for 300 seconds, making dashboard reloads instantaneous and drastically reducing database load.
+*   **Distributed Caching (Redis):** Uses `Flask-Caching` and `Flask-Limiter` backed by **Redis**. This perfectly synchronizes API rate limits and cached dashboard results (like Trends) across all Gunicorn workers. It automatically falls back to `SimpleCache` (in-memory) if Redis is unavailable for local development.
 
 ### 🧠 The Intelligence Engine
 *   **Machine Learning (Isolation Forests):** Assigns Risk Grades to government departments.

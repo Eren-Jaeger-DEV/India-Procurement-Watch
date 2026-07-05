@@ -21,6 +21,16 @@ export default function ParticleNetwork({ color = '#3b82f6', count = 60 }) {
     const g = parseInt(color.slice(3, 5), 16);
     const b = parseInt(color.slice(5, 7), 16);
 
+    const mouse = { x: -1000, y: -1000 };
+    const onMouseMove = (e) => {
+      mouse.x = e.clientX;
+      mouse.y = e.clientY;
+    };
+    const onMouseOut = () => {
+      mouse.x = -1000;
+      mouse.y = -1000;
+    };
+
     const resize = () => {
       canvas.width  = window.innerWidth;
       canvas.height = window.innerHeight;
@@ -44,6 +54,27 @@ export default function ParticleNetwork({ color = '#3b82f6', count = 60 }) {
         p.y += p.vy;
         if (p.x < 0 || p.x > canvas.width)  p.vx *= -1;
         if (p.y < 0 || p.y > canvas.height)  p.vy *= -1;
+        
+        // Mouse interaction
+        const dx = p.x - mouse.x;
+        const dy = p.y - mouse.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        
+        if (dist < 150 && dist > 0) {
+          const force = (150 - dist) / 150;
+          p.x += (dx / dist) * force * 2;
+          p.y += (dy / dist) * force * 2;
+        }
+
+        if (dist < LINK_DIST) {
+          const alpha = (1 - dist / LINK_DIST) * 0.6;
+          ctx.beginPath();
+          ctx.strokeStyle = `rgba(${r},${g},${b},${alpha})`;
+          ctx.lineWidth = 1;
+          ctx.moveTo(mouse.x, mouse.y);
+          ctx.lineTo(p.x, p.y);
+          ctx.stroke();
+        }
       }
 
       // Draw connections — only check nearby pairs using a fixed neighbour cap
@@ -86,10 +117,14 @@ export default function ParticleNetwork({ color = '#3b82f6', count = 60 }) {
     spawn();
     draw();
     window.addEventListener('resize', onResize);
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseout', onMouseOut);
 
     return () => {
       cancelAnimationFrame(animId);
       window.removeEventListener('resize', onResize);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseout', onMouseOut);
     };
   }, [color, count]);
 

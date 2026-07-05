@@ -538,6 +538,15 @@ def run_analysis(aoc_src=None, vps_src=None, use_existing=False):
         # Stage 4: Generate narrative
         stage_generate_narrative()
 
+        print("\n[6/6] Syncing extracted data to PostgreSQL...")
+        try:
+            # Sync to PostgreSQL
+            import subprocess
+            subprocess.run([sys.executable, "sync_to_postgres.py"], check=True)
+            print("PostgreSQL sync successful.")
+        except subprocess.CalledProcessError as e:
+            print(f"Error syncing to PostgreSQL: {e}")
+
         elapsed = time.time() - start_time
         write_state("done", 100, f"Analysis complete in {elapsed/60:.1f} minutes.", done=True)
         print("=" * 60)

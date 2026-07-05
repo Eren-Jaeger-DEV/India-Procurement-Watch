@@ -18,7 +18,7 @@ Tables in summary.db:
 Rules:
 - You must output ONLY a valid SQL SELECT query. Do not include markdown formatting like ```sql or explanations. Just the raw SQL string.
 - The query must be READ-ONLY (only SELECT statements).
-- Use PostgreSQL syntax (including ->> for JSONB queries if needed).
+- Use SQLite syntax.
 - Limit results to 20 max to avoid overwhelming the chat UI.
 """
 
@@ -132,7 +132,7 @@ def ask_database(user_query, model="gemini-3.5-flash"):
 
     # Phase 2: SQL Coder
     sql_coder_messages = [
-        {"role": "user", "content": f"System Instructions: You are an elite SQL developer. Given the schema and the architect's plan, write the exact PostgreSQL query to answer the question. Reply ONLY with the SQL string.\nSchema:\n{DB_SCHEMA}\n\nQuestion: {user_query}\n\nArchitect Plan:\n{thought_process}"}
+        {"role": "user", "content": f"System Instructions: You are an elite SQL developer. Given the schema and the architect's plan, write the exact SQLite query to answer the question. Reply ONLY with the SQL string.\nSchema:\n{DB_SCHEMA}\n\nQuestion: {user_query}\n\nArchitect Plan:\n{thought_process}"}
     ]
     
     max_retries = 3

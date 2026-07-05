@@ -76,7 +76,7 @@ def ask_database(user_query, model="gemini-3.5-flash"):
             models=router_models,
             messages=router_messages,
             temperature=0.0,
-            timeout=10.0
+            timeout=30.0
         )
         intent = router_res.choices[0].message.content.strip().upper()
     except Exception:
@@ -156,9 +156,11 @@ def ask_database(user_query, model="gemini-3.5-flash"):
             )
             sql_query = sql_response.choices[0].message.content.strip()
             
-            if sql_query.startswith("```sql"): sql_query = sql_query[6:]
-            if sql_query.startswith("```"): sql_query = sql_query[3:]
-            if sql_query.endswith("```"): sql_query = sql_query[:-3]
+            import re
+            match = re.search(r"```(?:sql)?\n?(.*?)\n?```", sql_query, re.IGNORECASE | re.DOTALL)
+            if match:
+                sql_query = match.group(1)
+            
             sql_query = sql_query.strip()
             
             if not sql_query.upper().startswith("SELECT"):

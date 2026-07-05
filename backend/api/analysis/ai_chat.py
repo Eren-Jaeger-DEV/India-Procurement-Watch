@@ -51,6 +51,7 @@ def ask_database(user_query, model="gemini-3.5-flash"):
     client = OpenAI(
         base_url="https://api.routing.run/v1",
         api_key=api_key,
+        max_retries=0,
         default_headers={
             "HTTP-Referer": "http://localhost:5000", 
             "X-Title": "Procurement Dashboard",

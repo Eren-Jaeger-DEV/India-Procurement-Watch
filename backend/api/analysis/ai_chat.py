@@ -59,10 +59,10 @@ def ask_database(user_query, model="gemini-3.5-flash"):
         }
     )
 
-    router_models = ["gemini-3.5-flash", "gpt-5.5"]
+    router_models = [model, "gpt-5.5"]
     convo_models = [model, "gpt-5.5", "gemini-3.5-flash"]
     planner_models = [model, "gpt-5.5", "deepseek-v4-pro"]
-    sql_models = ["deepseek-v4-pro", "gpt-5.5", "grok-4.3"]
+    sql_models = [model, "deepseek-v4-pro", "gpt-5.5", "grok-4.3"]
     interpreter_models = [model, "gpt-5.5", "gemini-3.5-flash"]
 
     # Phase 0: Intent Router (Fast, No Schema)

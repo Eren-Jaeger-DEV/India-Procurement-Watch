@@ -50,3 +50,6 @@ migrate*.md
 check_db.py
 *_audit.md
 *_plan.md
+
+# ── Local run scripts ──
+*.bat

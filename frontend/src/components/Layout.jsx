@@ -55,74 +55,72 @@ const Layout = () => {
           </div>
         </div>
         
-        <div className="nav-section">
-          {!isCollapsed && <div className="nav-label">Data</div>}
-          <NavLink to="/import" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isCollapsed ? "System Status" : ""}>
-            <Activity size={20} />
-            {!isCollapsed && <span>System Status</span>}
-          </NavLink>
+        <div className="sidebar-nav">
+          <div className="nav-section">
+            {!isCollapsed && <div className="nav-label">Main</div>}
+            <NavLink to="/dashboard" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isCollapsed ? "Overview" : ""}>
+              <LayoutDashboard size={18} />
+              {!isCollapsed && <span>Overview</span>}
+            </NavLink>
+            <NavLink to="/search" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isCollapsed ? "Search Database" : ""}>
+              <Search size={18} />
+              {!isCollapsed && <span>Search Database</span>}
+            </NavLink>
+            <NavLink to="/chat" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isCollapsed ? "Ask AI" : ""}>
+              <Bot size={18} />
+              {!isCollapsed && <span>Ask AI</span>}
+            </NavLink>
+            <NavLink to="/report" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isCollapsed ? "Analysis Report" : ""}>
+              <FileText size={18} />
+              {!isCollapsed && <span>Analysis Report</span>}
+            </NavLink>
+          </div>
+
+          <div className="nav-section">
+            {!isCollapsed && <div className="nav-label">Analytics & Risk</div>}
+            <NavLink to="/geo" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isCollapsed ? "Geographical" : ""}>
+              <Map size={18} />
+              {!isCollapsed && <span>Geographical</span>}
+            </NavLink>
+            <NavLink to="/insights" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isCollapsed ? "Insights" : ""}>
+              <TrendingUp size={18} />
+              {!isCollapsed && <span>Insights</span>}
+            </NavLink>
+            <NavLink to="/departments" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isCollapsed ? "Department Radar" : ""}>
+              <Building2 size={18} />
+              {!isCollapsed && <span>Department Radar</span>}
+            </NavLink>
+            <NavLink to="/collusion" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isCollapsed ? "Cartel Radar" : ""}>
+              <ShieldAlert size={18} style={{ color: '#ef4444' }} />
+              {!isCollapsed && <span>Cartel Radar</span>}
+            </NavLink>
+            <NavLink to="/redflag" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isCollapsed ? "Red-Flag Explorer" : ""}>
+              <Flag size={18} />
+              {!isCollapsed && <span>Red-Flag Explorer</span>}
+            </NavLink>
+            <NavLink to="/investigation" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isCollapsed ? "Investigation Desk" : ""}>
+              <FileSearch size={18} />
+              {!isCollapsed && <span>Investigation Desk</span>}
+            </NavLink>
+            <NavLink to="/network" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isCollapsed ? "Director Networks" : ""}>
+              <Network size={18} />
+              {!isCollapsed && <span>Director Networks</span>}
+            </NavLink>
+            <NavLink to="/import" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isCollapsed ? "System Status" : ""}>
+              <Activity size={18} />
+              {!isCollapsed && <span>System Status</span>}
+            </NavLink>
+          </div>
         </div>
 
-        <div className="nav-section">
-          {!isCollapsed && <div className="nav-label">Analysis</div>}
-          <NavLink to="/report" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isCollapsed ? "Analysis Report" : ""}>
-            <FileText size={20} />
-            {!isCollapsed && <span>Analysis Report</span>}
-          </NavLink>
-          <NavLink to="/dashboard" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isCollapsed ? "Overview" : ""}>
-            <LayoutDashboard size={20} />
-            {!isCollapsed && <span>Overview</span>}
-          </NavLink>
-          <NavLink to="/geo" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isCollapsed ? "Geographical" : ""}>
-            <Map size={20} />
-            {!isCollapsed && <span>Geographical</span>}
-          </NavLink>
-          <NavLink to="/insights" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isCollapsed ? "Insights" : ""}>
-            <TrendingUp size={20} />
-            {!isCollapsed && <span>Insights</span>}
-          </NavLink>
-          <NavLink to="/departments" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isCollapsed ? "Department Radar" : ""}>
-            <Building2 size={20} />
-            {!isCollapsed && <span>Department Radar</span>}
-          </NavLink>
-          <NavLink to="/collusion" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isCollapsed ? "Cartel Radar" : ""}>
-            <ShieldAlert size={20} style={{ color: '#ef4444' }} />
-            {!isCollapsed && <span>Cartel Radar</span>}
-          </NavLink>
-        </div>
-
-        <div className="nav-section">
-          {!isCollapsed && <div className="nav-label">Data Points</div>}
-          <NavLink to="/investigation" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isCollapsed ? "Investigation Desk" : ""}>
-            <FileSearch size={20} />
-            {!isCollapsed && <span>Investigation Desk</span>}
-          </NavLink>
-          <NavLink to="/redflag" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isCollapsed ? "Red-Flag Explorer" : ""}>
-            <Flag size={20} />
-            {!isCollapsed && <span>Red-Flag Explorer</span>}
-          </NavLink>
-          <NavLink to="/search" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isCollapsed ? "Search Database" : ""}>
-            <Search size={20} />
-            {!isCollapsed && <span>Search Database</span>}
-          </NavLink>
-          <NavLink to="/network" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isCollapsed ? "Director Networks" : ""}>
-            <Network size={20} />
-            {!isCollapsed && <span>Director Networks</span>}
-          </NavLink>
-          <NavLink to="/chat" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isCollapsed ? "Ask AI" : ""}>
-            <Bot size={20} />
-            {!isCollapsed && <span>Ask AI</span>}
-          </NavLink>
-        </div>
-
-        <div className="sidebar-footer" style={{ marginTop: 'auto', borderTop: '1px solid var(--border-color)', paddingTop: 12, paddingBottom: 12 }}>
+        <div className="sidebar-footer">
           <button 
             className="nav-item collapse-toggle-btn" 
             onClick={() => setIsCollapsed(!isCollapsed)} 
-            style={{ width: '100%', background: 'transparent', border: 'none', cursor: 'pointer', justifyContent: isCollapsed ? 'center' : 'flex-start', marginBottom: 6 }}
+            style={{ width: '100%', background: 'transparent', border: 'none', cursor: 'pointer', justifyContent: isCollapsed ? 'center' : 'flex-start' }}
             title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
           >
-            {isCollapsed ? <PanelLeftOpen size={20} /> : <PanelLeftClose size={20} />}
+            {isCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
             {!isCollapsed && <span>Collapse Sidebar</span>}
           </button>
           <button 
@@ -132,7 +130,7 @@ const Layout = () => {
             title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
           >
             <div className={`theme-icon-wrapper ${isDark ? 'dark' : 'light'}`}>
-              {isDark ? <Sun size={20} /> : <Moon size={20} />}
+              {isDark ? <Sun size={18} /> : <Moon size={18} />}
             </div>
             {!isCollapsed && <span>{isDark ? 'Light Mode' : 'Dark Mode'}</span>}
           </button>

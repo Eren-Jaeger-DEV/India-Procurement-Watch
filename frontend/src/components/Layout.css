@@ -46,42 +46,60 @@
   color: var(--text-muted);
 }
 
+.sidebar-nav {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-color) transparent;
+  padding-bottom: 12px;
+}
+
+.sidebar-nav::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+
 .nav-section {
-  padding: 20px 12px 0;
+  padding: 14px 12px 0;
 }
 
 .sidebar.collapsed .nav-section {
-  padding: 16px 8px 0;
+  padding: 12px 8px 0;
 }
 
 .nav-label {
-  font-size: 11px;
+  font-size: 10px;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
   color: var(--text-muted);
-  font-weight: 600;
-  margin-bottom: 8px;
+  font-weight: 700;
+  margin-bottom: 6px;
   padding-left: 12px;
 }
 
 .nav-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
+  gap: 10px;
+  padding: 8px 12px;
   text-decoration: none;
   color: var(--text-secondary);
   font-weight: 500;
-  font-size: 14px;
+  font-size: 13.5px;
   border-radius: var(--radius-md);
   transition: all 0.2s ease;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
   white-space: nowrap;
 }
 
 .sidebar.collapsed .nav-item {
   justify-content: center;
-  padding: 10px 0;
+  padding: 8px 0;
 }
 
 .nav-item:hover {
@@ -92,13 +110,19 @@
 .nav-item.active {
   background-color: rgba(37, 99, 235, 0.1);
   color: var(--accent-primary);
+  font-weight: 600;
 }
 
 .sidebar-footer {
+  flex-shrink: 0;
   margin-top: auto;
-  padding: 16px;
+  padding: 10px 12px;
   border-top: 1px solid var(--border-color);
+  background-color: var(--bg-sidebar);
   transition: border-color 0.4s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 /* Theme Icon Morph & Rotation Animation */

@@ -1,7 +1,8 @@
 import { Outlet, NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, FileText, Search, FileSearch, Bot, Sun, Moon, X, PanelLeftClose, PanelLeftOpen, Map, Network, Menu, Activity, Flag, TrendingUp } from 'lucide-react';
+import { LayoutDashboard, FileText, Search, FileSearch, Bot, Sun, Moon, X, PanelLeftClose, PanelLeftOpen, Map, Network, Menu, Activity, Flag, TrendingUp, ShieldAlert } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import QuickAiBar from './QuickAiBar';
+import TenderModal from './TenderModal';
 import './Layout.css';
 
 const NAV_ITEMS = [
@@ -79,6 +80,10 @@ const Layout = () => {
           <NavLink to="/insights" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isCollapsed ? "Insights" : ""}>
             <TrendingUp size={20} />
             {!isCollapsed && <span>Insights</span>}
+          </NavLink>
+          <NavLink to="/collusion" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isCollapsed ? "Cartel Radar" : ""}>
+            <ShieldAlert size={20} style={{ color: '#ef4444' }} />
+            {!isCollapsed && <span>Cartel Radar</span>}
           </NavLink>
         </div>
 
@@ -193,29 +198,8 @@ const Layout = () => {
         ))}
       </nav>
 
-      {/* Global Tender Modal */}
-      {modalOpen && (
-        <>
-          <div className="modal-backdrop" onClick={() => setModalOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 998 }}></div>
-          <div className="modal" style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', background: 'var(--bg-card)', padding: 24, borderRadius: 'var(--radius-lg)', zIndex: 999, width: '90%', maxWidth: 600, border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-lg)' }}>
-            <button onClick={() => setModalOpen(false)} style={{ position: 'absolute', top: 16, right: 16, background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
-              <X size={20} />
-            </button>
-            <h2 style={{ fontSize: 18, marginBottom: 16 }}>Tender Detail</h2>
-            {modalData ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, fontSize: 14 }}>
-                <div><strong style={{ color: 'var(--text-secondary)' }}>Title:</strong> <div>{modalData.tender_title || 'N/A'}</div></div>
-                <div><strong style={{ color: 'var(--text-secondary)' }}>Organization:</strong> <div>{modalData.org_name || 'N/A'}</div></div>
-                <div><strong style={{ color: 'var(--text-secondary)' }}>Value:</strong> <div>{modalData.value_lakh ? `₹${modalData.value_lakh}L` : 'N/A'}</div></div>
-                <div><strong style={{ color: 'var(--text-secondary)' }}>Winner:</strong> <div>{modalData.vendor_name || 'N/A'}</div></div>
-                <div><strong style={{ color: 'var(--text-secondary)' }}>Date:</strong> <div>{modalData.published_date || 'N/A'}</div></div>
-              </div>
-            ) : (
-              <div>No data available</div>
-            )}
-          </div>
-        </>
-      )}
+      {/* Global Tender Inspector Modal */}
+      <TenderModal isOpen={modalOpen} onClose={() => setModalOpen(false)} initialData={modalData} />
 
       {/* Persistent floating AI query bar — visible on all pages */}
       <QuickAiBar />

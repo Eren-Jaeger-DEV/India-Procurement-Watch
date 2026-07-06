@@ -175,3 +175,84 @@ def api_vendor_profile():
             "sanction_match": sanction_match,
         }
     })
+
+
+@insights_bp.route("/api/collusion-radar")
+@cache.cached(timeout=600)
+def api_collusion_radar():
+    """
+    Cartel & Collusion Detector.
+    Finds departments where multiple repeat winners dominate the market,
+    and identifies top bidding syndicates/pairs.
+    """
+    conn = get_pg_conn()
+    cur  = conn.cursor(cursor_factory=RealDictCursor)
+    
+    # 1. Departments with potential collusion (multiple repeat winners dominating >60% of awards)
+    cur.execute("""
+        SELECT 
+            rw.org_name,
+            COUNT(DISTINCT rw.bidder_name) as top_vendors,
+            SUM(rw.wins) as syndicate_wins,
+            SUM(rw.total_value_crore) as syndicate_val_cr,
+            ROUND(AVG(rc.single_bid_pct)::numeric, 1) as single_bid_pct,
+            ROUND(AVG(rc.hhi_score)::numeric, 0) as hhi_score,
+            COALESCE(MAX(rc.grade), 'C') as risk_grade
+        FROM repeat_winners rw
+        LEFT JOIN org_report_cards rc ON rw.org_name = rc.org_name
+        GROUP BY rw.org_name
+        HAVING COUNT(DISTINCT rw.bidder_name) >= 2 AND SUM(rw.wins) >= 20
+        ORDER BY syndicate_val_cr DESC NULLS LAST
+        LIMIT 50
+    """)
+    suspicious_depts = [dict(r) for r in cur.fetchall()]
+
+    # 2. Co-winning vendor pairs (vendors winning from exact same department)
+    cur.execute("""
+        SELECT 
+            r1.org_name,
+            r1.bidder_name as vendor_a,
+            r2.bidder_name as vendor_b,
+            (r1.wins + r2.wins) as combined_wins,
+            ROUND((r1.total_value_crore + r2.total_value_crore)::numeric, 2) as combined_value_cr
+        FROM repeat_winners r1
+        JOIN repeat_winners r2 ON r1.org_name = r2.org_name AND r1.bidder_name < r2.bidder_name
+        ORDER BY combined_wins DESC, combined_value_cr DESC
+        LIMIT 30
+    """)
+    vendor_pairs = [dict(r) for r in cur.fetchall()]
+
+    return jsonify({
+        "suspicious_departments": suspicious_depts,
+        "co_winning_pairs": vendor_pairs
+    })
+
+
+@insights_bp.route("/api/department-benchmarks")
+@cache.cached(timeout=600)
+def api_department_benchmarks():
+    """
+    Integrity and Efficiency Leaderboard per department.
+    """
+    conn = get_pg_conn()
+    cur  = conn.cursor(cursor_factory=RealDictCursor)
+    cur.execute("""
+        SELECT 
+            org_name,
+            total_contracts,
+            total_value_crore,
+            single_bid_pct,
+            round_number_pct,
+            score,
+            grade,
+            hhi_score,
+            ml_risk_score,
+            ml_flag
+        FROM org_report_cards
+        WHERE total_contracts >= 10
+        ORDER BY ml_risk_score DESC NULLS LAST, total_value_crore DESC
+        LIMIT 100
+    """)
+    rows = [dict(r) for r in cur.fetchall()]
+    return jsonify(rows)
+

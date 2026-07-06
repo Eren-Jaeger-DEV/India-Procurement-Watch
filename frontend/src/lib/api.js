@@ -166,4 +166,19 @@ export const fetchVendorMca = async (label) => {
   return res.data;
 };
 
+export const fetchCollusionRadar = async () => {
+  const res = await api.get('/collusion-radar');
+  return res.data;
+};
+
+export const fetchDepartmentBenchmarks = async () => {
+  const res = await api.get('/department-benchmarks');
+  return res.data;
+};
+
+export const fetchTenderDetail = async (internalId) => {
+  const res = await api.get(`/tender/${encodeURIComponent(internalId)}`);
+  return res.data;
+};
+
 export default api;

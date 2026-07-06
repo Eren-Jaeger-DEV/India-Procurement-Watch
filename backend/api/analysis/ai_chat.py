@@ -6,20 +6,81 @@ from openai import OpenAI
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ENV_FILE = os.path.join(BASE_DIR, ".env")
 
-# Basic schema definition to feed the LLM
+# Accurate PostgreSQL schema (verified against live DB)
 DB_SCHEMA = """
-Tables in summary.db:
-1. single_bid_contracts(org_name, title, contract_value, aoc_date, portal_type, bidder_name)
-2. repeat_winners(bidder_name, org_name, wins, total_value_crore, first_win, last_win)
-3. top_orgs(org_name, count, total_value_crore)
-4. org_report_cards(org_name, total_contracts, total_value_crore, single_bid_pct, hhi_score)
-5. yearly_trends(year, count, total_value_crore)
+PostgreSQL Database — India Procurement Watch
 
-Rules:
-- You must output ONLY a valid SQL SELECT query. Do not include markdown formatting like ```sql or explanations. Just the raw SQL string.
-- The query must be READ-ONLY (only SELECT statements).
-- Use PostgreSQL syntax (including ->> for JSONB queries if needed).
-- Limit results to 20 max to avoid overwhelming the chat UI.
+## SUMMARY / ANALYTICS TABLES (fast, pre-aggregated — prefer these)
+
+1. single_bid_contracts(internal_id, org_name, title, contract_value FLOAT, aoc_date TEXT, portal_type TEXT, bidder_name, ref_no)
+   — 2000 rows of contracts awarded with only one bidder (high corruption risk)
+   — contract_value is in INR (not crore)
+
+2. repeat_winners(rank_n INT, bidder_name, org_name, wins INT, total_value_crore FLOAT, first_win TEXT, last_win TEXT)
+   — Top 2000 vendors who repeatedly win from the same organization
+   — total_value_crore is in crore INR
+
+3. top_orgs(rank_n INT, org_name, portal_type TEXT, count INT, total_value_crore FLOAT)
+   — Top 100 organizations by number of tenders
+
+4. top_published_orgs(rank_n INT, org_name, count INT)
+   — Top 100 organizations by published tenders
+
+5. org_report_cards(org_name, total_contracts INT, total_value_crore FLOAT, single_bid_pct FLOAT, round_number_pct FLOAT, score FLOAT, grade TEXT, hhi_score FLOAT, ml_risk_score FLOAT, ml_flag INT)
+   — Risk scorecard per organization. grade is A/B/C/D/F. hhi_score measures market concentration (0-10000). ml_flag=1 means AI flagged suspicious.
+
+6. yearly_trends(year INT, portal_type TEXT, count INT, total_value_crore FLOAT)
+   — Yearly tender counts and values broken down by portal
+
+7. monthly_trends(year INT, month INT, count INT, total_value_crore FLOAT)
+   — Monthly tender volumes
+
+8. state_stats(state_name TEXT, total_contracts INT, total_value_crore FLOAT)
+   — Aggregated stats per Indian state (34 states/UTs)
+
+9. portal_breakdown(portal_type TEXT, count INT, total_value_crore FLOAT)
+   — Summary by portal (e.g. CPP, GEM)
+
+10. sector_distribution(sector TEXT, count INT, total_value_crore FLOAT)
+    — Distribution by sector/ministry
+
+11. value_brackets(bracket TEXT, min_val FLOAT, max_val FLOAT, count INT)
+    — Contract value bucket distribution
+
+12. tender_type_dist(tender_type TEXT, count INT, total_value_crore FLOAT)
+    — Distribution by tender type
+
+13. kpi_stats(key TEXT, value TEXT)
+    — Key-value store of top-level KPIs (total_tenders, total_value_crore, avg_value_crore, etc.)
+
+14. sanctioned_entities(id TEXT, schema_type TEXT, name TEXT, countries TEXT, addresses TEXT, sanctions TEXT, first_seen TEXT)
+    — 1415 World Bank debarred / sanctioned entities
+
+## RAW DATA TABLES (4.9M rows — use only with tight WHERE + LIMIT)
+
+15. aoc_tenders(internal_id, portal_type, year BIGINT, aoc_date TEXT, closing_date TEXT, title TEXT, ref_no TEXT, tender_id TEXT, org_name TEXT, detail_url TEXT)
+    — 4.9M raw tender records. Always add LIMIT 50 or less.
+
+## SQL Rules
+- Output ONLY a raw SQL SELECT statement — no markdown, no explanation.
+- READ-ONLY: only SELECT statements allowed.
+- Use PostgreSQL syntax.
+- ALWAYS add LIMIT 20 (max 50 for raw tables).
+- For "most single-bid" queries → use single_bid_contracts or org_report_cards.single_bid_pct
+- For "repeat winners" / "same vendor wins" → use repeat_winners
+- For "highest risk org" → use org_report_cards ORDER BY ml_risk_score DESC or score DESC
+- For "which state" queries → use state_stats
+- For value queries → total_value_crore is in crore INR; contract_value in single_bid_contracts is raw INR
+
+## Example queries
+Q: Which orgs have most single-bid contracts?
+A: SELECT org_name, COUNT(*) AS single_bid_count, SUM(contract_value)/10000000 AS value_crore FROM single_bid_contracts GROUP BY org_name ORDER BY single_bid_count DESC LIMIT 20
+
+Q: Top repeat winning vendors?
+A: SELECT bidder_name, org_name, wins, total_value_crore FROM repeat_winners ORDER BY wins DESC LIMIT 20
+
+Q: Highest risk organizations?
+A: SELECT org_name, score, grade, ml_risk_score, single_bid_pct FROM org_report_cards WHERE grade IN ('D','F') ORDER BY ml_risk_score DESC LIMIT 20
 """
 
 def get_api_key():

@@ -151,15 +151,15 @@ const Insights = () => {
 
       <div className="card" style={{ padding: 0, marginBottom: 32, overflow: 'hidden' }}>
         {scatterLoad ? (
-          <div style={{ height: 420, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
+          <div style={{ height: 540, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
             Computing HHI for all organizations…
           </div>
         ) : scatterErr ? (
-          <div style={{ height: 420, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444', fontSize: 13 }}>
+          <div style={{ height: 540, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444', fontSize: 13 }}>
             {scatterErr}
           </div>
         ) : (
-          <ResponsiveContainer width="100%" height={420}>
+          <ResponsiveContainer width="100%" height={540}>
             <ScatterChart margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
               <XAxis

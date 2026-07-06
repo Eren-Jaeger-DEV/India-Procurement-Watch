@@ -1,6 +1,6 @@
 .rfe-page {
-  padding: 24px;
-  max-width: 1400px;
+  padding: 0;
+  width: 100%;
 }
 
 .rfe-header {

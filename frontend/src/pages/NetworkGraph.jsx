@@ -266,7 +266,7 @@ const NetworkGraph = () => {
             </div>
           </div>
 
-          <div className="card" style={{ height: 600, display: 'flex', flexDirection: 'column' }}>
+          <div className="card" style={{ height: 750, display: 'flex', flexDirection: 'column' }}>
             <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <h3 className="card-title">Neighborhood Ego-Graph (1-Hop)</h3>

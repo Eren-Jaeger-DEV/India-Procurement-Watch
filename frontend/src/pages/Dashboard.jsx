@@ -94,7 +94,7 @@ const KpiCard = ({ label, value, sub, icon: Icon, color }) => (
 );
 
 // ── CHART CARD ─────────────────────────────────────────────────────────────────
-const ChartCard = ({ title, subtitle, children, height = 260 }) => (
+const ChartCard = ({ title, subtitle, children, height = 380 }) => (
   <div className="card chart-card">
     <div className="card-header">
       <div className="card-title">{title}</div>
@@ -253,7 +253,7 @@ const Dashboard = () => {
 
       {/* ── ROW 1: Yearly trend + Top orgs ──────────────────────────────────── */}
       <div className="dashboard-grid" style={{ marginBottom: 24 }}>
-        <ChartCard title="Procurement Volume Over Time" subtitle="Bars = total tenders · Line = single-bid % (right axis)" height={280}>
+        <ChartCard title="Procurement Volume Over Time" subtitle="Bars = total tenders · Line = single-bid % (right axis)" height={400}>
           {trends?.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={trends} margin={{ top: 10, right: 40, left: 0, bottom: 0 }}>
@@ -276,15 +276,15 @@ const Dashboard = () => {
         </ChartCard>
 
 
-        <ChartCard title="Top Procuring Organizations" subtitle="By number of published tenders" height={280}>
+        <ChartCard title="Top Procuring Organizations" subtitle="By number of published tenders" height={400}>
           {orgs?.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={orgs} layout="vertical" margin={{ top: 0, right: 20, left: 10, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--border-color)" />
                 <XAxis type="number" tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} tickLine={false} axisLine={false} tickFormatter={v => v >= 1000 ? (v/1000)+'k' : v} />
-                <YAxis dataKey="name" type="category" tick={{ fill: 'var(--text-primary)', fontSize: 10 }} width={155} tickLine={false} axisLine={false} />
+                <YAxis dataKey="name" type="category" tick={{ fill: 'var(--text-primary)', fontSize: 11 }} width={175} tickLine={false} axisLine={false} />
                 <Tooltip content={<CustomTooltip />} cursor={{ fill: 'var(--bg-main)' }} />
-                <Bar dataKey="count" name="Contracts" fill="var(--accent-primary)" radius={[0, 4, 4, 0]} barSize={14} />
+                <Bar dataKey="count" name="Contracts" fill="var(--accent-primary)" radius={[0, 4, 4, 0]} barSize={18} />
               </BarChart>
             </ResponsiveContainer>
           ) : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)' }}>No data</div>}
@@ -293,48 +293,48 @@ const Dashboard = () => {
 
       {/* ── ROW 2: Bid competition + Tender types + Portal breakdown ─────────── */}
       <SectionHeader title="Bid Competition & Contract Composition" subtitle="How competitive are India's government contracts?" />
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 24 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20, marginBottom: 24 }}>
 
-        <ChartCard title="Bid Competition" subtitle="Number of bids received per award" height={240}>
+        <ChartCard title="Bid Competition" subtitle="Number of bids received per award" height={360}>
           {bidComp?.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={bidComp} cx="50%" cy="50%" innerRadius={55} outerRadius={90}
+                <Pie data={bidComp} cx="50%" cy="50%" innerRadius={70} outerRadius={115}
                   dataKey="value" nameKey="name" labelLine={false} label={renderPieLabel}>
                   {bidComp.map((entry, i) => <Cell key={i} fill={entry.color} />)}
                 </Pie>
                 <Tooltip formatter={(val) => fmt(val)} contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, fontSize: 12 }} />
-                <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11 }} />
+                <Legend iconType="circle" iconSize={9} wrapperStyle={{ fontSize: 12, paddingTop: 10 }} />
               </PieChart>
             </ResponsiveContainer>
           ) : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)', fontSize: 13 }}>Computing from database…</div>}
         </ChartCard>
 
-        <ChartCard title="Tender Types" subtitle="Category breakdown of all contracts" height={240}>
+        <ChartCard title="Tender Types" subtitle="Category breakdown of all contracts" height={360}>
           {tenderTypes?.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={tenderTypes} cx="50%" cy="50%" innerRadius={55} outerRadius={90}
+                <Pie data={tenderTypes} cx="50%" cy="50%" innerRadius={70} outerRadius={115}
                   dataKey="value" nameKey="name" labelLine={false} label={renderPieLabel}>
                   {tenderTypes.map((entry, i) => <Cell key={i} fill={entry.color} />)}
                 </Pie>
                 <Tooltip formatter={(val) => fmt(val)} contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, fontSize: 12 }} />
-                <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11 }} />
+                <Legend iconType="circle" iconSize={9} wrapperStyle={{ fontSize: 12, paddingTop: 10 }} />
               </PieChart>
             </ResponsiveContainer>
           ) : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)' }}>No data</div>}
         </ChartCard>
 
-        <ChartCard title="Portal Breakdown" subtitle="State vs Central procurement portals" height={240}>
+        <ChartCard title="Portal Breakdown" subtitle="State vs Central procurement portals" height={360}>
           {portalData?.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={portalData} cx="50%" cy="50%" innerRadius={55} outerRadius={90}
+                <Pie data={portalData} cx="50%" cy="50%" innerRadius={70} outerRadius={115}
                   dataKey="value" nameKey="name" labelLine={false} label={renderPieLabel}>
                   {portalData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
                 </Pie>
                 <Tooltip formatter={(val) => fmt(val)} contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, fontSize: 12 }} />
-                <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11 }} />
+                <Legend iconType="circle" iconSize={9} wrapperStyle={{ fontSize: 12, paddingTop: 10 }} />
               </PieChart>
             </ResponsiveContainer>
           ) : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)' }}>No data</div>}
@@ -345,24 +345,24 @@ const Dashboard = () => {
       <SectionHeader title="Spending Patterns & Contract Size" subtitle="When does procurement happen and at what scale?" />
       <div className="dashboard-grid" style={{ marginBottom: 24 }}>
 
-        <ChartCard title="Monthly Procurement Seasonality" subtitle="Jan–Mar highlighted: India's fiscal year-end budget flush" height={260}>
+        <ChartCard title="Monthly Procurement Seasonality" subtitle="Jan–Mar highlighted: India's fiscal year-end budget flush" height={380}>
           {seasonality?.length > 0 ? (
             <>
-              <div style={{ display: 'flex', gap: 16, padding: '0 4px 8px', flexWrap: 'wrap' }}>
-                <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+              <div style={{ display: 'flex', gap: 16, padding: '0 4px 12px', flexWrap: 'wrap' }}>
+                <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
                   March share: <strong style={{ color: '#ef4444' }}>{marPct}%</strong>
                 </div>
-                <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+                <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
                   Jan–Mar (year-end): <strong style={{ color: '#ef4444' }}>{q4Pct.toFixed(1)}%</strong> of annual contracts
                 </div>
               </div>
-              <ResponsiveContainer width="100%" height={200}>
+              <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={seasonality} margin={{ top: 0, right: 10, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" />
                   <XAxis dataKey="month" tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} tickLine={false} axisLine={false} />
                   <YAxis tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} tickLine={false} axisLine={false} tickFormatter={v => (v/1000).toFixed(0) + 'k'} />
                   <Tooltip content={<CustomTooltip />} />
-                  <Bar dataKey="count" name="Awards" radius={[3, 3, 0, 0]} barSize={28}>
+                  <Bar dataKey="count" name="Awards" radius={[4, 4, 0, 0]} barSize={32}>
                     {seasonality.map((entry, i) => (
                       <Cell key={i} fill={entry.is_year_end ? '#ef4444' : 'var(--accent-primary)'} fillOpacity={entry.is_year_end ? 1 : 0.7} />
                     ))}
@@ -373,15 +373,15 @@ const Dashboard = () => {
           ) : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)' }}>No data</div>}
         </ChartCard>
 
-        <ChartCard title="Contract Size Distribution" subtitle="How many contracts fall in each value bracket?" height={260}>
+        <ChartCard title="Contract Size Distribution" subtitle="How many contracts fall in each value bracket?" height={380}>
           {valueDist?.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={valueDist} margin={{ top: 10, right: 10, left: 0, bottom: 30 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" />
-                <XAxis dataKey="name" tick={{ fill: 'var(--text-secondary)', fontSize: 10 }} tickLine={false} axisLine={false} angle={-20} textAnchor="end" />
+                <XAxis dataKey="name" tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} tickLine={false} axisLine={false} angle={-20} textAnchor="end" />
                 <YAxis tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} tickLine={false} axisLine={false} tickFormatter={v => v >= 1000 ? (v/1000)+'k' : v} />
                 <Tooltip content={<CustomTooltip />} />
-                <Bar dataKey="count" name="Contracts" fill="#8b5cf6" radius={[4, 4, 0, 0]} barSize={36} />
+                <Bar dataKey="count" name="Contracts" fill="#8b5cf6" radius={[4, 4, 0, 0]} barSize={40} />
               </BarChart>
             </ResponsiveContainer>
           ) : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)' }}>No data</div>}
@@ -468,15 +468,15 @@ const Dashboard = () => {
       {/* ── ROW 5: State-wise breakdown ───────────────────────────────────────── */}
       <SectionHeader title="State-wise Procurement" subtitle="Top 15 states by number of contracts awarded" />
       <div style={{ marginBottom: 24 }}>
-        <ChartCard title="Contracts by State" subtitle="State portal awards only — Central portal contracts not state-attributed" height={320}>
+        <ChartCard title="Contracts by State" subtitle="State portal awards only — Central portal contracts not state-attributed" height={450}>
           {stateStats?.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={stateStats} layout="vertical" margin={{ top: 0, right: 60, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--border-color)" />
                 <XAxis type="number" tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} tickLine={false} axisLine={false} tickFormatter={v => v >= 1000 ? (v/1000).toFixed(0)+'k' : v} />
-                <YAxis dataKey="name" type="category" tick={{ fill: 'var(--text-primary)', fontSize: 10 }} width={130} tickLine={false} axisLine={false} />
+                <YAxis dataKey="name" type="category" tick={{ fill: 'var(--text-primary)', fontSize: 11 }} width={140} tickLine={false} axisLine={false} />
                 <Tooltip content={<CustomTooltip />} cursor={{ fill: 'var(--bg-main)' }} />
-                <Bar dataKey="contracts" name="Contracts" fill="#06b6d4" radius={[0, 4, 4, 0]} barSize={14}>
+                <Bar dataKey="contracts" name="Contracts" fill="#06b6d4" radius={[0, 4, 4, 0]} barSize={18}>
                   {stateStats.map((_, i) => (
                     <Cell key={i} fill={`hsl(${188 + i * 5}, 70%, ${50 - i * 1.5}%)`} />
                   ))}

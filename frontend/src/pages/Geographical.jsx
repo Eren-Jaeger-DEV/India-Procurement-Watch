@@ -141,7 +141,7 @@ const Geographical = () => {
           </div>
         </div>
         
-        <div style={{ height: 600, width: '100%', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
+        <div style={{ height: 750, width: '100%', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
           <MapContainer 
             center={[22.5937, 78.9629]} // Center of India
             zoom={5} 

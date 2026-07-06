@@ -49,8 +49,9 @@ export const fetchSectorDistribution = async () => {
   return res.data;
 };
 
-export const searchDatabase = async (q, page = 1) => {
-  const res = await api.get('/search', { params: { q, page } });
+export const searchDatabase = async (params = {}, page = 1) => {
+  const queryParams = typeof params === 'string' ? { q: params, page } : { ...params, page: params.page || page };
+  const res = await api.get('/search', { params: queryParams });
   return res.data;
 };
 

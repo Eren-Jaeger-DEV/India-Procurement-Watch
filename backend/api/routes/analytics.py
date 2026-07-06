@@ -195,7 +195,7 @@ def api_bid_competition():
 
 @analytics_bp.route("/api/red-flag-explorer")
 def api_red_flag_explorer():
-    """Multi-filter red-flag explorer across aoc_tenders + single_bid_contracts."""
+    """Multi-filter red-flag explorer across single_bid_contracts."""
     page     = max(1, int(request.args.get("page", 1)))
     per_page = min(int(request.args.get("per_page", 25)), 100)
     offset   = (page - 1) * per_page
@@ -213,19 +213,14 @@ def api_red_flag_explorer():
 
     where_parts, params = [], []
 
-    # Flag filters — applied via JOINs or sub-conditions
-    flag_conditions = []
-    if "single_bid" in flags:
-        flag_conditions.append("t.internal_id IN (SELECT internal_id FROM single_bid_contracts)")
+    # Flag filters — since we are querying single_bid_contracts, single_bid is always true.
+    # We can add sub-filters for repeat_win or high_value
     if "high_value" in flags:
-        flag_conditions.append("t.contract_value >= 100000000")   # ≥ 10 Cr
+        where_parts.append("t.contract_value >= 100000000")   # ≥ 10 Cr
     if "repeat_win" in flags:
-        flag_conditions.append(
+        where_parts.append(
             "t.bidder_name IN (SELECT bidder_name FROM repeat_winners WHERE wins >= 3)"
         )
-
-    if flag_conditions:
-        where_parts.append(f"({' OR '.join(flag_conditions)})")
 
     if year:
         where_parts.append("EXTRACT(YEAR FROM t.aoc_date::date)::int = %s")
@@ -247,14 +242,14 @@ def api_red_flag_explorer():
 
     # Risk score: sum of individual flag hits (each worth 1 point)
     risk_expr = " + ".join([
-        "(CASE WHEN t.internal_id IN (SELECT internal_id FROM single_bid_contracts) THEN 1 ELSE 0 END)",
+        "1", # it's single bid
         "(CASE WHEN t.contract_value >= 100000000 THEN 1 ELSE 0 END)",
         "(CASE WHEN t.bidder_name IN (SELECT bidder_name FROM repeat_winners WHERE wins >= 3) THEN 1 ELSE 0 END)",
     ])
 
     try:
         cur.execute(
-            f"SELECT COUNT(*) AS cnt FROM aoc_tenders t {where_sql}",
+            f"SELECT COUNT(*) AS cnt FROM single_bid_contracts t {where_sql}",
             params
         )
         total = cur.fetchone()["cnt"]
@@ -264,7 +259,7 @@ def api_red_flag_explorer():
                 t.internal_id, t.org_name, t.title, t.bidder_name,
                 t.contract_value, t.aoc_date, t.portal_type, t.ref_no,
                 ({risk_expr}) AS risk_score
-            FROM aoc_tenders t
+            FROM single_bid_contracts t
             {where_sql}
             ORDER BY t.contract_value DESC NULLS LAST, t.aoc_date DESC NULLS LAST
             LIMIT %s OFFSET %s
@@ -281,4 +276,5 @@ def api_red_flag_explorer():
     except Exception as e:
         conn.rollback()
         return jsonify({"error": str(e), "total": 0, "results": []}), 500
+
 

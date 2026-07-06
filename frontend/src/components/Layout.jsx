@@ -1,5 +1,5 @@
 import { Outlet, NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, FileText, Search, FileSearch, Bot, Sun, Moon, X, PanelLeftClose, PanelLeftOpen, Map, Network, Menu, Activity, Flag } from 'lucide-react';
+import { LayoutDashboard, FileText, Search, FileSearch, Bot, Sun, Moon, X, PanelLeftClose, PanelLeftOpen, Map, Network, Menu, Activity, Flag, TrendingUp } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import QuickAiBar from './QuickAiBar';
 import './Layout.css';
@@ -75,6 +75,10 @@ const Layout = () => {
           <NavLink to="/geo" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isCollapsed ? "Geographical" : ""}>
             <Map size={20} />
             {!isCollapsed && <span>Geographical</span>}
+          </NavLink>
+          <NavLink to="/insights" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isCollapsed ? "Insights" : ""}>
+            <TrendingUp size={20} />
+            {!isCollapsed && <span>Insights</span>}
           </NavLink>
         </div>
 

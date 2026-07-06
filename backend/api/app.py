@@ -67,6 +67,7 @@ from routes.ai_search import ai_search_bp
 from routes.reporting import reporting_bp
 from routes.network import network_bp
 from routes.tenders import tenders_bp
+from routes.insights import insights_bp
 
 app.register_blueprint(system_bp)
 app.register_blueprint(analytics_bp)
@@ -75,6 +76,7 @@ app.register_blueprint(ai_search_bp)
 app.register_blueprint(reporting_bp)
 app.register_blueprint(network_bp)
 app.register_blueprint(tenders_bp)
+app.register_blueprint(insights_bp)
 
 @app.after_request
 def set_security_headers(response):

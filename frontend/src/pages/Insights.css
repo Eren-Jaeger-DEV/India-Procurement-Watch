@@ -1,0 +1,40 @@
+.insights-page {
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.insights-section-title {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 32px 0 16px;
+}
+
+.insights-section-title h2 {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.insights-section-title p {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 2px 0 0;
+}
+
+/* Vendor profiling styles */
+.insights-page td.cell-wrap {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Styles for grid layouts */
+@media (max-width: 768px) {
+  .insights-page .grid-2col {
+    grid-template-columns: 1fr !important;
+  }
+}

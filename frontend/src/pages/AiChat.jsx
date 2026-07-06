@@ -8,7 +8,7 @@ const AiChat = () => {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [engineMode, setEngineMode] = useState('data'); // 'data' = Database Analyst, 'convo' = Conversational
-  const [model, setModel] = useState('gemini-3.5-flash');
+  const [model, setModel] = useState('deepseek-v4-pro');
   const chatEndRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -372,10 +372,12 @@ const AiChat = () => {
                   fontFamily: "'Inter', sans-serif"
                 }}
               >
-                <option value="gemini-3.5-flash">Gemini 3.5 Flash Engine</option>
-                <option value="gpt-5.5">GPT-5.5 Engine</option>
-                <option value="grok-4.3">Grok 4.3 Engine</option>
-                <option value="deepseek-v4-pro">DeepSeek V4 Pro Engine</option>
+                <option value="deepseek-v4-pro">DeepSeek V4 Pro (Recommended)</option>
+                <option value="deepseek-v4-flash">DeepSeek V4 Flash (Fastest)</option>
+                <option value="claude-sonnet-4-6">Claude Sonnet 4.6 (Smart)</option>
+                <option value="claude-opus-4-8">Claude Opus 4.8 (Premium)</option>
+                <option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
+                <option value="grok-4.3">Grok 4.3</option>
               </select>
             </div>
 

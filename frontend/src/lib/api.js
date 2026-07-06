@@ -54,7 +54,7 @@ export const searchDatabase = async (q, page = 1) => {
   return res.data;
 };
 
-export const aiChat = async (text, model = 'gemini-3.5-flash') => {
+export const aiChat = async (text, model = 'deepseek-v4-pro') => {
   const res = await api.post('/ai-chat', { text, model });
   return res.data;
 };

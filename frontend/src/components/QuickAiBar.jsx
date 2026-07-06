@@ -14,6 +14,7 @@ const QuickAiBar = () => {
   const [open,     setOpen]     = useState(false);
   const [query,    setQuery]    = useState('');
   const [answer,   setAnswer]   = useState('');
+  const [model, setModel] = useState('deepseek-v4-pro');
   const [loading,  setLoading]  = useState(false);
   const inputRef   = useRef(null);
   const answerRef  = useRef(null);
@@ -37,7 +38,7 @@ const QuickAiBar = () => {
 
     await streamAiChat(
       q,
-      'gemini-2.5-flash',
+      model,
       (payload) => {
         if (payload.type === 'text' || payload.type === 'summary_chunk') {
           setAnswer(prev => prev + payload.content);
@@ -140,6 +141,22 @@ const QuickAiBar = () => {
                 <X size={18} />
               </button>
             </div>
+          </div>
+
+          {/* Model Selector */}
+          <div style={{ padding: '8px 16px', borderBottom: '1px solid var(--border-color)' }}>
+            <select 
+              value={model} 
+              onChange={(e) => setModel(e.target.value)}
+              style={{ width: '100%', padding: '4px', fontSize: '12px', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: 4 }}
+            >
+                <option value="deepseek-v4-pro">DeepSeek V4 Pro (Recommended)</option>
+                <option value="deepseek-v4-flash">DeepSeek V4 Flash (Fastest)</option>
+                <option value="claude-sonnet-4-6">Claude Sonnet 4.6 (Smart)</option>
+                <option value="claude-opus-4-8">Claude Opus 4.8 (Premium)</option>
+                <option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
+                <option value="grok-4.3">Grok 4.3</option>
+            </select>
           </div>
 
           {/* Suggestions */}

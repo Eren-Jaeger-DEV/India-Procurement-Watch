@@ -41,13 +41,25 @@ def create_chat_completion_with_fallback(client, models, **kwargs):
             print(f"Model {m} failed: {e}. Trying next...")
             continue
     raise last_exception
-CLAUDE_MODEL   = "claude-opus-4-8"
-GPT_MODEL      = "gpt-5.5"
-DEEPSEEK_MODEL = "deepseek-v4-pro"
-GEMINI_MODEL   = "gemini-3.5-flash"
-FAST_MODEL     = "deepseek-v4-flash"
+# ── Confirmed-working routing.run model IDs (verified 2026-07) ──
+CLAUDE_MODEL   = "claude-sonnet-4-6"    # smart, reliable, cost-effective
+CLAUDE_PREMIUM = "claude-opus-4-8"      # most capable, use only for planning
+DEEPSEEK_MODEL = "deepseek-v4-pro"      # best for SQL generation
+FAST_MODEL     = "deepseek-v4-flash"    # fastest, cheapest
+DEFAULT_MODEL  = "deepseek-v4-pro"      # safe default if frontend sends bad model
 
-def ask_database(user_query, model=GEMINI_MODEL):
+# Valid model IDs accepted by routing.run
+VALID_ROUTING_MODELS = {
+    "claude-opus-4-8", "claude-sonnet-4-6", "deepseek-v4-flash",
+    "deepseek-v4-pro", "gemini-3.5-flash", "grok-4.3",
+    "kimi-k2.6", "minimax-m3", "nemotron-3-ultra"
+}
+
+def ask_database(user_query, model=DEFAULT_MODEL):
+    # Normalise model — reject unknown IDs to avoid hard failures
+    if model not in VALID_ROUTING_MODELS:
+        model = DEFAULT_MODEL
+
     api_key = get_api_key()
     if not api_key:
         yield f"data: {json.dumps({'type': 'error', 'content': 'API Key not found in .env'})}\n\n"
@@ -64,11 +76,12 @@ def ask_database(user_query, model=GEMINI_MODEL):
         }
     )
 
-    router_models = [model, FAST_MODEL]
-    convo_models = [model, GPT_MODEL, GEMINI_MODEL]
-    planner_models = [model, GPT_MODEL, DEEPSEEK_MODEL]
-    sql_models = [model, DEEPSEEK_MODEL, GPT_MODEL, "grok-4.3"]
-    interpreter_models = [model, GPT_MODEL, GEMINI_MODEL]
+    # Fallback chains — only use confirmed-working models
+    router_models     = [FAST_MODEL, DEEPSEEK_MODEL]
+    convo_models      = [model, DEEPSEEK_MODEL, FAST_MODEL]
+    planner_models    = [DEEPSEEK_MODEL, CLAUDE_MODEL, model]
+    sql_models        = [DEEPSEEK_MODEL, CLAUDE_MODEL, FAST_MODEL]
+    interpreter_models = [FAST_MODEL, DEEPSEEK_MODEL, model]
 
     # Phase 0: Intent Router (Fast, No Schema)
     router_messages = [

@@ -229,12 +229,16 @@ def api_narrative_report():
     try:
         conn = get_pg_conn()
         cur = conn.cursor(cursor_factory=RealDictCursor)
-        cur.execute("SELECT COUNT(*) as total_contracts, SUM(contract_value)/10000000.0 as total_value_cr FROM aoc_tenders")
+        cur.execute("""
+            SELECT
+                (SELECT COUNT(*) FROM aoc_tenders) as total_contracts,
+                COALESCE((SELECT value::numeric FROM kpi_stats WHERE key = 'total_value_crore' LIMIT 1), 0) as total_value_cr
+        """)
         row = cur.fetchone() or {}
         conn.close()
         
         c_count = row.get("total_contracts", 0)
-        c_val = round(row.get("total_value_cr", 0) or 0, 2)
+        c_val = round(float(row.get("total_value_cr", 0) or 0), 2)
         
         md_text = f"""# Executive Procurement Analysis Report
 

@@ -160,10 +160,12 @@ const Dashboard = () => {
         setValueDist(vdData.labels.map((l, i) => ({ name: l, count: vdData.counts[i] })));
       }
       if (pbData?.labels) {
+        const total = pbData.counts.reduce((a, b) => a + b, 0) || 1;
         setPortalData(pbData.labels.map((l, i) => ({
           name: l.charAt(0).toUpperCase() + l.slice(1),
           value: pbData.counts[i],
-          color: PORTAL_COLORS[l] || '#6b7280'
+          color: PORTAL_COLORS[l] || '#6b7280',
+          pct: Math.round(100 * pbData.counts[i] / total)
         })));
       }
       setSeasonality(seaData);

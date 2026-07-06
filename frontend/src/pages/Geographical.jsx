@@ -3,6 +3,16 @@ import { MapContainer, TileLayer, GeoJSON, Tooltip } from 'react-leaflet';
 import { fetchStateStats } from '../lib/api';
 import 'leaflet/dist/leaflet.css';
 
+// Maps GeoJSON ST_NM spellings → DB state_name spellings
+const GEO_TO_DB = {
+  'Andaman & Nicobar Island': 'Andaman & Nicobar',
+  'Arunanchal Pradesh': 'Arunachal Pradesh',
+  'Dadara & Nagar Havelli': 'Dadra and Nagar Haveli',
+  'Daman & Diu': 'Daman & Diu',
+  'Jammu & Kashmir': 'Jammu and Kashmir',
+  'NCT of Delhi': 'NCT of Delhi',
+};
+
 const Geographical = () => {
   const [geoData, setGeoData] = useState(null);
   const [stats, setStats] = useState({});
@@ -12,13 +22,22 @@ const Geographical = () => {
   useEffect(() => {
     const loadMapAndData = async () => {
       try {
-        const [geoRes, statsData] = await Promise.all([
+        const [geoRes, statsArray] = await Promise.all([
           fetch('/india-states.json?v=2').then(res => res.json()),
           fetchStateStats()
         ]);
         
         setGeoData(geoRes);
-        setStats(statsData);
+        
+        // Convert array [{state_name, total_contracts, total_value_crore}] → dict keyed by state_name
+        const statsDict = {};
+        (statsArray || []).forEach(row => {
+          statsDict[row.state_name] = {
+            count: row.total_contracts,
+            value: row.total_value_crore,
+          };
+        });
+        setStats(statsDict);
       } catch (e) {
         console.error("Failed to load map data:", e);
       } finally {
@@ -51,8 +70,10 @@ const Geographical = () => {
   };
 
   const style = (feature) => {
-    const stateName = feature.properties.st_nm; // Assuming "st_nm" is the state name property in the geojson
-    const stateData = stats[stateName];
+    // GeoJSON uses "ST_NM" (uppercase) — apply normalization map for mismatched names
+    const geoName  = feature.properties.ST_NM;
+    const dbName   = GEO_TO_DB[geoName] || geoName;
+    const stateData = stats[dbName];
     const val = stateData ? stateData[mode] : 0;
     
     return {
@@ -72,13 +93,14 @@ const Geographical = () => {
   };
 
   const onEachFeature = (feature, layer) => {
-    const stateName = feature.properties.st_nm;
-    const stateData = stats[stateName];
+    const geoName  = feature.properties.ST_NM;
+    const dbName   = GEO_TO_DB[geoName] || geoName;
+    const stateData = stats[dbName];
     const val = stateData ? stateData[mode] : 0;
     
     layer.bindTooltip(`
       <div style="font-family: 'Inter', sans-serif;">
-        <strong>${stateName}</strong><br/>
+        <strong>${geoName}</strong><br/>
         ${mode === 'count' ? 'Contracts' : 'Value'}: ${formatValue(val)}
       </div>
     `, { sticky: true });

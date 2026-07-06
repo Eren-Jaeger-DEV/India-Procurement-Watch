@@ -39,7 +39,11 @@ const QuickAiBar = () => {
       q,
       'gemini-2.5-flash',
       (payload) => {
-        if (payload.type === 'text') setAnswer(prev => prev + payload.content);
+        if (payload.type === 'text' || payload.type === 'summary_chunk') {
+          setAnswer(prev => prev + payload.content);
+        } else if (payload.type === 'error') {
+          setAnswer(`⚠️ ${payload.content || 'An error occurred. Please try again.'}`);
+        }
       },
       () => setLoading(false),
       () => setLoading(false),

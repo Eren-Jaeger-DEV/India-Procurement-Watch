@@ -192,3 +192,93 @@ def api_bid_competition():
     except Exception:
         conn.rollback()
         return jsonify({"labels": [], "counts": [], "colors": []})
+
+@analytics_bp.route("/api/red-flag-explorer")
+def api_red_flag_explorer():
+    """Multi-filter red-flag explorer across aoc_tenders + single_bid_contracts."""
+    page     = max(1, int(request.args.get("page", 1)))
+    per_page = min(int(request.args.get("per_page", 25)), 100)
+    offset   = (page - 1) * per_page
+
+    year      = request.args.get("year",    "").strip()
+    org_kw    = request.args.get("org",     "").strip()
+    bidder_kw = request.args.get("bidder",  "").strip()
+    portal    = request.args.get("portal",  "").strip()
+    min_val   = request.args.get("min_value", "").strip()
+    flags_raw = request.args.get("flags",   "single_bid")
+    flags     = [f.strip() for f in flags_raw.split(",") if f.strip()]
+
+    conn = get_pg_conn()
+    cur  = conn.cursor(cursor_factory=RealDictCursor)
+
+    where_parts, params = [], []
+
+    # Flag filters — applied via JOINs or sub-conditions
+    flag_conditions = []
+    if "single_bid" in flags:
+        flag_conditions.append("t.internal_id IN (SELECT internal_id FROM single_bid_contracts)")
+    if "high_value" in flags:
+        flag_conditions.append("t.contract_value >= 100000000")   # ≥ 10 Cr
+    if "repeat_win" in flags:
+        flag_conditions.append(
+            "t.bidder_name IN (SELECT bidder_name FROM repeat_winners WHERE wins >= 3)"
+        )
+
+    if flag_conditions:
+        where_parts.append(f"({' OR '.join(flag_conditions)})")
+
+    if year:
+        where_parts.append("EXTRACT(YEAR FROM t.aoc_date::date)::int = %s")
+        params.append(int(year))
+    if org_kw:
+        where_parts.append("t.org_name ILIKE %s")
+        params.append(f"%{org_kw}%")
+    if bidder_kw:
+        where_parts.append("t.bidder_name ILIKE %s")
+        params.append(f"%{bidder_kw}%")
+    if portal:
+        where_parts.append("t.portal_type = %s")
+        params.append(portal)
+    if min_val:
+        where_parts.append("t.contract_value >= %s")
+        params.append(float(min_val))
+
+    where_sql = "WHERE " + " AND ".join(where_parts) if where_parts else ""
+
+    # Risk score: sum of individual flag hits (each worth 1 point)
+    risk_expr = " + ".join([
+        "(CASE WHEN t.internal_id IN (SELECT internal_id FROM single_bid_contracts) THEN 1 ELSE 0 END)",
+        "(CASE WHEN t.contract_value >= 100000000 THEN 1 ELSE 0 END)",
+        "(CASE WHEN t.bidder_name IN (SELECT bidder_name FROM repeat_winners WHERE wins >= 3) THEN 1 ELSE 0 END)",
+    ])
+
+    try:
+        cur.execute(
+            f"SELECT COUNT(*) AS cnt FROM aoc_tenders t {where_sql}",
+            params
+        )
+        total = cur.fetchone()["cnt"]
+
+        cur.execute(f"""
+            SELECT
+                t.internal_id, t.org_name, t.title, t.bidder_name,
+                t.contract_value, t.aoc_date, t.portal_type, t.ref_no,
+                ({risk_expr}) AS risk_score
+            FROM aoc_tenders t
+            {where_sql}
+            ORDER BY t.contract_value DESC NULLS LAST, t.aoc_date DESC NULLS LAST
+            LIMIT %s OFFSET %s
+        """, params + [per_page, offset])
+
+        rows = [dict(r) for r in cur.fetchall()]
+        # Serialize dates
+        for r in rows:
+            if r.get("aoc_date"):
+                r["aoc_date"] = str(r["aoc_date"])
+
+        return jsonify({"total": total, "page": page, "per_page": per_page, "results": rows})
+
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"error": str(e), "total": 0, "results": []}), 500
+

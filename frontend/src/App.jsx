@@ -14,6 +14,7 @@ const Geographical = lazy(() => import('./pages/Geographical'));
 const Investigation = lazy(() => import('./pages/Investigation'));
 const NetworkGraph = lazy(() => import('./pages/NetworkGraph'));
 const AiChat = lazy(() => import('./pages/AiChat'));
+const RedFlagExplorer = lazy(() => import('./pages/RedFlagExplorer'));
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -69,7 +70,8 @@ function App() {
               <Route path="investigation" element={<Investigation />} />
               <Route path="search" element={<Search />} />
               <Route path="network" element={<NetworkGraph />} />
-              <Route path="chat" element={<AiChat />} />
+              <Route path="chat"        element={<AiChat />} />
+              <Route path="redflag"     element={<RedFlagExplorer />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

@@ -2,7 +2,8 @@ import { useEffect, useState, useCallback } from 'react';
 import {
   fetchKpis, fetchTrends, fetchTopOrgs, fetchTenderTypes,
   fetchValueDistribution, fetchPortalBreakdown, fetchMonthlySeasonality,
-  fetchBidCompetition, fetchSingleBidContracts, fetchRepeatWinners
+  fetchBidCompetition, fetchSingleBidContracts, fetchRepeatWinners,
+  fetchStateStats
 } from '../lib/api';
 import {
   ComposedChart, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -115,6 +116,7 @@ const Dashboard = () => {
   const [bidComp,      setBidComp]      = useState(null);
   const [singleBids,   setSingleBids]   = useState(null);
   const [repeatWin,    setRepeatWin]    = useState(null);
+  const [stateStats,   setStateStats]   = useState(null);
   const [loading,      setLoading]      = useState(true);
   const [error,        setError]        = useState(null);
   const [lastUpdated,  setLastUpdated]  = useState(null);
@@ -122,7 +124,7 @@ const Dashboard = () => {
   const loadData = useCallback(async () => {
     setLoading(true); setError(null);
     try {
-      const [kpiData, trendData, orgData, ttData, vdData, pbData, seaData, bcData, sbData, rwData] =
+      const [kpiData, trendData, orgData, ttData, vdData, pbData, seaData, bcData, sbData, rwData, ssData] =
         await Promise.all([
           fetchKpis(),
           fetchTrends('yearly', 'aoc'),
@@ -132,8 +134,9 @@ const Dashboard = () => {
           fetchPortalBreakdown(),
           fetchMonthlySeasonality(),
           fetchBidCompetition(),
-          fetchSingleBidContracts(10000000, 1),  // ≥ 1Cr
+          fetchSingleBidContracts(10000000, 1),
           fetchRepeatWinners(5, 1),
+          fetchStateStats(),
         ]);
 
       setKpis(kpiData);
@@ -173,6 +176,17 @@ const Dashboard = () => {
       }
       setSingleBids(sbData?.results || []);
       setRepeatWin(rwData?.results || []);
+      if (Array.isArray(ssData) && ssData.length) {
+        const sorted = [...ssData]
+          .filter(r => r.total_contracts > 0)
+          .sort((a, b) => b.total_contracts - a.total_contracts)
+          .slice(0, 15);
+        setStateStats(sorted.map(r => ({
+          name: r.state_name?.replace(' (State)', '').replace(' (UT)', '') || r.state_name,
+          contracts: r.total_contracts,
+          value: Math.round(r.total_value_crore || 0),
+        })));
+      }
     } catch (e) {
       console.error(e);
       setError('Failed to connect to the database. Please refresh.');
@@ -447,6 +461,28 @@ const Dashboard = () => {
             ) : <p style={{ color: 'var(--text-muted)', fontSize: 13, textAlign: 'center', padding: 20 }}>Loading…</p>}
           </div>
         </div>
+      </div>
+
+      {/* ── ROW 5: State-wise breakdown ───────────────────────────────────────── */}
+      <SectionHeader title="State-wise Procurement" subtitle="Top 15 states by number of contracts awarded" />
+      <div style={{ marginBottom: 24 }}>
+        <ChartCard title="Contracts by State" subtitle="State portal awards only — Central portal contracts not state-attributed" height={320}>
+          {stateStats?.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={stateStats} layout="vertical" margin={{ top: 0, right: 60, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--border-color)" />
+                <XAxis type="number" tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} tickLine={false} axisLine={false} tickFormatter={v => v >= 1000 ? (v/1000).toFixed(0)+'k' : v} />
+                <YAxis dataKey="name" type="category" tick={{ fill: 'var(--text-primary)', fontSize: 10 }} width={130} tickLine={false} axisLine={false} />
+                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'var(--bg-main)' }} />
+                <Bar dataKey="contracts" name="Contracts" fill="#06b6d4" radius={[0, 4, 4, 0]} barSize={14}>
+                  {stateStats.map((_, i) => (
+                    <Cell key={i} fill={`hsl(${188 + i * 5}, 70%, ${50 - i * 1.5}%)`} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          ) : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)' }}>Loading state data…</div>}
+        </ChartCard>
       </div>
 
       {/* ── LIVE DATA NOTICE ──────────────────────────────────────────────────── */}

@@ -161,9 +161,8 @@
     padding: 12px;
     padding-top: 70px;
     padding-bottom: 80px;
-    height: auto;
-    min-height: 100vh;
-    overflow-y: auto;
+    height: 100vh;     /* keep full height, body is locked */
+    overflow-y: auto;  /* only this scrolls */
   }
 
   /* ── Mobile Top Header ── */

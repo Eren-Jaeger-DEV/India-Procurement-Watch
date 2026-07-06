@@ -1,6 +1,7 @@
 import { Outlet, NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, FileText, Search, FileSearch, Bot, Sun, Moon, X, PanelLeftClose, PanelLeftOpen, Database, Map, Network, Menu, Activity } from 'lucide-react';
+import { LayoutDashboard, FileText, Search, FileSearch, Bot, Sun, Moon, X, PanelLeftClose, PanelLeftOpen, Map, Network, Menu, Activity } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import QuickAiBar from './QuickAiBar';
 import './Layout.css';
 
 const NAV_ITEMS = [
@@ -207,6 +208,9 @@ const Layout = () => {
           </div>
         </>
       )}
+
+      {/* Persistent floating AI query bar — visible on all pages */}
+      <QuickAiBar />
     </div>
   );
 };

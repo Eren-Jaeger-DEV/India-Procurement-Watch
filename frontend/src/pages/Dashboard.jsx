@@ -5,8 +5,8 @@ import {
   fetchBidCompetition, fetchSingleBidContracts, fetchRepeatWinners
 } from '../lib/api';
 import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, Legend
+  ComposedChart, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, Legend, Line
 } from 'recharts';
 import {
   Briefcase, Building2, TrendingUp, IndianRupee, RefreshCw,
@@ -141,7 +141,9 @@ const Dashboard = () => {
 
       if (trendData?.labels) {
         setTrends(trendData.labels.map((label, i) => ({
-          name: label, count: trendData.counts[i]
+          name: label,
+          count: trendData.counts[i],
+          single_bid_pct: trendData.single_bid_pcts?.[i] ?? null,
         })));
       }
       if (orgData?.labels) {
@@ -235,10 +237,10 @@ const Dashboard = () => {
 
       {/* ── ROW 1: Yearly trend + Top orgs ──────────────────────────────────── */}
       <div className="dashboard-grid" style={{ marginBottom: 24 }}>
-        <ChartCard title="Procurement Volume Over Time" subtitle="Yearly contract awards — live from database" height={280}>
+        <ChartCard title="Procurement Volume Over Time" subtitle="Bars = total tenders · Line = single-bid % (right axis)" height={280}>
           {trends?.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={trends} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+              <ComposedChart data={trends} margin={{ top: 10, right: 40, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="trendGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%"  stopColor="var(--accent-primary)" stopOpacity={0.15} />
@@ -247,13 +249,16 @@ const Dashboard = () => {
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" />
                 <XAxis dataKey="name" tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} tickLine={false} axisLine={false} />
-                <YAxis tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} tickLine={false} axisLine={false} tickFormatter={v => v >= 1000 ? (v / 1000) + 'k' : v} />
+                <YAxis yAxisId="left" tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} tickLine={false} axisLine={false} tickFormatter={v => v >= 1000 ? (v / 1000) + 'k' : v} />
+                <YAxis yAxisId="right" orientation="right" tick={{ fill: '#ef4444', fontSize: 10 }} tickLine={false} axisLine={false} unit="%" domain={[0, 'auto']} />
                 <Tooltip content={<CustomTooltip />} />
-                <Area type="monotone" dataKey="count" name="Tenders" stroke="var(--accent-primary)" strokeWidth={2} fillOpacity={1} fill="url(#trendGrad)" />
-              </AreaChart>
+                <Area yAxisId="left" type="monotone" dataKey="count" name="Tenders" stroke="var(--accent-primary)" strokeWidth={2} fillOpacity={1} fill="url(#trendGrad)" />
+                <Line yAxisId="right" type="monotone" dataKey="single_bid_pct" name="Single-bid %" stroke="#ef4444" strokeWidth={2} dot={{ r: 3, fill: '#ef4444' }} strokeDasharray="5 3" connectNulls />
+              </ComposedChart>
             </ResponsiveContainer>
           ) : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)' }}>No data</div>}
         </ChartCard>
+
 
         <ChartCard title="Top Procuring Organizations" subtitle="By number of published tenders" height={280}>
           {orgs?.length > 0 ? (

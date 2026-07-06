@@ -6,7 +6,8 @@ import {
 import {
   BarChart, Bar, LineChart, Line
 } from 'recharts';
-import { TrendingUp, Users, Building2, Award, Search, AlertCircle } from 'lucide-react';
+import { Award, Building2, TrendingUp, AlertCircle, Search, Users, ChevronRight, Download, FileText } from 'lucide-react';
+import html2pdf from 'html2pdf.js';
 import './Insights.css';
 
 const fmt   = (n) => new Intl.NumberFormat('en-IN').format(n || 0);
@@ -49,6 +50,19 @@ const Insights = () => {
   const [vendorLoad,  setVendorLoad]  = useState(false);
   const [vendorErr,   setVendorErr]   = useState(null);
   const debounceRef = useRef(null);
+  const profileRef  = useRef(null);
+
+  const exportVendorDossier = () => {
+    if (!profileRef.current || !profile) return;
+    const opt = {
+      margin:       0.4,
+      filename:     `Vendor_Dossier_${profile.name.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`,
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2 },
+      jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+    };
+    html2pdf().set(opt).from(profileRef.current).save();
+  };
 
   // Load scatter data
   useEffect(() => {
@@ -238,7 +252,20 @@ const Insights = () => {
 
       {/* Profile */}
       {profile && (
-        <div style={{ display: 'grid', gap: 16 }}>
+        <div ref={profileRef} style={{ display: 'grid', gap: 16 }}>
+          {/* Header Bar with Export Button */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-card)', padding: '16px 20px', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-color)' }}>
+            <div>
+              <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>{profile.name}</h2>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>Official Procurement Risk Profile & Intelligence Dossier</div>
+            </div>
+            <button 
+              onClick={exportVendorDossier}
+              style={{ padding: '8px 16px', fontSize: 13, fontWeight: 600, background: 'var(--accent-primary)', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+            >
+              <Download size={15} /> Download PDF Dossier
+            </button>
+          </div>
           {/* Sanctions Warning Banner */}
           {profile.sanction_match && (
             <div className="card" style={{ padding: '16px 20px', borderLeft: '4px solid #dc2626', background: 'rgba(220, 38, 38, 0.08)', display: 'flex', flexDirection: 'column', gap: 6 }}>

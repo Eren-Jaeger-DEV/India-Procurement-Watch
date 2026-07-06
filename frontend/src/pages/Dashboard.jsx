@@ -1,7 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { fetchKpis, fetchTrends, fetchTopOrgs } from '../lib/api';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, RadialBarChart, RadialBar, PolarAngleAxis } from 'recharts';
-import { Briefcase, Building2, TrendingUp, ShieldAlert, BrainCircuit, Activity } from 'lucide-react';
+import {
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, BarChart, Bar
+} from 'recharts';
+import { Briefcase, Building2, TrendingUp, IndianRupee, RefreshCw } from 'lucide-react';
 import './Dashboard.css';
 
 const Dashboard = () => {
@@ -9,213 +12,209 @@ const Dashboard = () => {
   const [trends, setTrends] = useState(null);
   const [orgs, setOrgs] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [lastUpdated, setLastUpdated] = useState(null);
 
-  // Simulated Live Threat Feed for Data Science showcase
-  const [threatFeed, setThreatFeed] = useState([
-    { id: 1, time: 'Just now', dept: 'Ministry of Defence', alert: 'NLP Tailored Spec Detected', confidence: '98%', risk: 'CRITICAL' },
-    { id: 2, time: '2m ago', dept: 'NHAI', alert: 'Isolation Forest Anomaly', confidence: '92%', risk: 'HIGH' },
-    { id: 3, time: '5m ago', dept: 'State PWD', alert: 'Cartel Ring Activity (Union-Find)', confidence: '89%', risk: 'HIGH' },
-    { id: 4, time: '12m ago', dept: 'Health Dept', alert: 'Fuzzy PEP Match (OpenSanctions)', confidence: '76%', risk: 'MEDIUM' }
-  ]);
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [kpiData, trendData, orgData] = await Promise.all([
+        fetchKpis(),
+        fetchTrends('yearly', 'aoc'),
+        fetchTopOrgs('count', 10, 'aoc')
+      ]);
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        const [kpiData, trendData, orgData] = await Promise.all([
-          fetchKpis(),
-          fetchTrends('yearly', 'aoc'),
-          fetchTopOrgs('count', 10, 'aoc')
-        ]);
-        
-        setKpis(kpiData);
-        
-        // Format trend data for recharts
-        const formattedTrends = trendData.labels.map((label, idx) => ({
+      setKpis(kpiData);
+      setLastUpdated(new Date());
+
+      if (trendData?.labels) {
+        setTrends(trendData.labels.map((label, idx) => ({
           name: label,
           count: trendData.counts[idx]
-        }));
-        setTrends(formattedTrends);
-
-        // Format org data for recharts
-        const formattedOrgs = orgData.labels.map((label, idx) => ({
-          name: label.substring(0, 25) + (label.length > 25 ? '...' : ''),
-          count: orgData.values[idx]
-        }));
-        setOrgs(formattedOrgs);
-      } catch (e) {
-        console.error("Failed to load dashboard data:", e);
-      } finally {
-        setLoading(false);
+        })));
       }
-    };
-    
-    loadData();
+
+      if (orgData?.labels) {
+        setOrgs(orgData.labels.map((label, idx) => ({
+          name: label.length > 30 ? label.substring(0, 30) + '…' : label,
+          count: orgData.values[idx]
+        })));
+      }
+    } catch (e) {
+      console.error("Failed to load dashboard data:", e);
+      setError("Failed to connect to the database. Please try refreshing.");
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const fmt = (num) => new Intl.NumberFormat('en-IN').format(num || 0);
+  const fmtCr = (num) => `₹${new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(num || 0)} Cr`;
+
   if (loading) {
-    return <div className="loading-state">Loading intelligence center...</div>;
+    return (
+      <div className="dashboard-page" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+        <div style={{ textAlign: 'center' }}>
+          <RefreshCw size={36} style={{ animation: 'spin 1s linear infinite', color: 'var(--accent-primary)', marginBottom: 16 }} />
+          <p style={{ color: 'var(--text-secondary)' }}>Loading live data from database...</p>
+          <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+        </div>
+      </div>
+    );
   }
 
-  const formatNumber = (num) => new Intl.NumberFormat('en-IN').format(num || 0);
-  const formatCrore = (num) => `₹${new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(num || 0)} Cr`;
-
-  // Risk Gauge Data
-  const riskScore = 78;
-  const gaugeData = [{ name: 'Risk', value: riskScore, fill: '#ef4444' }];
+  if (error) {
+    return (
+      <div className="dashboard-page" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+        <div className="card" style={{ maxWidth: 500, textAlign: 'center', padding: 32, borderLeft: '4px solid var(--error, #ef4444)' }}>
+          <p style={{ color: 'var(--error, #ef4444)', fontWeight: 600, marginBottom: 12 }}>{error}</p>
+          <button onClick={loadData} style={{ padding: '8px 20px', background: 'var(--accent-primary)', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 500 }}>
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="dashboard-page">
-      <div className="page-header" style={{ borderBottom: '2px solid var(--border-color)', paddingBottom: '16px', marginBottom: '24px' }}>
-        <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <BrainCircuit size={32} color="var(--accent-primary)" /> 
-          Risk Intelligence Center
-        </h1>
-        <p className="page-subtitle">Machine Learning & Data Science Command Overview</p>
+      {/* Header */}
+      <div className="page-header" style={{ borderBottom: '2px solid var(--border-color)', paddingBottom: 16, marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+        <div>
+          <h1 className="page-title">Overview</h1>
+          <p className="page-subtitle">Live procurement analytics from the PostgreSQL database</p>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {lastUpdated && (
+            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+              Updated {lastUpdated.toLocaleTimeString()}
+            </span>
+          )}
+          <button
+            onClick={loadData}
+            style={{
+              padding: '7px 14px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6,
+              background: 'var(--accent-primary)', color: '#fff', border: 'none',
+              borderRadius: 'var(--radius-md, 8px)', fontWeight: 500, cursor: 'pointer',
+            }}
+          >
+            <RefreshCw size={13} />
+            Refresh
+          </button>
+        </div>
       </div>
 
-      {/* DATA SCIENCE ENGINE STATUS */}
-      <div className="dashboard-grid kpi-row" style={{ marginBottom: '24px' }}>
-        <div className="card kpi-card" style={{ borderLeft: '4px solid #3b82f6' }}>
-          <div className="kpi-icon-wrapper blue">
-            <Activity size={24} />
-          </div>
+      {/* KPI Cards */}
+      <div className="dashboard-grid kpi-row" style={{ marginBottom: 24 }}>
+        <div className="card kpi-card" style={{ borderLeft: '4px solid var(--accent-primary)' }}>
+          <div className="kpi-icon-wrapper blue"><Briefcase size={24} /></div>
           <div className="kpi-details">
-            <div className="kpi-label">ML Engines Status</div>
-            <div className="kpi-value" style={{ fontSize: '18px', color: '#10b981' }}>ONLINE & ACTIVE</div>
-            <div className="kpi-subtext">Isolation Forest & NLP Router</div>
+            <div className="kpi-label">Total Tenders</div>
+            <div className="kpi-value">{fmt(kpis?.total_aoc_tenders)}</div>
+            <div className="kpi-subtext">Government contracts in database</div>
           </div>
         </div>
 
-        <div className="card kpi-card" style={{ borderLeft: '4px solid #ef4444' }}>
-          <div className="kpi-icon-wrapper red">
-            <ShieldAlert size={24} color="#ef4444" />
-          </div>
+        <div className="card kpi-card" style={{ borderLeft: '4px solid #10b981' }}>
+          <div className="kpi-icon-wrapper" style={{ background: 'rgba(16,185,129,0.1)', color: '#10b981' }}><IndianRupee size={24} /></div>
           <div className="kpi-details">
-            <div className="kpi-label">System ML Risk Score</div>
-            <div className="kpi-value" style={{ fontSize: '24px' }}>{riskScore}/100</div>
-            <div className="kpi-subtext">High Anomaly Volume Detected</div>
+            <div className="kpi-label">Total Contract Value</div>
+            <div className="kpi-value">{fmtCr(kpis?.total_value_crore)}</div>
+            <div className="kpi-subtext">Cumulative procurement spend</div>
           </div>
         </div>
 
         <div className="card kpi-card" style={{ borderLeft: '4px solid #8b5cf6' }}>
-          <div className="kpi-icon-wrapper purple">
-            <Briefcase size={24} />
-          </div>
+          <div className="kpi-icon-wrapper purple"><Building2 size={24} /></div>
           <div className="kpi-details">
-            <div className="kpi-label">Analyzed Contracts</div>
-            <div className="kpi-value">{formatNumber(kpis?.total_aoc_tenders)}</div>
-            <div className="kpi-subtext">Total Value: {formatCrore(kpis?.total_value_crore)}</div>
+            <div className="kpi-label">Unique Organizations</div>
+            <div className="kpi-value">{fmt(kpis?.unique_orgs)}</div>
+            <div className="kpi-subtext">Government departments tracked</div>
+          </div>
+        </div>
+
+        <div className="card kpi-card" style={{ borderLeft: '4px solid #f59e0b' }}>
+          <div className="kpi-icon-wrapper" style={{ background: 'rgba(245,158,11,0.1)', color: '#f59e0b' }}><TrendingUp size={24} /></div>
+          <div className="kpi-details">
+            <div className="kpi-label">Avg Contract Value</div>
+            <div className="kpi-value">{fmtCr(kpis?.avg_value_crore)}</div>
+            <div className="kpi-subtext">Per tender average</div>
           </div>
         </div>
       </div>
 
-      <div className="dashboard-grid" style={{ gridTemplateColumns: '2fr 1fr' }}>
-        
-        {/* ML THREAT FEED */}
-        <div className="card chart-card">
-          <div className="card-header">
-            <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span className="status-dot ready" style={{ background: '#ef4444' }}></span>
-              Live ML Threat Feed
-            </div>
-            <div className="card-subtitle">Real-time alerts from the predictive NLP & Cartel detection engines</div>
-          </div>
-          <div className="table-responsive" style={{ padding: '0 16px 16px' }}>
-            <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid var(--border-color)', textAlign: 'left', fontSize: '13px', color: 'var(--text-secondary)' }}>
-                  <th style={{ padding: '8px' }}>Time</th>
-                  <th style={{ padding: '8px' }}>Target Department</th>
-                  <th style={{ padding: '8px' }}>Algorithm Alert</th>
-                  <th style={{ padding: '8px' }}>Confidence</th>
-                </tr>
-              </thead>
-              <tbody>
-                {threatFeed.map(feed => (
-                  <tr key={feed.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                    <td style={{ padding: '12px 8px', fontSize: '13px', color: 'var(--text-secondary)' }}>{feed.time}</td>
-                    <td style={{ padding: '12px 8px', fontWeight: 'bold' }}>{feed.dept}</td>
-                    <td style={{ padding: '12px 8px' }}>
-                      <span style={{ 
-                        background: feed.risk === 'CRITICAL' ? 'rgba(239, 68, 68, 0.1)' : feed.risk === 'HIGH' ? 'rgba(249, 115, 22, 0.1)' : 'rgba(234, 179, 8, 0.1)',
-                        color: feed.risk === 'CRITICAL' ? '#ef4444' : feed.risk === 'HIGH' ? '#f97316' : '#eab308',
-                        padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: '600'
-                      }}>
-                        {feed.alert}
-                      </span>
-                    </td>
-                    <td style={{ padding: '12px 8px', fontFamily: 'monospace' }}>{feed.confidence}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* RISK GAUGE */}
-        <div className="card chart-card">
-          <div className="card-header">
-            <div className="card-title">Aggregated Risk Index</div>
-            <div className="card-subtitle">Global ML Anomaly Output</div>
-          </div>
-          <div className="chart-wrapper" style={{ height: 250, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <RadialBarChart cx="50%" cy="50%" innerRadius="70%" outerRadius="100%" barSize={15} data={gaugeData} startAngle={180} endAngle={0}>
-                <PolarAngleAxis type="number" domain={[0, 100]} angleAxisId={0} tick={false} />
-                <RadialBar minAngle={15} background={{ fill: 'var(--border-color)' }} clockWise dataKey="value" cornerRadius={10} />
-              </RadialBarChart>
-            </ResponsiveContainer>
-            <div style={{ marginTop: '-80px', textAlign: 'center' }}>
-              <span style={{ fontSize: '36px', fontWeight: 'bold', color: '#ef4444' }}>{riskScore}</span>
-              <div style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>CRITICAL RISK</div>
-            </div>
-          </div>
-        </div>
-
-      </div>
-
-      <div className="dashboard-grid">
+      {/* Charts */}
+      <div className="dashboard-grid" style={{ marginBottom: 24 }}>
+        {/* Trend Chart */}
         <div className="card chart-card">
           <div className="card-header">
             <div className="card-title">Procurement Volume Over Time</div>
-            <div className="card-subtitle">Yearly contract awards dataset</div>
+            <div className="card-subtitle">Yearly contract awards — live from database</div>
           </div>
           <div className="chart-wrapper" style={{ height: 300 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={trends} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="var(--accent-primary)" stopOpacity={0.1}/>
-                    <stop offset="95%" stopColor="var(--accent-primary)" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" />
-                <XAxis dataKey="name" tick={{fill: 'var(--text-secondary)', fontSize: 12}} tickLine={false} axisLine={false} />
-                <YAxis tick={{fill: 'var(--text-secondary)', fontSize: 12}} tickLine={false} axisLine={false} tickFormatter={(val) => val >= 1000 ? (val/1000)+'k' : val} />
-                <Tooltip />
-                <Area type="monotone" dataKey="count" stroke="var(--accent-primary)" strokeWidth={2} fillOpacity={1} fill="url(#colorCount)" />
-              </AreaChart>
-            </ResponsiveContainer>
+            {trends?.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={trends} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="var(--accent-primary)" stopOpacity={0.15} />
+                      <stop offset="95%" stopColor="var(--accent-primary)" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" />
+                  <XAxis dataKey="name" tick={{ fill: 'var(--text-secondary)', fontSize: 12 }} tickLine={false} axisLine={false} />
+                  <YAxis tick={{ fill: 'var(--text-secondary)', fontSize: 12 }} tickLine={false} axisLine={false} tickFormatter={(v) => v >= 1000 ? (v / 1000) + 'k' : v} />
+                  <Tooltip contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8 }} />
+                  <Area type="monotone" dataKey="count" stroke="var(--accent-primary)" strokeWidth={2} fillOpacity={1} fill="url(#colorCount)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)', fontSize: 14 }}>
+                No trend data available yet
+              </div>
+            )}
           </div>
         </div>
 
+        {/* Top Orgs */}
         <div className="card chart-card">
           <div className="card-header">
-            <div className="card-title">Top High-Volume Buyers</div>
-            <div className="card-subtitle">Entities passing through the ML pipeline</div>
+            <div className="card-title">Top Procuring Organizations</div>
+            <div className="card-subtitle">By number of published tenders</div>
           </div>
           <div className="chart-wrapper" style={{ height: 300 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={orgs} layout="vertical" margin={{ top: 5, right: 30, left: 50, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--border-color)" />
-                <XAxis type="number" tick={{fill: 'var(--text-secondary)', fontSize: 12}} tickLine={false} axisLine={false} />
-                <YAxis dataKey="name" type="category" tick={{fill: 'var(--text-primary)', fontSize: 11}} width={150} tickLine={false} axisLine={false} />
-                <Tooltip cursor={{fill: 'var(--bg-main)'}} />
-                <Bar dataKey="count" fill="var(--accent-primary)" radius={[0, 4, 4, 0]} barSize={16} />
-              </BarChart>
-            </ResponsiveContainer>
+            {orgs?.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={orgs} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--border-color)" />
+                  <XAxis type="number" tick={{ fill: 'var(--text-secondary)', fontSize: 12 }} tickLine={false} axisLine={false} />
+                  <YAxis dataKey="name" type="category" tick={{ fill: 'var(--text-primary)', fontSize: 11 }} width={160} tickLine={false} axisLine={false} />
+                  <Tooltip contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8 }} cursor={{ fill: 'var(--bg-main)' }} />
+                  <Bar dataKey="count" fill="var(--accent-primary)" radius={[0, 4, 4, 0]} barSize={16} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)', fontSize: 14 }}>
+                No organization data available yet
+              </div>
+            )}
           </div>
         </div>
+      </div>
+
+      {/* Data Notice */}
+      <div className="card" style={{ padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 12, background: 'var(--bg-main)', border: '1px solid var(--border-color)' }}>
+        <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', boxShadow: '0 0 6px #10b981', flexShrink: 0, animation: 'pulse 2s ease-in-out infinite' }} />
+        <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }`}</style>
+        <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0 }}>
+          All data is live from the dedicated PostgreSQL database server over a secure Tailscale private network.
+          Showing <strong style={{ color: 'var(--text-primary)' }}>{fmt(kpis?.total_aoc_tenders)}</strong> tenders loaded so far — data import is still in progress and counts will increase automatically.
+        </p>
       </div>
     </div>
   );

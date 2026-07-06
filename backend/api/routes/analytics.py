@@ -214,12 +214,16 @@ def api_red_flag_explorer():
     where_parts, params = [], []
 
     # Flag filters — since we are querying single_bid_contracts, single_bid is always true.
-    # We can add sub-filters for repeat_win or high_value
+    # We can add sub-filters for repeat_win, high_value, or debarred
     if "high_value" in flags:
         where_parts.append("t.contract_value >= 100000000")   # ≥ 10 Cr
     if "repeat_win" in flags:
         where_parts.append(
             "t.bidder_name IN (SELECT bidder_name FROM repeat_winners WHERE wins >= 3)"
+        )
+    if "debarred" in flags:
+        where_parts.append(
+            "EXISTS (SELECT 1 FROM sanctioned_entities s WHERE t.bidder_name ILIKE '%' || s.name || '%' OR s.name ILIKE '%' || t.bidder_name || '%')"
         )
 
     if year:
@@ -240,11 +244,12 @@ def api_red_flag_explorer():
 
     where_sql = "WHERE " + " AND ".join(where_parts) if where_parts else ""
 
-    # Risk score: sum of individual flag hits (each worth 1 point)
+    # Risk score: sum of individual flag hits (each worth 1 point, debarred worth 2 points)
     risk_expr = " + ".join([
         "1", # it's single bid
         "(CASE WHEN t.contract_value >= 100000000 THEN 1 ELSE 0 END)",
         "(CASE WHEN t.bidder_name IN (SELECT bidder_name FROM repeat_winners WHERE wins >= 3) THEN 1 ELSE 0 END)",
+        "(CASE WHEN EXISTS (SELECT 1 FROM sanctioned_entities s WHERE t.bidder_name ILIKE '%' || s.name || '%' OR s.name ILIKE '%' || t.bidder_name || '%') THEN 2 ELSE 0 END)",
     ])
 
     try:

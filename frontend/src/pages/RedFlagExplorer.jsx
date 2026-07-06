@@ -8,6 +8,7 @@ const FLAG_OPTIONS = [
   { key: 'single_bid',   label: 'Single Bid',    color: '#ef4444', desc: 'Only one bidder — zero competition' },
   { key: 'high_value',   label: 'High Value',     color: '#f97316', desc: 'Contract > ₹10 Cr' },
   { key: 'repeat_win',   label: 'Repeat Winner',  color: '#8b5cf6', desc: 'Same vendor won from same org before' },
+  { key: 'debarred',     label: 'Debarred (Sanctions)', color: '#dc2626', desc: 'Vendor matches World Bank sanctions list' },
 ];
 
 const YEAR_OPTIONS = ['All', 2026, 2025, 2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017, 2016, 2015];

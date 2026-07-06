@@ -239,6 +239,24 @@ const Insights = () => {
       {/* Profile */}
       {profile && (
         <div style={{ display: 'grid', gap: 16 }}>
+          {/* Sanctions Warning Banner */}
+          {profile.sanction_match && (
+            <div className="card" style={{ padding: '16px 20px', borderLeft: '4px solid #dc2626', background: 'rgba(220, 38, 38, 0.08)', display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#dc2626', fontWeight: 700, fontSize: 14 }}>
+                <AlertCircle size={18} />
+                DEBARRED PROVIDER (SANCTIONS MATCH)
+              </div>
+              <p style={{ margin: 0, fontSize: 13, color: 'var(--text-primary)' }}>
+                This vendor name matches a record on the <strong>World Bank Group Debarred Providers List</strong>.
+              </p>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>
+                <div><strong>Sanction reason:</strong> {profile.sanction_match.sanctions}</div>
+                {profile.sanction_match.addresses && <div><strong>Registered Address:</strong> {profile.sanction_match.addresses}</div>}
+                {profile.sanction_match.countries && <div><strong>Jurisdiction:</strong> {profile.sanction_match.countries.toUpperCase()}</div>}
+              </div>
+            </div>
+          )}
+
           {/* Summary KPIs */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12 }}>
             {[

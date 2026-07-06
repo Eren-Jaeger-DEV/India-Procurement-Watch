@@ -154,6 +154,16 @@ def api_vendor_profile():
     for c in contracts:
         if c.get("aoc_date"): c["aoc_date"] = str(c["aoc_date"])
 
+    # Check if top vendor matches any sanctioned entity
+    cur.execute("""
+        SELECT name, schema_type, countries, addresses, sanctions, first_seen
+        FROM sanctioned_entities
+        WHERE name ILIKE %s OR %s ILIKE '%' || name || '%'
+        LIMIT 1
+    """, (f"%{top}%", top))
+    sanction_row = cur.fetchone()
+    sanction_match = dict(sanction_row) if sanction_row else None
+
     return jsonify({
         "matches":   matches,
         "profile": {
@@ -162,5 +172,6 @@ def api_vendor_profile():
             "departments":    depts,
             "contracts":      contracts,
             "single_bid_count": int(sb_wins),
+            "sanction_match": sanction_match,
         }
     })

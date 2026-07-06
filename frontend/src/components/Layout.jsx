@@ -1,5 +1,5 @@
 import { Outlet, NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, FileText, Search, FileSearch, Bot, Sun, Moon, X, PanelLeftClose, PanelLeftOpen, Map, Network, Menu, Activity, Flag, TrendingUp, ShieldAlert } from 'lucide-react';
+import { LayoutDashboard, FileText, Search, FileSearch, Bot, Sun, Moon, X, PanelLeftClose, PanelLeftOpen, Map, Network, Menu, Activity, Flag, TrendingUp, ShieldAlert, Building2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import QuickAiBar from './QuickAiBar';
 import TenderModal from './TenderModal';
@@ -80,6 +80,10 @@ const Layout = () => {
           <NavLink to="/insights" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isCollapsed ? "Insights" : ""}>
             <TrendingUp size={20} />
             {!isCollapsed && <span>Insights</span>}
+          </NavLink>
+          <NavLink to="/departments" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isCollapsed ? "Department Radar" : ""}>
+            <Building2 size={20} />
+            {!isCollapsed && <span>Department Radar</span>}
           </NavLink>
           <NavLink to="/collusion" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isCollapsed ? "Cartel Radar" : ""}>
             <ShieldAlert size={20} style={{ color: '#ef4444' }} />

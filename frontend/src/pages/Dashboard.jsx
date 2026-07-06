@@ -1,219 +1,457 @@
 import { useEffect, useState, useCallback } from 'react';
-import { fetchKpis, fetchTrends, fetchTopOrgs } from '../lib/api';
+import {
+  fetchKpis, fetchTrends, fetchTopOrgs, fetchTenderTypes,
+  fetchValueDistribution, fetchPortalBreakdown, fetchMonthlySeasonality,
+  fetchBidCompetition, fetchSingleBidContracts, fetchRepeatWinners
+} from '../lib/api';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, BarChart, Bar
+  ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, Legend
 } from 'recharts';
-import { Briefcase, Building2, TrendingUp, IndianRupee, RefreshCw } from 'lucide-react';
+import {
+  Briefcase, Building2, TrendingUp, IndianRupee, RefreshCw,
+  AlertTriangle, Users, Scale
+} from 'lucide-react';
 import './Dashboard.css';
 
+// ── helpers ──────────────────────────────────────────────────────────────────
+const fmt   = (n) => new Intl.NumberFormat('en-IN').format(n || 0);
+const fmtCr = (n) => `₹${new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(n || 0)} Cr`;
+
+const RADIAN = Math.PI / 180;
+const renderPieLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, pct, name }) => {
+  if (pct < 4) return null;
+  const r  = innerRadius + (outerRadius - innerRadius) * 0.5;
+  const x  = cx + r * Math.cos(-midAngle * RADIAN);
+  const y  = cy + r * Math.sin(-midAngle * RADIAN);
+  return (
+    <text x={x} y={y} fill="#fff" textAnchor="middle" dominantBaseline="central" fontSize={11} fontWeight={600}>
+      {`${pct}%`}
+    </text>
+  );
+};
+
+const CustomTooltip = ({ active, payload, label }) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, padding: '10px 14px', fontSize: 13 }}>
+      <p style={{ fontWeight: 600, marginBottom: 4 }}>{label}</p>
+      {payload.map((p, i) => (
+        <p key={i} style={{ color: p.color || 'var(--text-primary)', margin: 0 }}>
+          {p.name}: {typeof p.value === 'number' ? fmt(p.value) : p.value}
+        </p>
+      ))}
+    </div>
+  );
+};
+
+// ── PORTAL colors ─────────────────────────────────────────────────────────────
+const PORTAL_COLORS = { state: '#8b5cf6', central: '#3b82f6' };
+const BID_COLORS    = ['#6b7280', '#ef4444', '#f97316', '#3b82f6', '#10b981'];
+
+// ── TENDER TYPE consolidation ─────────────────────────────────────────────────
+function consolidateTenderTypes(raw) {
+  const map = { Works: 0, Goods: 0, Services: 0, Limited: 0, Open: 0, Other: 0 };
+  raw?.labels?.forEach((label, i) => {
+    const c = raw.counts[i];
+    const l = label.toLowerCase();
+    if (l.includes('works'))          map.Works    += c;
+    else if (l.includes('goods'))     map.Goods    += c;
+    else if (l.includes('service'))   map.Services += c;
+    else if (l.includes('limited'))   map.Limited  += c;
+    else if (l.includes('open') || l === '1' || l === 'open') map.Open += c;
+    else                              map.Other    += c;
+  });
+  const colors = ['#3b82f6','#10b981','#8b5cf6','#f59e0b','#06b6d4','#6b7280'];
+  const total  = Object.values(map).reduce((a, b) => a + b, 0) || 1;
+  return Object.entries(map)
+    .filter(([, v]) => v > 0)
+    .sort((a, b) => b[1] - a[1])
+    .map(([name, value], i) => ({
+      name, value, color: colors[i], pct: Math.round(100 * value / total)
+    }));
+}
+
+// ── SECTION header ─────────────────────────────────────────────────────────────
+const SectionHeader = ({ title, subtitle }) => (
+  <div style={{ marginBottom: 16 }}>
+    <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{title}</h2>
+    {subtitle && <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '2px 0 0' }}>{subtitle}</p>}
+  </div>
+);
+
+// ── KPI CARD ───────────────────────────────────────────────────────────────────
+const KpiCard = ({ label, value, sub, icon: Icon, color }) => (
+  <div className="card kpi-card" style={{ borderLeft: `4px solid ${color}` }}>
+    <div className="kpi-icon-wrapper" style={{ background: `${color}18`, color }}>{Icon && <Icon size={22} />}</div>
+    <div className="kpi-details">
+      <div className="kpi-label">{label}</div>
+      <div className="kpi-value">{value}</div>
+      {sub && <div className="kpi-subtext">{sub}</div>}
+    </div>
+  </div>
+);
+
+// ── CHART CARD ─────────────────────────────────────────────────────────────────
+const ChartCard = ({ title, subtitle, children, height = 260 }) => (
+  <div className="card chart-card">
+    <div className="card-header">
+      <div className="card-title">{title}</div>
+      {subtitle && <div className="card-subtitle">{subtitle}</div>}
+    </div>
+    <div className="chart-wrapper" style={{ height }}>{children}</div>
+  </div>
+);
+
+// ═══════════════════════════════════════════════════════════════════════════════
 const Dashboard = () => {
-  const [kpis, setKpis] = useState(null);
-  const [trends, setTrends] = useState(null);
-  const [orgs, setOrgs] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [lastUpdated, setLastUpdated] = useState(null);
+  const [kpis,         setKpis]         = useState(null);
+  const [trends,       setTrends]       = useState(null);
+  const [orgs,         setOrgs]         = useState(null);
+  const [tenderTypes,  setTenderTypes]  = useState(null);
+  const [valueDist,    setValueDist]    = useState(null);
+  const [portalData,   setPortalData]   = useState(null);
+  const [seasonality,  setSeasonality]  = useState(null);
+  const [bidComp,      setBidComp]      = useState(null);
+  const [singleBids,   setSingleBids]   = useState(null);
+  const [repeatWin,    setRepeatWin]    = useState(null);
+  const [loading,      setLoading]      = useState(true);
+  const [error,        setError]        = useState(null);
+  const [lastUpdated,  setLastUpdated]  = useState(null);
 
   const loadData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+    setLoading(true); setError(null);
     try {
-      const [kpiData, trendData, orgData] = await Promise.all([
-        fetchKpis(),
-        fetchTrends('yearly', 'aoc'),
-        fetchTopOrgs('count', 10, 'aoc')
-      ]);
+      const [kpiData, trendData, orgData, ttData, vdData, pbData, seaData, bcData, sbData, rwData] =
+        await Promise.all([
+          fetchKpis(),
+          fetchTrends('yearly', 'aoc'),
+          fetchTopOrgs('count', 10, 'aoc'),
+          fetchTenderTypes(),
+          fetchValueDistribution(),
+          fetchPortalBreakdown(),
+          fetchMonthlySeasonality(),
+          fetchBidCompetition(),
+          fetchSingleBidContracts(10000000, 1),  // ≥ 1Cr
+          fetchRepeatWinners(5, 1),
+        ]);
 
       setKpis(kpiData);
       setLastUpdated(new Date());
 
       if (trendData?.labels) {
-        setTrends(trendData.labels.map((label, idx) => ({
-          name: label,
-          count: trendData.counts[idx]
+        setTrends(trendData.labels.map((label, i) => ({
+          name: label, count: trendData.counts[i]
         })));
       }
-
       if (orgData?.labels) {
-        setOrgs(orgData.labels.map((label, idx) => ({
-          name: label.length > 30 ? label.substring(0, 30) + '…' : label,
-          count: orgData.values[idx]
+        setOrgs(orgData.labels.map((label, i) => ({
+          name: label.length > 28 ? label.substring(0, 28) + '…' : label,
+          count: orgData.values[i]
         })));
       }
+      setTenderTypes(consolidateTenderTypes(ttData));
+      if (vdData?.labels) {
+        setValueDist(vdData.labels.map((l, i) => ({ name: l, count: vdData.counts[i] })));
+      }
+      if (pbData?.labels) {
+        setPortalData(pbData.labels.map((l, i) => ({
+          name: l.charAt(0).toUpperCase() + l.slice(1),
+          value: pbData.counts[i],
+          color: PORTAL_COLORS[l] || '#6b7280'
+        })));
+      }
+      setSeasonality(seaData);
+      if (bcData?.labels?.length) {
+        const total = bcData.counts.reduce((a, b) => a + b, 0) || 1;
+        setBidComp(bcData.labels.map((l, i) => ({
+          name: l, value: bcData.counts[i],
+          color: BID_COLORS[i], pct: Math.round(100 * bcData.counts[i] / total)
+        })));
+      }
+      setSingleBids(sbData?.results || []);
+      setRepeatWin(rwData?.results || []);
     } catch (e) {
-      console.error("Failed to load dashboard data:", e);
-      setError("Failed to connect to the database. Please try refreshing.");
+      console.error(e);
+      setError('Failed to connect to the database. Please refresh.');
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  useEffect(() => { loadData(); }, [loadData]);
 
-  const fmt = (num) => new Intl.NumberFormat('en-IN').format(num || 0);
-  const fmtCr = (num) => `₹${new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(num || 0)} Cr`;
+  // March + Q4 (Jan-Mar) stats for seasonality
+  const marPct = seasonality?.find(m => m.month_num === 3)?.pct ?? 0;
+  const q4Pct  = seasonality
+    ?.filter(m => [1, 2, 3].includes(m.month_num))
+    .reduce((s, m) => s + (m.pct || 0), 0) ?? 0;
 
-  if (loading) {
-    return (
-      <div className="dashboard-page" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
-        <div style={{ textAlign: 'center' }}>
-          <RefreshCw size={36} style={{ animation: 'spin 1s linear infinite', color: 'var(--accent-primary)', marginBottom: 16 }} />
-          <p style={{ color: 'var(--text-secondary)' }}>Loading live data from database...</p>
-          <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
-        </div>
+  if (loading) return (
+    <div className="dashboard-page" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+      <div style={{ textAlign: 'center' }}>
+        <RefreshCw size={36} style={{ animation: 'spin 1s linear infinite', color: 'var(--accent-primary)', marginBottom: 16 }} />
+        <p style={{ color: 'var(--text-secondary)' }}>Loading live data from database…</p>
+        <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
       </div>
-    );
-  }
+    </div>
+  );
 
-  if (error) {
-    return (
-      <div className="dashboard-page" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
-        <div className="card" style={{ maxWidth: 500, textAlign: 'center', padding: 32, borderLeft: '4px solid var(--error, #ef4444)' }}>
-          <p style={{ color: 'var(--error, #ef4444)', fontWeight: 600, marginBottom: 12 }}>{error}</p>
-          <button onClick={loadData} style={{ padding: '8px 20px', background: 'var(--accent-primary)', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 500 }}>
-            Try Again
-          </button>
-        </div>
+  if (error) return (
+    <div className="dashboard-page" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+      <div className="card" style={{ maxWidth: 500, textAlign: 'center', padding: 32, borderLeft: '4px solid #ef4444' }}>
+        <p style={{ color: '#ef4444', fontWeight: 600, marginBottom: 12 }}>{error}</p>
+        <button onClick={loadData} style={{ padding: '8px 20px', background: 'var(--accent-primary)', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 500 }}>Try Again</button>
       </div>
-    );
-  }
+    </div>
+  );
 
   return (
     <div className="dashboard-page">
-      {/* Header */}
+
+      {/* ── HEADER ───────────────────────────────────────────────────────────── */}
       <div className="page-header" style={{ borderBottom: '2px solid var(--border-color)', paddingBottom: 16, marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h1 className="page-title">Overview</h1>
-          <p className="page-subtitle">Live procurement analytics from the PostgreSQL database</p>
+          <p className="page-subtitle">Live procurement analytics — {fmt(kpis?.total_aoc_tenders)} tenders indexed</p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          {lastUpdated && (
-            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-              Updated {lastUpdated.toLocaleTimeString()}
-            </span>
-          )}
-          <button
-            onClick={loadData}
-            style={{
-              padding: '7px 14px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6,
-              background: 'var(--accent-primary)', color: '#fff', border: 'none',
-              borderRadius: 'var(--radius-md, 8px)', fontWeight: 500, cursor: 'pointer',
-            }}
-          >
-            <RefreshCw size={13} />
-            Refresh
+          {lastUpdated && <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Updated {lastUpdated.toLocaleTimeString()}</span>}
+          <button onClick={loadData} style={{ padding: '7px 14px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, background: 'var(--accent-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md, 8px)', fontWeight: 500, cursor: 'pointer' }}>
+            <RefreshCw size={13} /> Refresh
           </button>
         </div>
       </div>
 
-      {/* KPI Cards */}
+      {/* ── KPI ROW ──────────────────────────────────────────────────────────── */}
       <div className="dashboard-grid kpi-row" style={{ marginBottom: 24 }}>
-        <div className="card kpi-card" style={{ borderLeft: '4px solid var(--accent-primary)' }}>
-          <div className="kpi-icon-wrapper blue"><Briefcase size={24} /></div>
-          <div className="kpi-details">
-            <div className="kpi-label">Total Tenders</div>
-            <div className="kpi-value">{fmt(kpis?.total_aoc_tenders)}</div>
-            <div className="kpi-subtext">Government contracts in database</div>
-          </div>
-        </div>
-
-        <div className="card kpi-card" style={{ borderLeft: '4px solid #10b981' }}>
-          <div className="kpi-icon-wrapper" style={{ background: 'rgba(16,185,129,0.1)', color: '#10b981' }}><IndianRupee size={24} /></div>
-          <div className="kpi-details">
-            <div className="kpi-label">Total Contract Value</div>
-            <div className="kpi-value">{fmtCr(kpis?.total_value_crore)}</div>
-            <div className="kpi-subtext">Cumulative procurement spend</div>
-          </div>
-        </div>
-
-        <div className="card kpi-card" style={{ borderLeft: '4px solid #8b5cf6' }}>
-          <div className="kpi-icon-wrapper purple"><Building2 size={24} /></div>
-          <div className="kpi-details">
-            <div className="kpi-label">Unique Organizations</div>
-            <div className="kpi-value">{fmt(kpis?.unique_orgs)}</div>
-            <div className="kpi-subtext">Government departments tracked</div>
-          </div>
-        </div>
-
-        <div className="card kpi-card" style={{ borderLeft: '4px solid #f59e0b' }}>
-          <div className="kpi-icon-wrapper" style={{ background: 'rgba(245,158,11,0.1)', color: '#f59e0b' }}><TrendingUp size={24} /></div>
-          <div className="kpi-details">
-            <div className="kpi-label">Avg Contract Value</div>
-            <div className="kpi-value">{fmtCr(kpis?.avg_value_crore)}</div>
-            <div className="kpi-subtext">Per tender average</div>
-          </div>
-        </div>
+        <KpiCard label="Total Tenders"        value={fmt(kpis?.total_aoc_tenders)}  sub="Award of contract records"       icon={Briefcase}    color="var(--accent-primary)" />
+        <KpiCard label="Total Contract Value" value={fmtCr(kpis?.total_value_crore)} sub="Cumulative procurement spend"   icon={IndianRupee}  color="#10b981" />
+        <KpiCard label="Single-Bid Awards"    value={fmt(kpis?.n_single_bid)}        sub="Contracts with zero competition" icon={AlertTriangle} color="#ef4444" />
+        <KpiCard label="Unique Organizations" value={fmt(kpis?.unique_aoc_orgs)}     sub="Govt departments tracked"       icon={Building2}    color="#8b5cf6" />
+        <KpiCard label="Avg Contract Value"   value={fmtCr(kpis?.avg_value_crore)}   sub="Per tender average"             icon={TrendingUp}   color="#f59e0b" />
+        <KpiCard label="Published Tenders"    value={fmt(kpis?.total_published_tenders)} sub="Open tenders (VPS portal)"  icon={Scale}        color="#06b6d4" />
       </div>
 
-      {/* Charts */}
+      {/* ── ROW 1: Yearly trend + Top orgs ──────────────────────────────────── */}
       <div className="dashboard-grid" style={{ marginBottom: 24 }}>
-        {/* Trend Chart */}
-        <div className="card chart-card">
-          <div className="card-header">
-            <div className="card-title">Procurement Volume Over Time</div>
-            <div className="card-subtitle">Yearly contract awards — live from database</div>
-          </div>
-          <div className="chart-wrapper" style={{ height: 300 }}>
-            {trends?.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={trends} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="var(--accent-primary)" stopOpacity={0.15} />
-                      <stop offset="95%" stopColor="var(--accent-primary)" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" />
-                  <XAxis dataKey="name" tick={{ fill: 'var(--text-secondary)', fontSize: 12 }} tickLine={false} axisLine={false} />
-                  <YAxis tick={{ fill: 'var(--text-secondary)', fontSize: 12 }} tickLine={false} axisLine={false} tickFormatter={(v) => v >= 1000 ? (v / 1000) + 'k' : v} />
-                  <Tooltip contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8 }} />
-                  <Area type="monotone" dataKey="count" stroke="var(--accent-primary)" strokeWidth={2} fillOpacity={1} fill="url(#colorCount)" />
-                </AreaChart>
-              </ResponsiveContainer>
-            ) : (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)', fontSize: 14 }}>
-                No trend data available yet
-              </div>
-            )}
-          </div>
-        </div>
+        <ChartCard title="Procurement Volume Over Time" subtitle="Yearly contract awards — live from database" height={280}>
+          {trends?.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={trends} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="trendGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%"  stopColor="var(--accent-primary)" stopOpacity={0.15} />
+                    <stop offset="95%" stopColor="var(--accent-primary)" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" />
+                <XAxis dataKey="name" tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} tickLine={false} axisLine={false} />
+                <YAxis tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} tickLine={false} axisLine={false} tickFormatter={v => v >= 1000 ? (v / 1000) + 'k' : v} />
+                <Tooltip content={<CustomTooltip />} />
+                <Area type="monotone" dataKey="count" name="Tenders" stroke="var(--accent-primary)" strokeWidth={2} fillOpacity={1} fill="url(#trendGrad)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          ) : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)' }}>No data</div>}
+        </ChartCard>
 
-        {/* Top Orgs */}
-        <div className="card chart-card">
-          <div className="card-header">
-            <div className="card-title">Top Procuring Organizations</div>
-            <div className="card-subtitle">By number of published tenders</div>
-          </div>
-          <div className="chart-wrapper" style={{ height: 300 }}>
-            {orgs?.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={orgs} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--border-color)" />
-                  <XAxis type="number" tick={{ fill: 'var(--text-secondary)', fontSize: 12 }} tickLine={false} axisLine={false} />
-                  <YAxis dataKey="name" type="category" tick={{ fill: 'var(--text-primary)', fontSize: 11 }} width={160} tickLine={false} axisLine={false} />
-                  <Tooltip contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8 }} cursor={{ fill: 'var(--bg-main)' }} />
-                  <Bar dataKey="count" fill="var(--accent-primary)" radius={[0, 4, 4, 0]} barSize={16} />
+        <ChartCard title="Top Procuring Organizations" subtitle="By number of published tenders" height={280}>
+          {orgs?.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={orgs} layout="vertical" margin={{ top: 0, right: 20, left: 10, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--border-color)" />
+                <XAxis type="number" tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} tickLine={false} axisLine={false} tickFormatter={v => v >= 1000 ? (v/1000)+'k' : v} />
+                <YAxis dataKey="name" type="category" tick={{ fill: 'var(--text-primary)', fontSize: 10 }} width={155} tickLine={false} axisLine={false} />
+                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'var(--bg-main)' }} />
+                <Bar dataKey="count" name="Contracts" fill="var(--accent-primary)" radius={[0, 4, 4, 0]} barSize={14} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)' }}>No data</div>}
+        </ChartCard>
+      </div>
+
+      {/* ── ROW 2: Bid competition + Tender types + Portal breakdown ─────────── */}
+      <SectionHeader title="Bid Competition & Contract Composition" subtitle="How competitive are India's government contracts?" />
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 24 }}>
+
+        <ChartCard title="Bid Competition" subtitle="Number of bids received per award" height={240}>
+          {bidComp?.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie data={bidComp} cx="50%" cy="50%" innerRadius={55} outerRadius={90}
+                  dataKey="value" nameKey="name" labelLine={false} label={renderPieLabel}>
+                  {bidComp.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                </Pie>
+                <Tooltip formatter={(val) => fmt(val)} contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, fontSize: 12 }} />
+                <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11 }} />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)', fontSize: 13 }}>Computing from database…</div>}
+        </ChartCard>
+
+        <ChartCard title="Tender Types" subtitle="Category breakdown of all contracts" height={240}>
+          {tenderTypes?.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie data={tenderTypes} cx="50%" cy="50%" innerRadius={55} outerRadius={90}
+                  dataKey="value" nameKey="name" labelLine={false} label={renderPieLabel}>
+                  {tenderTypes.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                </Pie>
+                <Tooltip formatter={(val) => fmt(val)} contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, fontSize: 12 }} />
+                <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11 }} />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)' }}>No data</div>}
+        </ChartCard>
+
+        <ChartCard title="Portal Breakdown" subtitle="State vs Central procurement portals" height={240}>
+          {portalData?.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie data={portalData} cx="50%" cy="50%" innerRadius={55} outerRadius={90}
+                  dataKey="value" nameKey="name" labelLine={false} label={renderPieLabel}>
+                  {portalData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                </Pie>
+                <Tooltip formatter={(val) => fmt(val)} contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, fontSize: 12 }} />
+                <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11 }} />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)' }}>No data</div>}
+        </ChartCard>
+      </div>
+
+      {/* ── ROW 3: Monthly seasonality + Contract size distribution ─────────── */}
+      <SectionHeader title="Spending Patterns & Contract Size" subtitle="When does procurement happen and at what scale?" />
+      <div className="dashboard-grid" style={{ marginBottom: 24 }}>
+
+        <ChartCard title="Monthly Procurement Seasonality" subtitle="Jan–Mar highlighted: India's fiscal year-end budget flush" height={260}>
+          {seasonality?.length > 0 ? (
+            <>
+              <div style={{ display: 'flex', gap: 16, padding: '0 4px 8px', flexWrap: 'wrap' }}>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+                  March share: <strong style={{ color: '#ef4444' }}>{marPct}%</strong>
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+                  Jan–Mar (year-end): <strong style={{ color: '#ef4444' }}>{q4Pct.toFixed(1)}%</strong> of annual contracts
+                </div>
+              </div>
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={seasonality} margin={{ top: 0, right: 10, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" />
+                  <XAxis dataKey="month" tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} tickLine={false} axisLine={false} />
+                  <YAxis tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} tickLine={false} axisLine={false} tickFormatter={v => (v/1000).toFixed(0) + 'k'} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Bar dataKey="count" name="Awards" radius={[3, 3, 0, 0]} barSize={28}>
+                    {seasonality.map((entry, i) => (
+                      <Cell key={i} fill={entry.is_year_end ? '#ef4444' : 'var(--accent-primary)'} fillOpacity={entry.is_year_end ? 1 : 0.7} />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
-            ) : (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)', fontSize: 14 }}>
-                No organization data available yet
-              </div>
-            )}
+            </>
+          ) : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)' }}>No data</div>}
+        </ChartCard>
+
+        <ChartCard title="Contract Size Distribution" subtitle="How many contracts fall in each value bracket?" height={260}>
+          {valueDist?.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={valueDist} margin={{ top: 10, right: 10, left: 0, bottom: 30 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" />
+                <XAxis dataKey="name" tick={{ fill: 'var(--text-secondary)', fontSize: 10 }} tickLine={false} axisLine={false} angle={-20} textAnchor="end" />
+                <YAxis tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} tickLine={false} axisLine={false} tickFormatter={v => v >= 1000 ? (v/1000)+'k' : v} />
+                <Tooltip content={<CustomTooltip />} />
+                <Bar dataKey="count" name="Contracts" fill="#8b5cf6" radius={[4, 4, 0, 0]} barSize={36} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)' }}>No data</div>}
+        </ChartCard>
+      </div>
+
+      {/* ── ROW 4: Red flag panels ────────────────────────────────────────────── */}
+      <SectionHeader title="🚩 Red Flag Panels" subtitle="Statistical indicators of procurement risk — not accusations" />
+      <div className="dashboard-grid" style={{ marginBottom: 24 }}>
+
+        {/* Single-bid contracts */}
+        <div className="card chart-card">
+          <div className="card-header">
+            <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444', display: 'inline-block' }} />
+              Single-Bid Contracts (≥ ₹1 Cr)
+            </div>
+            <div className="card-subtitle">High-value awards with zero competition — investigate further</div>
+          </div>
+          <div style={{ padding: '0 16px 16px', overflowX: 'auto' }}>
+            {singleBids?.length > 0 ? (
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>
+                    <th style={{ padding: '8px 6px', textAlign: 'left', fontWeight: 500 }}>Organization</th>
+                    <th style={{ padding: '8px 6px', textAlign: 'left', fontWeight: 500 }}>Bidder</th>
+                    <th style={{ padding: '8px 6px', textAlign: 'right', fontWeight: 500 }}>Value (Cr)</th>
+                    <th style={{ padding: '8px 6px', textAlign: 'left', fontWeight: 500 }}>Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {singleBids.slice(0, 8).map((r, i) => (
+                    <tr key={i} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                      <td style={{ padding: '8px 6px', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r.org_name}>{r.org_name}</td>
+                      <td style={{ padding: '8px 6px', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-secondary)' }} title={r.bidder_name}>{r.bidder_name || '—'}</td>
+                      <td style={{ padding: '8px 6px', textAlign: 'right', fontFamily: 'monospace', color: '#ef4444', fontWeight: 600 }}>
+                        {r.contract_value ? (r.contract_value / 1e7).toFixed(2) : '—'}
+                      </td>
+                      <td style={{ padding: '8px 6px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{r.aoc_date?.split('T')[0] || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : <p style={{ color: 'var(--text-muted)', fontSize: 13, textAlign: 'center', padding: 20 }}>Loading…</p>}
+          </div>
+        </div>
+
+        {/* Repeat winners */}
+        <div className="card chart-card">
+          <div className="card-header">
+            <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#f97316', display: 'inline-block' }} />
+              Repeat Winners
+            </div>
+            <div className="card-subtitle">Vendors winning repeatedly — check for collusion patterns</div>
+          </div>
+          <div style={{ padding: '0 16px 16px', overflowX: 'auto' }}>
+            {repeatWin?.length > 0 ? (
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>
+                    <th style={{ padding: '8px 6px', textAlign: 'left', fontWeight: 500 }}>Bidder</th>
+                    <th style={{ padding: '8px 6px', textAlign: 'left', fontWeight: 500 }}>Organization</th>
+                    <th style={{ padding: '8px 6px', textAlign: 'right', fontWeight: 500 }}>Wins</th>
+                    <th style={{ padding: '8px 6px', textAlign: 'right', fontWeight: 500 }}>Value (Cr)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {repeatWin.slice(0, 8).map((r, i) => (
+                    <tr key={i} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                      <td style={{ padding: '8px 6px', maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600 }} title={r.bidder_name}>{r.bidder_name}</td>
+                      <td style={{ padding: '8px 6px', maxWidth: 130, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-secondary)' }} title={r.org_name}>{r.org_name}</td>
+                      <td style={{ padding: '8px 6px', textAlign: 'right', fontFamily: 'monospace', color: '#f97316', fontWeight: 600 }}>{fmt(r.wins)}</td>
+                      <td style={{ padding: '8px 6px', textAlign: 'right', fontFamily: 'monospace', color: 'var(--text-secondary)' }}>{r.total_value_crore ? Number(r.total_value_crore).toFixed(1) : '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : <p style={{ color: 'var(--text-muted)', fontSize: 13, textAlign: 'center', padding: 20 }}>Loading…</p>}
           </div>
         </div>
       </div>
 
-      {/* Data Notice */}
-      <div className="card" style={{ padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 12, background: 'var(--bg-main)', border: '1px solid var(--border-color)' }}>
+      {/* ── LIVE DATA NOTICE ──────────────────────────────────────────────────── */}
+      <div className="card" style={{ padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 12, background: 'var(--bg-main)', border: '1px solid var(--border-color)' }}>
         <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', boxShadow: '0 0 6px #10b981', flexShrink: 0, animation: 'pulse 2s ease-in-out infinite' }} />
         <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }`}</style>
-        <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0 }}>
+        <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: 0 }}>
           All data is live from the dedicated PostgreSQL database server over a secure Tailscale private network.
-          Showing <strong style={{ color: 'var(--text-primary)' }}>{fmt(kpis?.total_aoc_tenders)}</strong> tenders loaded so far — data import is still in progress and counts will increase automatically.
+          Showing <strong style={{ color: 'var(--text-primary)' }}>{fmt(kpis?.total_aoc_tenders)}</strong> tenders —
+          data import is still in progress and counts will increase automatically.
         </p>
       </div>
     </div>

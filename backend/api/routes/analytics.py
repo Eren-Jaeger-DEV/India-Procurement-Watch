@@ -134,3 +134,61 @@ def api_state_stats():
     cur  = conn.cursor(cursor_factory=RealDictCursor)
     cur.execute("SELECT state_name, total_contracts, total_value_crore FROM state_stats")
     return jsonify([dict(r) for r in cur.fetchall()])
+
+@analytics_bp.route("/api/monthly-seasonality")
+def api_monthly_seasonality():
+    """Aggregate monthly_trends by month number (1-12) across all years.
+    Returns count per month for the fiscal year-end clustering chart."""
+    conn = get_pg_conn()
+    cur  = conn.cursor(cursor_factory=RealDictCursor)
+    cur.execute("""
+        SELECT month, SUM(count) AS count
+        FROM monthly_trends
+        WHERE year BETWEEN 2011 AND 2026
+        GROUP BY month ORDER BY month
+    """)
+    rows = cur.fetchall()
+    month_names = ["Jan","Feb","Mar","Apr","May","Jun",
+                   "Jul","Aug","Sep","Oct","Nov","Dec"]
+    total = sum(r["count"] for r in rows) or 1
+    return jsonify([{
+        "month": month_names[r["month"] - 1],
+        "month_num": r["month"],
+        "count": r["count"],
+        "pct": round(100 * r["count"] / total, 1),
+        "is_year_end": r["month"] in (1, 2, 3)
+    } for r in rows])
+
+@analytics_bp.route("/api/bid-competition")
+def api_bid_competition():
+    """Bid competition breakdown from aoc_details: 1 bid, 2-3, 4-10, 10+."""
+    conn = get_pg_conn()
+    cur  = conn.cursor(cursor_factory=RealDictCursor)
+    # Use kpi_stats for single-bid count; derive others from aoc_details if available
+    # Fallback: return what we have from kpi_stats
+    cur.execute("SELECT key, value FROM kpi_stats WHERE key IN ('total_aoc_tenders', 'single_bid_count')")
+    kpis = {r["key"]: r["value"] for r in cur.fetchall()}
+
+    # Try to get bid distribution from aoc_details
+    try:
+        cur.execute("""
+            SELECT
+                SUM(CASE WHEN bids_received = 0 THEN 1 ELSE 0 END) AS zero_bids,
+                SUM(CASE WHEN bids_received = 1 THEN 1 ELSE 0 END) AS single_bid,
+                SUM(CASE WHEN bids_received BETWEEN 2 AND 3 THEN 1 ELSE 0 END) AS two_three,
+                SUM(CASE WHEN bids_received BETWEEN 4 AND 10 THEN 1 ELSE 0 END) AS four_ten,
+                SUM(CASE WHEN bids_received > 10 THEN 1 ELSE 0 END) AS over_ten,
+                SUM(CASE WHEN bids_received IS NULL THEN 1 ELSE 0 END) AS unknown
+            FROM aoc_details
+            WHERE bids_received IS NOT NULL
+        """)
+        r = cur.fetchone()
+        return jsonify({
+            "labels": ["Zero bids", "1 bid (single)", "2–3 bids", "4–10 bids", "10+ bids"],
+            "counts": [r["zero_bids"] or 0, r["single_bid"] or 0,
+                       r["two_three"] or 0, r["four_ten"] or 0, r["over_ten"] or 0],
+            "colors": ["#6b7280", "#ef4444", "#f97316", "#3b82f6", "#10b981"]
+        })
+    except Exception:
+        conn.rollback()
+        return jsonify({"labels": [], "counts": [], "colors": []})

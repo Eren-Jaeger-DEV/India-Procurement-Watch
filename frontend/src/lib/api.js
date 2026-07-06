@@ -131,6 +131,16 @@ export const fetchStateStats = async () => {
   return res.data;
 };
 
+export const fetchMonthlySeasonality = async () => {
+  const res = await api.get('/monthly-seasonality');
+  return res.data;
+};
+
+export const fetchBidCompetition = async () => {
+  const res = await api.get('/bid-competition');
+  return res.data;
+};
+
 export const fetchSingleBidContracts = async (min_val = 1000000, page = 1) => {
   const res = await api.get('/single-bid-contracts', { params: { min_val, page } });
   return res.data;

@@ -75,6 +75,9 @@ INDIA_STATE_COORDS = {
 
 def get_db_conn():
     import os
+    db_url = os.getenv("DATABASE_URL")
+    if db_url:
+        return psycopg2.connect(db_url)
     return psycopg2.connect(
         host=os.getenv("PG_HOST", "localhost"),
         dbname=os.getenv("PG_DB", "ipw"),

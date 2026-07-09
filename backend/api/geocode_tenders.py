@@ -68,9 +68,54 @@ INDIA_STATE_COORDS = {
     "bhel":                 (28.6139, 77.2090),
     "ntpc":                 (28.6139, 77.2090),
     "ongc":                 (28.6139, 77.2090),
-    "railways":             (28.6139, 77.2090),
     "nhai":                 (28.6139, 77.2090),
     "cpwd":                 (28.6139, 77.2090),
+    "ircon":                (28.6139, 77.2090),
+    # Railway zones
+    "railways":             (28.6139, 77.2090),
+    "northern rly":         (28.6139, 77.2090),
+    "north rly":            (28.6139, 77.2090),
+    "north central rly":    (25.4358, 81.8463),  # Prayagraj HQ
+    "north eastern rly":    (26.7505, 83.3732),  # Gorakhpur HQ
+    "northeast frontier":   (26.1445, 91.7362),  # Maligaon, Guwahati
+    "southern rly":         (13.0827, 80.2707),  # Chennai HQ
+    "south central rly":    (17.3772, 78.4782),  # Secunderabad HQ
+    "south eastern rly":    (22.5726, 88.3639),  # Kolkata HQ
+    "south western rly":    (15.3647, 75.1240),  # Hubli HQ
+    "western rly":          (18.9388, 72.8354),  # Mumbai HQ
+    "central rly":          (18.9388, 72.8354),  # Mumbai HQ
+    "eastern rly":          (22.5726, 88.3639),  # Kolkata HQ
+    "east central rly":     (25.6119, 85.1437),  # Hajipur HQ
+    "east coast rly":       (20.2961, 85.8245),  # Bhubaneswar HQ
+    # Defence / Military
+    "military engineer":    (28.6139, 77.2090),
+    "e-in-c branch":        (28.6139, 77.2090),
+    "ihq of mod":           (28.6139, 77.2090),
+    "mod (army)":           (28.6139, 77.2090),
+    "defence estates":      (28.6139, 77.2090),
+    "sashastra seema":      (28.6139, 77.2090),
+    "border roads":         (28.6139, 77.2090),
+    "ordnance factory":     (22.8722, 88.3706),  # Kolkata area
+    # PSUs / Coalfields
+    "coal india":           (22.5726, 88.3639),
+    "central coalfields":   (23.7421, 85.6177),  # Ranchi
+    "eastern coalfields":   (23.6457, 86.9737),  # Sanctoria
+    "western coalfields":   (21.1458, 79.0882),  # Nagpur
+    "south eastern coal":   (22.6797, 82.5024),  # Bilaspur
+    "northern coalfields":  (24.1478, 82.7764),  # Singrauli
+    "bharat coking coal":   (23.8021, 86.4256),  # Dhanbad
+    "neyveli lignite":      (11.5976, 79.4886),  # Neyveli, TN
+    "nuclear power":        (19.0760, 72.8777),  # Mumbai (NPCIL HQ)
+    "rashtriya chemicals":  (19.0760, 72.8777),  # Mumbai
+    "mangalore refinery":   (12.9141, 74.8560),  # Mangalore
+    "bpcl":                 (19.0760, 72.8777),
+    "hpcl":                 (19.0760, 72.8777),
+    "iocl":                 (28.6139, 77.2090),
+    "indian oil":           (28.6139, 77.2090),
+    "gail":                 (28.6139, 77.2090),
+    "sail":                 (22.5726, 88.3639),
+    "bsnl":                 (28.6139, 77.2090),
+    "mtnl":                 (19.0760, 72.8777),
 }
 
 def get_db_conn():

@@ -33,6 +33,7 @@ const MapExplorer = () => {
   const [portal, setPortal] = useState('All');
   const [singleBidOnly, setSingleBidOnly] = useState(false);
   const [minValCr, setMinValCr] = useState(0);
+  const [mapStyle, setMapStyle] = useState('google-streets');
 
   useEffect(() => {
     const loadTenders = async () => {
@@ -129,6 +130,16 @@ const MapExplorer = () => {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>Map Layer:</span>
+            <select value={mapStyle} onChange={(e) => setMapStyle(e.target.value)} style={{ padding: '6px', borderRadius: 8, border: '1px solid var(--border-color)', background: 'var(--bg-main)', color: 'var(--text-primary)', fontSize: 12.5 }}>
+              <option value="google-streets">Google Maps (Standard)</option>
+              <option value="google-hybrid">Google Maps (Satellite/Hybrid)</option>
+              <option value="osm">OpenStreetMap (Free Streets)</option>
+              <option value="dark">Sleek Dark Mode (Default)</option>
+            </select>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>
               <span>Min Value:</span>
               <span style={{ color: 'var(--accent-primary)' }}>≥ ₹{minValCr} Cr</span>
@@ -166,8 +177,18 @@ const MapExplorer = () => {
             style={{ width: '100%', height: '100%', background: 'var(--bg-main)' }}
           >
             <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-              url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+              key={mapStyle}
+              attribution={
+                mapStyle.includes('google')
+                  ? '&copy; Google Maps'
+                  : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              }
+              url={
+                mapStyle === 'google-streets' ? 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}' :
+                mapStyle === 'google-hybrid' ? 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}' :
+                mapStyle === 'osm' ? 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png' :
+                'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+              }
             />
             <ZoomControl position="bottomright" />
             

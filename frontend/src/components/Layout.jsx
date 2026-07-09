@@ -14,15 +14,35 @@ const NAV_ITEMS = [
 ];
 
 const Layout = () => {
-  const [isDark, setIsDark]       = useState(true);
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isDark, setIsDark]           = useState(true);
+  const [isCollapsed, setIsCollapsed] = useState(window.innerWidth < 1200);
+  const [isHovered, setIsHovered]     = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [modalData, setModalData] = useState(null);
+  const [modalOpen, setModalOpen]     = useState(false);
+  const [modalData, setModalData]     = useState(null);
   const location = useLocation();
 
-  // Close mobile menu on route change
-  useEffect(() => { setMobileMenuOpen(false); }, [location]);
+  // Auto-collapse based on screen resize
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 1200) {
+        setIsCollapsed(true);
+      } else {
+        setIsCollapsed(false);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Collapse sidebar when a route changes (navigation) if screen is small
+  useEffect(() => {
+    setMobileMenuOpen(false);
+    if (window.innerWidth < 1200) {
+      setIsCollapsed(true);
+      setIsHovered(false);
+    }
+  }, [location]);
 
   useEffect(() => {
     document.body.className = isDark ? 'dark-theme' : 'light-theme';
@@ -38,15 +58,29 @@ const Layout = () => {
     return () => window.removeEventListener('openTenderModal', handleOpenModal);
   }, []);
 
+  // Compute visual collapsed state (collapsed only if state is collapsed and not hovered)
+  const isVisuallyCollapsed = isCollapsed && !isHovered;
+
+  const handleNavItemClick = () => {
+    if (window.innerWidth < 1200) {
+      setIsCollapsed(true);
+      setIsHovered(false);
+    }
+  };
+
   return (
     <div className="app-container">
-      <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
-        <div className="sidebar-header" style={{ justifyContent: isCollapsed ? 'center' : 'flex-start' }}>
+      <aside 
+        className={`sidebar ${isVisuallyCollapsed ? 'collapsed' : ''}`}
+        onMouseEnter={() => { if (isCollapsed) setIsHovered(true); }}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+        <div className="sidebar-header" style={{ justifyContent: isVisuallyCollapsed ? 'center' : 'flex-start' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, overflow: 'hidden' }}>
             <div className="brand-icon" style={{ padding: 0, overflow: 'hidden', borderRadius: '50%', width: 32, height: 32, minWidth: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <img src="/logo.jpg" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             </div>
-            {!isCollapsed && (
+            {!isVisuallyCollapsed && (
               <div className="brand-text">
                 <div className="brand-title">India Procurement</div>
                 <div className="brand-sub">Watch · Analysis Tool</div>
@@ -57,62 +91,62 @@ const Layout = () => {
         
         <div className="sidebar-nav">
           <div className="nav-section">
-            {!isCollapsed && <div className="nav-label">Main</div>}
-            <NavLink to="/dashboard" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isCollapsed ? "Overview" : ""}>
+            {!isVisuallyCollapsed && <div className="nav-label">Main</div>}
+            <NavLink to="/dashboard" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isVisuallyCollapsed ? "Overview" : ""}>
               <LayoutDashboard size={18} />
-              {!isCollapsed && <span>Overview</span>}
+              {!isVisuallyCollapsed && <span>Overview</span>}
             </NavLink>
-            <NavLink to="/search" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isCollapsed ? "Search Database" : ""}>
+            <NavLink to="/search" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isVisuallyCollapsed ? "Search Database" : ""}>
               <Search size={18} />
-              {!isCollapsed && <span>Search Database</span>}
+              {!isVisuallyCollapsed && <span>Search Database</span>}
             </NavLink>
-            <NavLink to="/chat" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isCollapsed ? "Ask AI" : ""}>
+            <NavLink to="/chat" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isVisuallyCollapsed ? "Ask AI" : ""}>
               <Bot size={18} />
-              {!isCollapsed && <span>Ask AI</span>}
+              {!isVisuallyCollapsed && <span>Ask AI</span>}
             </NavLink>
-            <NavLink to="/report" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isCollapsed ? "Analysis Report" : ""}>
+            <NavLink to="/report" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isVisuallyCollapsed ? "Analysis Report" : ""}>
               <FileText size={18} />
-              {!isCollapsed && <span>Analysis Report</span>}
+              {!isVisuallyCollapsed && <span>Analysis Report</span>}
             </NavLink>
           </div>
 
           <div className="nav-section">
-            {!isCollapsed && <div className="nav-label">Analytics & Risk</div>}
-            <NavLink to="/geo" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isCollapsed ? "Geographical" : ""}>
+            {!isVisuallyCollapsed && <div className="nav-label">Analytics & Risk</div>}
+            <NavLink to="/geo" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isVisuallyCollapsed ? "Geographical" : ""}>
               <Map size={18} />
-              {!isCollapsed && <span>Geographical</span>}
+              {!isVisuallyCollapsed && <span>Geographical</span>}
             </NavLink>
-            <NavLink to="/tenders-map" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isCollapsed ? "Tender Map" : ""}>
+            <NavLink to="/tenders-map" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isVisuallyCollapsed ? "Tender Map" : ""}>
               <MapPin size={18} />
-              {!isCollapsed && <span>Tender Map</span>}
+              {!isVisuallyCollapsed && <span>Tender Map</span>}
             </NavLink>
-            <NavLink to="/insights" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isCollapsed ? "Insights" : ""}>
+            <NavLink to="/insights" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isVisuallyCollapsed ? "Insights" : ""}>
               <TrendingUp size={18} />
-              {!isCollapsed && <span>Insights</span>}
+              {!isVisuallyCollapsed && <span>Insights</span>}
             </NavLink>
-            <NavLink to="/departments" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isCollapsed ? "Department Radar" : ""}>
+            <NavLink to="/departments" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isVisuallyCollapsed ? "Department Radar" : ""}>
               <Building2 size={18} />
-              {!isCollapsed && <span>Department Radar</span>}
+              {!isVisuallyCollapsed && <span>Department Radar</span>}
             </NavLink>
-            <NavLink to="/collusion" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isCollapsed ? "Cartel Radar" : ""}>
+            <NavLink to="/collusion" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isVisuallyCollapsed ? "Cartel Radar" : ""}>
               <ShieldAlert size={18} style={{ color: '#ef4444' }} />
-              {!isCollapsed && <span>Cartel Radar</span>}
+              {!isVisuallyCollapsed && <span>Cartel Radar</span>}
             </NavLink>
-            <NavLink to="/redflag" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isCollapsed ? "Red-Flag Explorer" : ""}>
+            <NavLink to="/redflag" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isVisuallyCollapsed ? "Red-Flag Explorer" : ""}>
               <Flag size={18} />
-              {!isCollapsed && <span>Red-Flag Explorer</span>}
+              {!isVisuallyCollapsed && <span>Red-Flag Explorer</span>}
             </NavLink>
-            <NavLink to="/investigation" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isCollapsed ? "Investigation Desk" : ""}>
+            <NavLink to="/investigation" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isVisuallyCollapsed ? "Investigation Desk" : ""}>
               <FileSearch size={18} />
-              {!isCollapsed && <span>Investigation Desk</span>}
+              {!isVisuallyCollapsed && <span>Investigation Desk</span>}
             </NavLink>
-            <NavLink to="/network" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isCollapsed ? "Director Networks" : ""}>
+            <NavLink to="/network" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isVisuallyCollapsed ? "Director Networks" : ""}>
               <Network size={18} />
-              {!isCollapsed && <span>Director Networks</span>}
+              {!isVisuallyCollapsed && <span>Director Networks</span>}
             </NavLink>
-            <NavLink to="/import" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isCollapsed ? "System Status" : ""}>
+            <NavLink to="/import" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isVisuallyCollapsed ? "System Status" : ""}>
               <Activity size={18} />
-              {!isCollapsed && <span>System Status</span>}
+              {!isVisuallyCollapsed && <span>System Status</span>}
             </NavLink>
           </div>
         </div>
@@ -120,23 +154,23 @@ const Layout = () => {
         <div className="sidebar-footer">
           <button 
             className="nav-item collapse-toggle-btn" 
-            onClick={() => setIsCollapsed(!isCollapsed)} 
-            style={{ width: '100%', background: 'transparent', border: 'none', cursor: 'pointer', justifyContent: isCollapsed ? 'center' : 'flex-start' }}
-            title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+            onClick={() => { setIsCollapsed(!isCollapsed); setIsHovered(false); }} 
+            style={{ width: '100%', background: 'transparent', border: 'none', cursor: 'pointer', justifyContent: isVisuallyCollapsed ? 'center' : 'flex-start' }}
+            title={isVisuallyCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
           >
-            {isCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
-            {!isCollapsed && <span>Collapse Sidebar</span>}
+            {isVisuallyCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
+            {!isVisuallyCollapsed && <span>Collapse Sidebar</span>}
           </button>
           <button 
             className="nav-item theme-toggle-btn" 
             onClick={() => setIsDark(!isDark)} 
-            style={{ width: '100%', background: 'transparent', border: 'none', cursor: 'pointer', justifyContent: isCollapsed ? 'center' : 'flex-start' }}
+            style={{ width: '100%', background: 'transparent', border: 'none', cursor: 'pointer', justifyContent: isVisuallyCollapsed ? 'center' : 'flex-start' }}
             title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
           >
             <div className={`theme-icon-wrapper ${isDark ? 'dark' : 'light'}`}>
               {isDark ? <Sun size={18} /> : <Moon size={18} />}
             </div>
-            {!isCollapsed && <span>{isDark ? 'Light Mode' : 'Dark Mode'}</span>}
+            {!isVisuallyCollapsed && <span>{isDark ? 'Light Mode' : 'Dark Mode'}</span>}
           </button>
         </div>
       </aside>

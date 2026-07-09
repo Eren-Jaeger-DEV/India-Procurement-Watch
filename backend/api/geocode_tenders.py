@@ -20,7 +20,7 @@ import psycopg2
 from psycopg2.extras import RealDictCursor, execute_values
 
 NOMINATIM_BASE = "https://nominatim.satviks.dev"
-API_KEY        = "4ec7ecc992cbd862b27fae04790e6796c97c97c91d64158f57f"
+API_KEY        = "4ec7ecc992cbd862b27fae04790e6796c97c91d64158f57f"
 HEADERS        = {"X-API-Key": API_KEY, "User-Agent": "IPW-Dashboard/1.0"}
 
 # Known state/org → (lat, lon) fallback cache so we don't hammer the API

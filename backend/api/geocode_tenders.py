@@ -23,100 +23,6 @@ NOMINATIM_BASE = "https://nominatim.satviks.dev"
 API_KEY        = "4ec7ecc992cbd862b27fae04790e6796c97c91d64158f57f"
 HEADERS        = {"X-API-Key": API_KEY, "User-Agent": "IPW-Dashboard/1.0"}
 
-# Known state/org → (lat, lon) fallback cache so we don't hammer the API
-# for results that will always resolve the same way.
-INDIA_STATE_COORDS = {
-    "andhra pradesh":       (15.9129, 79.7400),
-    "arunachal pradesh":    (28.2180, 94.7278),
-    "assam":                (26.2006, 92.9376),
-    "bihar":                (25.0961, 85.3131),
-    "chhattisgarh":         (21.2787, 81.8661),
-    "goa":                  (15.2993, 74.1240),
-    "gujarat":              (22.2587, 71.1924),
-    "haryana":              (29.0588, 76.0856),
-    "himachal pradesh":     (31.1048, 77.1734),
-    "jharkhand":            (23.6102, 85.2799),
-    "karnataka":            (15.3173, 75.7139),
-    "kerala":               (10.8505, 76.2711),
-    "madhya pradesh":       (22.9734, 78.6569),
-    "maharashtra":          (19.7515, 75.7139),
-    "manipur":              (24.6637, 93.9063),
-    "meghalaya":            (25.4670, 91.3662),
-    "mizoram":              (23.1645, 92.9376),
-    "nagaland":             (26.1584, 94.5624),
-    "odisha":               (20.9517, 85.0985),
-    "punjab":               (31.1471, 75.3412),
-    "rajasthan":            (27.0238, 74.2179),
-    "sikkim":               (27.5330, 88.5122),
-    "tamil nadu":           (11.1271, 78.6569),
-    "telangana":            (18.1124, 79.0193),
-    "tripura":              (23.9408, 91.9882),
-    "uttar pradesh":        (26.8467, 80.9462),
-    "uttarakhand":          (30.0668, 79.0193),
-    "west bengal":          (22.9868, 87.8550),
-    "chandigarh":           (30.7333, 76.7794),
-    "delhi":                (28.6139, 77.2090),
-    "nct of delhi":         (28.6139, 77.2090),
-    "jammu and kashmir":    (34.0837, 74.7973),
-    "ladakh":               (34.1526, 77.5770),
-    "lakshadweep":          (10.5667, 72.6417),
-    "puducherry":           (11.9416, 79.8083),
-    "andaman and nicobar":  (11.7401, 92.6586),
-    "dadra and nagar haveli": (20.1809, 73.0169),
-    "daman and diu":        (20.4283, 72.8397),
-    "food corporation":     (28.6139, 77.2090),
-    "bhel":                 (28.6139, 77.2090),
-    "ntpc":                 (28.6139, 77.2090),
-    "ongc":                 (28.6139, 77.2090),
-    "nhai":                 (28.6139, 77.2090),
-    "cpwd":                 (28.6139, 77.2090),
-    "ircon":                (28.6139, 77.2090),
-    # Railway zones
-    "railways":             (28.6139, 77.2090),
-    "northern rly":         (28.6139, 77.2090),
-    "north rly":            (28.6139, 77.2090),
-    "north central rly":    (25.4358, 81.8463),  # Prayagraj HQ
-    "north eastern rly":    (26.7505, 83.3732),  # Gorakhpur HQ
-    "northeast frontier":   (26.1445, 91.7362),  # Maligaon, Guwahati
-    "southern rly":         (13.0827, 80.2707),  # Chennai HQ
-    "south central rly":    (17.3772, 78.4782),  # Secunderabad HQ
-    "south eastern rly":    (22.5726, 88.3639),  # Kolkata HQ
-    "south western rly":    (15.3647, 75.1240),  # Hubli HQ
-    "western rly":          (18.9388, 72.8354),  # Mumbai HQ
-    "central rly":          (18.9388, 72.8354),  # Mumbai HQ
-    "eastern rly":          (22.5726, 88.3639),  # Kolkata HQ
-    "east central rly":     (25.6119, 85.1437),  # Hajipur HQ
-    "east coast rly":       (20.2961, 85.8245),  # Bhubaneswar HQ
-    # Defence / Military
-    "military engineer":    (28.6139, 77.2090),
-    "e-in-c branch":        (28.6139, 77.2090),
-    "ihq of mod":           (28.6139, 77.2090),
-    "mod (army)":           (28.6139, 77.2090),
-    "defence estates":      (28.6139, 77.2090),
-    "sashastra seema":      (28.6139, 77.2090),
-    "border roads":         (28.6139, 77.2090),
-    "ordnance factory":     (22.8722, 88.3706),  # Kolkata area
-    # PSUs / Coalfields
-    "coal india":           (22.5726, 88.3639),
-    "central coalfields":   (23.7421, 85.6177),  # Ranchi
-    "eastern coalfields":   (23.6457, 86.9737),  # Sanctoria
-    "western coalfields":   (21.1458, 79.0882),  # Nagpur
-    "south eastern coal":   (22.6797, 82.5024),  # Bilaspur
-    "northern coalfields":  (24.1478, 82.7764),  # Singrauli
-    "bharat coking coal":   (23.8021, 86.4256),  # Dhanbad
-    "neyveli lignite":      (11.5976, 79.4886),  # Neyveli, TN
-    "nuclear power":        (19.0760, 72.8777),  # Mumbai (NPCIL HQ)
-    "rashtriya chemicals":  (19.0760, 72.8777),  # Mumbai
-    "mangalore refinery":   (12.9141, 74.8560),  # Mangalore
-    "bpcl":                 (19.0760, 72.8777),
-    "hpcl":                 (19.0760, 72.8777),
-    "iocl":                 (28.6139, 77.2090),
-    "indian oil":           (28.6139, 77.2090),
-    "gail":                 (28.6139, 77.2090),
-    "sail":                 (22.5726, 88.3639),
-    "bsnl":                 (28.6139, 77.2090),
-    "mtnl":                 (19.0760, 72.8777),
-}
 
 def get_db_conn():
     import os
@@ -173,13 +79,6 @@ def nominatim_geocode(query: str) -> tuple | None:
         print(f"  ⚠️  Nominatim error for '{query}': {e}")
     return None
 
-def fallback_coords(org_name: str):
-    """Try state-name fallback from org_name."""
-    lower = org_name.lower()
-    for key, coords in INDIA_STATE_COORDS.items():
-        if key in lower:
-            return coords[0], coords[1], f"{org_name} (fallback)"
-    return None
 
 def geocode_batch(conn, limit: int, batch_size: int):
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
@@ -224,17 +123,11 @@ def geocode_batch(conn, limit: int, batch_size: int):
             if result:
                 lat, lon, addr = result
                 source = "nominatim"
-                time.sleep(0.3)  # be polite to the API
+                time.sleep(0.2)  # be polite to the API
             else:
-                # 2. Try state fallback
-                fb = fallback_coords(org)
-                if fb:
-                    lat, lon, addr = fb
-                    source = "fallback"
-                else:
-                    print(f"  ❌ No coords for: {org}")
-                    failed += 1
-                    continue
+                print(f"  ❌ No coords for: {org}")
+                failed += 1
+                continue
 
             org_cache[org] = (lat, lon, addr)
             print(f"  [{i+1}/{len(rows)}] {org[:50]} → ({lat:.4f}, {lon:.4f}) [{source}]")

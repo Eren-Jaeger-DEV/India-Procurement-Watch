@@ -18,6 +18,7 @@ const RedFlagExplorer = lazy(() => import('./pages/RedFlagExplorer'));
 const Insights = lazy(() => import('./pages/Insights'));
 const Collusion = lazy(() => import('./pages/Collusion'));
 const Departments = lazy(() => import('./pages/Departments'));
+const MapExplorer = lazy(() => import('./pages/MapExplorer'));
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -78,6 +79,7 @@ function App() {
               <Route path="insights"    element={<Insights />} />
               <Route path="collusion"   element={<Collusion />} />
               <Route path="departments" element={<Departments />} />
+              <Route path="tenders-map" element={<MapExplorer />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

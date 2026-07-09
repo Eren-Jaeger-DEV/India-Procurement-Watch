@@ -283,3 +283,30 @@ def api_red_flag_explorer():
         return jsonify({"error": str(e), "total": 0, "results": []}), 500
 
 
+@analytics_bp.route("/api/map-tenders")
+def api_map_tenders():
+    """Fetch geocoded points from aoc_geocoded joined with contract information."""
+    conn = get_pg_conn()
+    cur  = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute("""
+            SELECT g.internal_id, g.lat, g.lon, g.resolved_address,
+                   COALESCE(s.title, t.title) AS title,
+                   COALESCE(s.org_name, t.org_name) AS org_name,
+                   COALESCE(s.contract_value, 0) AS contract_value,
+                   COALESCE(s.bidder_name, '') AS bidder_name,
+                   COALESCE(s.portal_type, t.portal_type) AS portal_type,
+                   (CASE WHEN s.internal_id IS NOT NULL THEN 1 ELSE 0 END) AS is_single_bid
+            FROM aoc_geocoded g
+            LEFT JOIN single_bid_contracts s ON g.internal_id = s.internal_id
+            LEFT JOIN aoc_tenders t ON g.internal_id = t.internal_id
+            ORDER BY contract_value DESC NULLS LAST
+        """)
+        rows = [dict(r) for r in cur.fetchall()]
+        return jsonify(rows)
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"error": str(e)}), 500
+
+
+

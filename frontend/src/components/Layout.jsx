@@ -1,5 +1,5 @@
 import { Outlet, NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, FileText, Search, FileSearch, Bot, Sun, Moon, X, PanelLeftClose, PanelLeftOpen, Map, Network, Menu, Activity, Flag, TrendingUp, ShieldAlert, Building2 } from 'lucide-react';
+import { LayoutDashboard, FileText, Search, FileSearch, Bot, Sun, Moon, X, PanelLeftClose, PanelLeftOpen, Map, Network, Menu, Activity, Flag, TrendingUp, ShieldAlert, Building2, MapPin } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import QuickAiBar from './QuickAiBar';
 import TenderModal from './TenderModal';
@@ -81,6 +81,10 @@ const Layout = () => {
             <NavLink to="/geo" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isCollapsed ? "Geographical" : ""}>
               <Map size={18} />
               {!isCollapsed && <span>Geographical</span>}
+            </NavLink>
+            <NavLink to="/tenders-map" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isCollapsed ? "Tender Map" : ""}>
+              <MapPin size={18} />
+              {!isCollapsed && <span>Tender Map</span>}
             </NavLink>
             <NavLink to="/insights" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isCollapsed ? "Insights" : ""}>
               <TrendingUp size={18} />

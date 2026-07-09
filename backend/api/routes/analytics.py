@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, request
 from core.db import get_pg_conn
+from core.cache import cache
 from psycopg2.extras import RealDictCursor
 
 analytics_bp = Blueprint('analytics', __name__)
@@ -284,6 +285,7 @@ def api_red_flag_explorer():
 
 
 @analytics_bp.route("/api/map-tenders")
+@cache.cached(timeout=300, query_string=True)
 def api_map_tenders():
     """Fetch geocoded points — capped at 1000, single-bid first for fast load."""
     conn = get_pg_conn()

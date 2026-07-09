@@ -151,26 +151,25 @@ const Layout = () => {
           </div>
         </div>
 
-        <div className="sidebar-footer">
+        <div className="sidebar-footer" style={{ flexDirection: isVisuallyCollapsed ? 'column' : 'row', gap: isVisuallyCollapsed ? '6px' : '8px' }}>
           <button 
             className="nav-item collapse-toggle-btn" 
             onClick={() => { setIsCollapsed(!isCollapsed); setIsHovered(false); }} 
-            style={{ width: '100%', background: 'transparent', border: 'none', cursor: 'pointer', justifyContent: isVisuallyCollapsed ? 'center' : 'flex-start' }}
+            style={{ flex: isVisuallyCollapsed ? 'none' : 1, margin: 0, justifyContent: 'center', padding: '8px', minHeight: '36px' }}
             title={isVisuallyCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
           >
             {isVisuallyCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
-            {!isVisuallyCollapsed && <span>Collapse Sidebar</span>}
+            {!isVisuallyCollapsed && <span style={{ fontSize: 13, fontWeight: 600 }}>Collapse</span>}
           </button>
           <button 
             className="nav-item theme-toggle-btn" 
             onClick={() => setIsDark(!isDark)} 
-            style={{ width: '100%', background: 'transparent', border: 'none', cursor: 'pointer', justifyContent: isVisuallyCollapsed ? 'center' : 'flex-start' }}
+            style={{ width: isVisuallyCollapsed ? '100%' : '40px', margin: 0, justifyContent: 'center', padding: '8px', flexShrink: 0, minHeight: '36px' }}
             title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
           >
             <div className={`theme-icon-wrapper ${isDark ? 'dark' : 'light'}`}>
               {isDark ? <Sun size={18} /> : <Moon size={18} />}
             </div>
-            {!isVisuallyCollapsed && <span>{isDark ? 'Light Mode' : 'Dark Mode'}</span>}
           </button>
         </div>
       </aside>

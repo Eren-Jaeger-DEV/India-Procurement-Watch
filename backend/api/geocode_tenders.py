@@ -94,9 +94,13 @@ def ensure_table(conn):
                 lat             DOUBLE PRECISION NOT NULL,
                 lon             DOUBLE PRECISION NOT NULL,
                 resolved_address TEXT,
-                geocode_source  TEXT DEFAULT 'nominatim',
                 geocoded_at     TIMESTAMPTZ DEFAULT NOW()
             )
+        """)
+        # Add geocode_source column if not present (migration for older table)
+        cur.execute("""
+            ALTER TABLE aoc_geocoded
+            ADD COLUMN IF NOT EXISTS geocode_source TEXT DEFAULT 'nominatim'
         """)
         cur.execute("CREATE INDEX IF NOT EXISTS idx_geocoded_lat_lon ON aoc_geocoded(lat, lon)")
         conn.commit()
@@ -112,6 +116,7 @@ def nominatim_geocode(query: str) -> tuple | None:
             "limit": 1,
             "addressdetails": 1,
             "countrycodes": "in",   # restrict to India
+            "key": API_KEY,          # pass key as query param (more reliable)
         }
         r = requests.get(url, headers=HEADERS, params=params, timeout=10)
         r.raise_for_status()
@@ -159,7 +164,11 @@ def geocode_batch(conn, limit: int, batch_size: int):
     batch_rows = []
 
     for i, row in enumerate(rows):
-        org = row["org_name"].strip()
+        raw_org = row["org_name"].strip()
+        # org_name often has hierarchy like "Punjab||District||Sub-office"
+        # Use the first segment (state/top-level org) for best geocode results
+        parts = [p.strip() for p in raw_org.split("||") if p.strip()]
+        org = parts[0] if parts else raw_org
 
         if org in org_cache:
             lat, lon, addr = org_cache[org]

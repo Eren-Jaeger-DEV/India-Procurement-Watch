@@ -329,8 +329,8 @@ def api_map_tenders():
             """, (float(min_lat), float(max_lat), float(min_lon), float(max_lon), limit))
         else:
             # Zoomed out (National level / initial load) -> Fast UNION query
-            # We cap at 100000 for national level to prevent browser crashing while showing a very dense map
-            national_limit = min(limit, 100000)
+            # We cap at 30000 for national level to prevent browser crashing while showing a very dense map
+            national_limit = min(limit, 30000)
             cur.execute("""
                 (
                     SELECT g.internal_id, g.lat, g.lon, g.resolved_address,
@@ -338,7 +338,6 @@ def api_map_tenders():
                            1 AS is_single_bid
                     FROM single_bid_contracts s
                     JOIN aoc_geocoded g ON s.internal_id = g.internal_id
-                    ORDER BY s.contract_value DESC NULLS LAST
                     LIMIT %s
                 )
                 UNION ALL

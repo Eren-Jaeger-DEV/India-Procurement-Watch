@@ -18,7 +18,11 @@ const getRasterStyle = (url) => ({
   sources: {
     'raster-tiles': {
       type: 'raster',
-      tiles: [url],
+      tiles: [
+        url.replace('{s}', 'a'),
+        url.replace('{s}', 'b'),
+        url.replace('{s}', 'c')
+      ],
       tileSize: 256,
       attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
     }
@@ -34,7 +38,7 @@ const getRasterStyle = (url) => ({
   ]
 });
 
-const MAP_STYLE = getRasterStyle('https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png');
+const MAP_STYLE = getRasterStyle('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png');
 
 const Geographical = () => {
   const [geoData, setGeoData] = useState(null);

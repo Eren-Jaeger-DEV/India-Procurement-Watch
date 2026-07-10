@@ -58,7 +58,11 @@ const getRasterStyle = (url) => ({
   sources: {
     'raster-tiles': {
       type: 'raster',
-      tiles: [url],
+      tiles: [
+        url.replace('{s}', 'a'),
+        url.replace('{s}', 'b'),
+        url.replace('{s}', 'c')
+      ],
       tileSize: 256,
       attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
     }
@@ -75,8 +79,8 @@ const getRasterStyle = (url) => ({
 });
 
 const MAP_STYLES = {
-  dark: getRasterStyle('https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'),
-  light: getRasterStyle('https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png')
+  dark: getRasterStyle('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'),
+  light: getRasterStyle('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png')
 };
 
 export default function MapExplorer() {

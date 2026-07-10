@@ -52,9 +52,30 @@ const STATE_COORDS = {
   "West Bengal": { center: [87.8550, 22.9868], zoom: 6 }
 };
 
+const getRasterStyle = (url) => ({
+  version: 8,
+  sources: {
+    'raster-tiles': {
+      type: 'raster',
+      tiles: [url],
+      tileSize: 256,
+      attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+    }
+  },
+  layers: [
+    {
+      id: 'simple-tiles',
+      type: 'raster',
+      source: 'raster-tiles',
+      minzoom: 0,
+      maxzoom: 22
+    }
+  ]
+});
+
 const MAP_STYLES = {
-  dark: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
-  light: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json'
+  dark: getRasterStyle('https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'),
+  light: getRasterStyle('https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png')
 };
 
 export default function MapExplorer() {
@@ -70,7 +91,16 @@ export default function MapExplorer() {
   const [filterMode, setFilterMode] = useState('all');
   const [portal, setPortal] = useState('all');
   
-  const [mapStyleKey, setMapStyleKey] = useState('dark');
+  const [isDark, setIsDark] = useState(() => document.body.classList.contains('dark-theme'));
+  
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setIsDark(document.body.classList.contains('dark-theme'));
+    });
+    observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
+
   const [layerOpen, setLayerOpen] = useState(false);
   const [panelOpen, setPanelOpen] = useState(true);
   const [selectedState, setSelectedState] = useState('');
@@ -193,7 +223,7 @@ export default function MapExplorer() {
           latitude: 22.5,
           zoom: 4
         }}
-        mapStyle={MAP_STYLES[mapStyleKey]}
+        mapStyle={isDark ? MAP_STYLES.dark : MAP_STYLES.light}
         onMoveEnd={handleMoveEnd}
         onClick={onClick}
         interactiveLayerIds={['clusters', 'unclustered-point']}
@@ -283,22 +313,6 @@ export default function MapExplorer() {
         <button onClick={() => setPortal(p => p === 'all' ? 'central' : p === 'central' ? 'state' : 'all')} className={`pill ${portal !== 'all' ? 'pill-active' : ''}`}>
           {portal === 'all' ? 'All Portals' : portal === 'central' ? 'Central Portal' : 'State Portal'}
         </button>
-      </div>
-
-      {/* Layer switcher - top right */}
-      <div className="map-layer-switcher">
-        <button onClick={() => setLayerOpen(o => !o)} className="layer-btn" title="Switch map layer">
-          <Layers size={18} />
-        </button>
-        {layerOpen && (
-          <div className="layer-menu">
-            {Object.entries({ dark: 'Dark', light: 'Light' }).map(([k, label]) => (
-              <button key={k} onClick={() => { setMapStyleKey(k); setLayerOpen(false); }} className={`layer-option ${mapStyleKey === k ? 'layer-active' : ''}`}>
-                {label}
-              </button>
-            ))}
-          </div>
-        )}
       </div>
 
       {/* Floating intelligence panel */}

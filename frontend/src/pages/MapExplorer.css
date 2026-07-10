@@ -4,7 +4,7 @@
   position: absolute;
   inset: 0;
   z-index: 0;
-  background: #0a0c14;
+  background: var(--bg-main);
 }
 
 .map-container {
@@ -147,8 +147,8 @@
   max-height: calc(100vh - 48px);
   overflow-y: auto;
   z-index: 800;
-  background: rgba(10, 12, 20, 0.85);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: color-mix(in srgb, var(--bg-card) 85%, transparent);
+  border: 1px solid var(--border-color);
   border-radius: 16px;
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);

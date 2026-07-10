@@ -46,6 +46,17 @@ function FitIndia() {
   return null;
 }
 
+// Controller to fly the map view to a specific coordinate / zoom
+function MapFlyController({ flyTo }) {
+  const map = useMap();
+  useEffect(() => {
+    if (flyTo) {
+      map.flyTo(flyTo.center, flyTo.zoom, { animate: true, duration: 1.5 });
+    }
+  }, [flyTo, map]);
+  return null;
+}
+
 // Bounding box handler to capture viewport coordinates
 function MapBoundsHandler({ onBoundsChange }) {
   const map = useMapEvents({
@@ -77,6 +88,43 @@ function MapBoundsHandler({ onBoundsChange }) {
   return null;
 }
 
+const STATE_COORDS = {
+  "Andaman & Nicobar": { center: [11.7401, 92.6586], zoom: 7 },
+  "Andhra Pradesh": { center: [15.9129, 79.7400], zoom: 7 },
+  "Arunachal Pradesh": { center: [28.2180, 94.7278], zoom: 7 },
+  "Assam": { center: [26.2006, 92.9376], zoom: 7 },
+  "Bihar": { center: [25.0961, 85.3131], zoom: 7 },
+  "Chandigarh": { center: [30.7333, 76.7794], zoom: 11 },
+  "Chhattisgarh": { center: [21.2787, 81.8661], zoom: 7 },
+  "Delhi": { center: [28.6139, 77.2090], zoom: 10 },
+  "Goa": { center: [15.2993, 74.1240], zoom: 9 },
+  "Gujarat": { center: [22.2587, 71.1924], zoom: 7 },
+  "Haryana": { center: [29.0588, 76.0856], zoom: 7 },
+  "Himachal Pradesh": { center: [31.1048, 77.1734], zoom: 7 },
+  "Jammu & Kashmir": { center: [34.0837, 74.7973], zoom: 7 },
+  "Jharkhand": { center: [23.6102, 85.2799], zoom: 7 },
+  "Karnataka": { center: [15.3173, 75.7139], zoom: 7 },
+  "Kerala": { center: [10.8505, 76.2711], zoom: 7 },
+  "Ladakh": { center: [34.1526, 77.5770], zoom: 7 },
+  "Madhya Pradesh": { center: [22.9734, 78.6569], zoom: 6 },
+  "Maharashtra": { center: [19.7515, 75.7139], zoom: 7 },
+  "Manipur": { center: [24.6637, 93.9063], zoom: 8 },
+  "Meghalaya": { center: [25.4670, 91.3662], zoom: 8 },
+  "Mizoram": { center: [23.1645, 92.9376], zoom: 8 },
+  "Nagaland": { center: [26.1584, 94.5624], zoom: 8 },
+  "Odisha": { center: [20.9517, 85.0985], zoom: 7 },
+  "Puducherry": { center: [11.9416, 79.8083], zoom: 10 },
+  "Punjab": { center: [31.1471, 75.3412], zoom: 8 },
+  "Rajasthan": { center: [27.0238, 74.2179], zoom: 7 },
+  "Sikkim": { center: [27.5330, 88.5122], zoom: 9 },
+  "Tamil Nadu": { center: [11.1271, 78.6569], zoom: 7 },
+  "Telangana": { center: [18.1124, 79.0193], zoom: 7 },
+  "Tripura": { center: [23.9408, 91.9882], zoom: 9 },
+  "Uttar Pradesh": { center: [26.8467, 80.9462], zoom: 7 },
+  "Uttarakhand": { center: [30.0668, 79.0193], zoom: 7 },
+  "West Bengal": { center: [22.9868, 87.8550], zoom: 7 }
+};
+
 const TILE_LAYERS = {
   dark:    { url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',   label: 'Dark' },
   osm:     { url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',              label: 'Streets' },
@@ -95,6 +143,16 @@ const MapExplorer = () => {
   const [tileKey, setTileKey] = useState('dark');
   const [panelOpen, setPanelOpen] = useState(true);
   const [layerOpen, setLayerOpen] = useState(false);
+  const [selectedState, setSelectedState] = useState('');
+  const [flyTo, setFlyTo] = useState(null);
+
+  const handleStateChange = (e) => {
+    const val = e.target.value;
+    setSelectedState(val);
+    if (val && STATE_COORDS[val]) {
+      setFlyTo(STATE_COORDS[val]);
+    }
+  };
 
   useEffect(() => {
     if (!bounds) return;
@@ -170,6 +228,7 @@ const MapExplorer = () => {
         <ZoomControl position="bottomright" />
         <FitIndia />
         <MapBoundsHandler onBoundsChange={setBounds} />
+        <MapFlyController flyTo={flyTo} />
 
         <MarkerClusterGroup
           chunkedLoading
@@ -262,6 +321,33 @@ const MapExplorer = () => {
               <div className="stat-lbl">Total Value</div>
             </div>
           </div>
+
+          {/* State Selector */}
+          <div className="panel-state-select" style={{ padding: '12px 18px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+            <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '6px' }}>Focus State</div>
+            <select
+              value={selectedState}
+              onChange={handleStateChange}
+              style={{
+                width: '100%',
+                padding: '8px',
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                borderRadius: '8px',
+                color: '#e2e8f0',
+                fontSize: '12.5px',
+                outline: 'none',
+                cursor: 'pointer',
+                fontFamily: 'inherit'
+              }}
+            >
+              <option value="" style={{ background: '#0a0c14' }}>All India</option>
+              {Object.keys(STATE_COORDS).sort().map(s => (
+                <option key={s} value={s} style={{ background: '#0a0c14' }}>{s}</option>
+              ))}
+            </select>
+          </div>
+
 
           {/* Search */}
           <div className="panel-search">

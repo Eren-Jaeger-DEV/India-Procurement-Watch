@@ -291,6 +291,9 @@ def api_map_tenders():
     conn = get_pg_conn()
     cur  = conn.cursor(cursor_factory=RealDictCursor)
     try:
+        # Disable parallel queries to avoid shared memory segment resize errors (No space left on device)
+        cur.execute("SET max_parallel_workers_per_gather = 0;")
+        
         min_lat = request.args.get('min_lat')
         max_lat = request.args.get('max_lat')
         min_lon = request.args.get('min_lon')

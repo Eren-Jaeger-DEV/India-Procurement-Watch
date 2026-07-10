@@ -15,7 +15,7 @@ const GEO_TO_DB = {
 
 const getRasterStyle = (url) => ({
   version: 8,
-  glyphs: "https://tiles.basemaps.cartocdn.com/fonts/{fontstack}/{range}.pbf",
+  glyphs: "https://fonts.openmaptiles.org/{fontstack}/{range}.pbf",
   sources: {
     'raster-tiles': {
       type: 'raster',

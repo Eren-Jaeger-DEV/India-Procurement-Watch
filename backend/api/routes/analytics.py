@@ -298,14 +298,14 @@ def api_map_tenders():
         max_lat = request.args.get('max_lat')
         min_lon = request.args.get('min_lon')
         max_lon = request.args.get('max_lon')
-        limit = min(int(request.args.get('limit', 5000)), 15000)
+        limit = int(request.args.get('limit', 200000)) # Increased default limit significantly
 
         # Check if the bounding box covers the entire country (large bbox)
         is_large_bbox = False
         if min_lat and max_lat and min_lon and max_lon:
             lat_diff = abs(float(max_lat) - float(min_lat))
             lon_diff = abs(float(max_lon) - float(min_lon))
-            if lat_diff > 15 or lon_diff > 15:
+            if lat_diff > 10 or lon_diff > 10:
                 is_large_bbox = True
 
         if min_lat and max_lat and min_lon and max_lon and not is_large_bbox:
@@ -329,6 +329,8 @@ def api_map_tenders():
             """, (float(min_lat), float(max_lat), float(min_lon), float(max_lon), limit))
         else:
             # Zoomed out (National level / initial load) -> Fast UNION query
+            # We cap at 15000 for national level to prevent browser crashing while showing a very dense map
+            national_limit = min(limit, 15000)
             cur.execute("""
                 (
                     SELECT g.internal_id, g.lat, g.lon, g.resolved_address,
@@ -352,7 +354,7 @@ def api_map_tenders():
                     ) g
                     JOIN aoc_tenders t ON g.internal_id = t.internal_id
                 )
-            """, (limit // 2, limit // 2))
+            """, (national_limit // 2, national_limit // 2))
             
         rows = [dict(r) for r in cur.fetchall()]
         return jsonify(rows)

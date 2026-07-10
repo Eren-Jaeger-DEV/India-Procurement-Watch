@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
+import debounce from 'lodash.debounce';
 import Map, { Source, Layer, NavigationControl, Popup } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { fetchMapTenders } from '../lib/api';
@@ -107,6 +108,21 @@ export default function MapExplorer() {
   
   const [popupInfo, setPopupInfo] = useState(null);
 
+  // Layout fix: completely remove parent padding to prevent cutoff and scrollbars
+  useEffect(() => {
+    const mainContent = document.querySelector('.main-content');
+    if (mainContent) {
+      mainContent.style.padding = '0';
+      mainContent.style.overflow = 'hidden';
+    }
+    return () => {
+      if (mainContent) {
+        mainContent.style.padding = '';
+        mainContent.style.overflow = '';
+      }
+    };
+  }, []);
+
   useEffect(() => {
     if (!bounds) return;
     setFetching(true);
@@ -143,16 +159,21 @@ export default function MapExplorer() {
       features: filtered.map(t => ({
         type: 'Feature',
         geometry: { type: 'Point', coordinates: [t.lon, t.lat] },
-        properties: { ...t }
+        properties: t // pass reference directly to avoid slow object spread
       }))
     };
   }, [filtered]);
 
-  const stats = useMemo(() => ({
-    total: filtered.length,
-    singleBid: filtered.filter(t => t.is_single_bid === 1).length,
-    totalValue: filtered.reduce((s, t) => s + (t.contract_value || 0), 0),
-  }), [filtered]);
+  const stats = useMemo(() => {
+    let singleBid = 0;
+    let totalValue = 0;
+    for (let i = 0; i < filtered.length; i++) {
+      const t = filtered[i];
+      if (t.is_single_bid === 1) singleBid++;
+      if (t.contract_value) totalValue += t.contract_value;
+    }
+    return { total: filtered.length, singleBid, totalValue };
+  }, [filtered]);
 
   const handleStateChange = (e) => {
     const val = e.target.value;
@@ -166,16 +187,20 @@ export default function MapExplorer() {
     }
   };
 
-  const handleMoveEnd = useCallback((e) => {
-    if (!e.viewState) return;
-    const mapBounds = e.target.getBounds();
-    setBounds({
-      min_lon: mapBounds.getWest(),
-      max_lon: mapBounds.getEast(),
-      min_lat: mapBounds.getSouth(),
-      max_lat: mapBounds.getNorth()
-    });
-  }, []);
+  // Debounce API calls on map pan/zoom to avoid main thread freeze
+  const handleMoveEnd = useCallback(
+    debounce((e) => {
+      if (!e.viewState) return;
+      const mapBounds = e.target.getBounds();
+      setBounds({
+        min_lon: mapBounds.getWest(),
+        max_lon: mapBounds.getEast(),
+        min_lat: mapBounds.getSouth(),
+        max_lat: mapBounds.getNorth()
+      });
+    }, 800),
+    []
+  );
 
   const onClick = useCallback((event) => {
     const feature = event.features[0];

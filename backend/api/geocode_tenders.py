@@ -115,7 +115,11 @@ def geocode_batch(conn, limit: int, batch_size: int):
         org = parts[0] if parts else raw_org
 
         if org in org_cache:
-            lat, lon, addr = org_cache[org]
+            cached_val = org_cache[org]
+            if cached_val is None:
+                failed += 1
+                continue
+            lat, lon, addr = cached_val
             source = "cache"
         else:
             # 1. Try Nominatim API
@@ -123,14 +127,14 @@ def geocode_batch(conn, limit: int, batch_size: int):
             if result:
                 lat, lon, addr = result
                 source = "nominatim"
+                org_cache[org] = (lat, lon, addr)
                 time.sleep(0.2)  # be polite to the API
+                print(f"  [{i+1}/{len(rows)}] {org[:50]} → ({lat:.4f}, {lon:.4f}) [{source}]")
             else:
                 print(f"  ❌ No coords for: {org}")
+                org_cache[org] = None
                 failed += 1
                 continue
-
-            org_cache[org] = (lat, lon, addr)
-            print(f"  [{i+1}/{len(rows)}] {org[:50]} → ({lat:.4f}, {lon:.4f}) [{source}]")
 
         batch_rows.append((row["internal_id"], lat, lon, addr, source))
 

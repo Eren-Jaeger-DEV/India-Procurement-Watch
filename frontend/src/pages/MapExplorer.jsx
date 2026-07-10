@@ -131,12 +131,19 @@ const TILE_LAYERS = {
   hybrid:  { url: 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',             label: 'Satellite' },
 };
 
+const INDIA_DEFAULT_BOUNDS = {
+  min_lat: 6.0,
+  max_lat: 38.0,
+  min_lon: 68.0,
+  max_lon: 98.0
+};
+
 const MapExplorer = () => {
   const [tenders, setTenders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [fetching, setFetching] = useState(false);
   const [error, setError] = useState(null);
-  const [bounds, setBounds] = useState(null);
+  const [bounds, setBounds] = useState(INDIA_DEFAULT_BOUNDS);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterMode, setFilterMode] = useState('all'); // 'all' | 'single' | 'regular'
   const [portal, setPortal] = useState('all');

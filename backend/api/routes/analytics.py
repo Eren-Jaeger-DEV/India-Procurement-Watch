@@ -287,25 +287,48 @@ def api_red_flag_explorer():
 @analytics_bp.route("/api/map-tenders")
 @cache.cached(timeout=300, query_string=True)
 def api_map_tenders():
-    """Fetch geocoded points — all tenders, highest value first."""
+    """Fetch geocoded points — supports bounding box viewport loading."""
     conn = get_pg_conn()
     cur  = conn.cursor(cursor_factory=RealDictCursor)
     try:
-        limit = min(int(request.args.get('limit', 3000)), 10000)
-        cur.execute("""
-            SELECT g.internal_id, g.lat, g.lon, g.resolved_address,
-                   COALESCE(s.title, t.title) AS title,
-                   COALESCE(s.org_name, t.org_name) AS org_name,
-                   COALESCE(s.contract_value, 0) AS contract_value,
-                   COALESCE(s.bidder_name, '') AS bidder_name,
-                   COALESCE(s.portal_type, t.portal_type) AS portal_type,
-                   (CASE WHEN s.internal_id IS NOT NULL THEN 1 ELSE 0 END) AS is_single_bid
-            FROM aoc_geocoded g
-            LEFT JOIN single_bid_contracts s ON g.internal_id = s.internal_id
-            LEFT JOIN aoc_tenders t ON g.internal_id = t.internal_id
-            ORDER BY COALESCE(s.contract_value, 0) DESC NULLS LAST
-            LIMIT %s
-        """, (limit,))
+        min_lat = request.args.get('min_lat')
+        max_lat = request.args.get('max_lat')
+        min_lon = request.args.get('min_lon')
+        max_lon = request.args.get('max_lon')
+        limit = min(int(request.args.get('limit', 5000)), 15000)
+
+        if min_lat and max_lat and min_lon and max_lon:
+            cur.execute("""
+                SELECT g.internal_id, g.lat, g.lon, g.resolved_address,
+                       COALESCE(s.title, t.title) AS title,
+                       COALESCE(s.org_name, t.org_name) AS org_name,
+                       COALESCE(s.contract_value, 0) AS contract_value,
+                       COALESCE(s.bidder_name, '') AS bidder_name,
+                       COALESCE(s.portal_type, t.portal_type) AS portal_type,
+                       (CASE WHEN s.internal_id IS NOT NULL THEN 1 ELSE 0 END) AS is_single_bid
+                FROM aoc_geocoded g
+                LEFT JOIN single_bid_contracts s ON g.internal_id = s.internal_id
+                LEFT JOIN aoc_tenders t ON g.internal_id = t.internal_id
+                WHERE g.lat BETWEEN %s AND %s AND g.lon BETWEEN %s AND %s
+                ORDER BY COALESCE(s.contract_value, 0) DESC NULLS LAST
+                LIMIT %s
+            """, (float(min_lat), float(max_lat), float(min_lon), float(max_lon), limit))
+        else:
+            cur.execute("""
+                SELECT g.internal_id, g.lat, g.lon, g.resolved_address,
+                       COALESCE(s.title, t.title) AS title,
+                       COALESCE(s.org_name, t.org_name) AS org_name,
+                       COALESCE(s.contract_value, 0) AS contract_value,
+                       COALESCE(s.bidder_name, '') AS bidder_name,
+                       COALESCE(s.portal_type, t.portal_type) AS portal_type,
+                       (CASE WHEN s.internal_id IS NOT NULL THEN 1 ELSE 0 END) AS is_single_bid
+                FROM aoc_geocoded g
+                LEFT JOIN single_bid_contracts s ON g.internal_id = s.internal_id
+                LEFT JOIN aoc_tenders t ON g.internal_id = t.internal_id
+                ORDER BY COALESCE(s.contract_value, 0) DESC NULLS LAST
+                LIMIT %s
+            """, (limit,))
+            
         rows = [dict(r) for r in cur.fetchall()]
         return jsonify(rows)
     except Exception as e:

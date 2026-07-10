@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, ZoomControl, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, ZoomControl, useMap, useMapEvents } from 'react-leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
 import L from 'leaflet';
 import { fetchMapTenders } from '../lib/api';
@@ -46,6 +46,37 @@ function FitIndia() {
   return null;
 }
 
+// Bounding box handler to capture viewport coordinates
+function MapBoundsHandler({ onBoundsChange }) {
+  const map = useMapEvents({
+    moveend() {
+      const bounds = map.getBounds();
+      const sw = bounds.getSouthWest();
+      const ne = bounds.getNorthEast();
+      onBoundsChange({
+        min_lat: sw.lat,
+        max_lat: ne.lat,
+        min_lon: sw.lng,
+        max_lon: ne.lng,
+      });
+    },
+  });
+
+  useEffect(() => {
+    const bounds = map.getBounds();
+    const sw = bounds.getSouthWest();
+    const ne = bounds.getNorthEast();
+    onBoundsChange({
+      min_lat: sw.lat,
+      max_lat: ne.lat,
+      min_lon: sw.lng,
+      max_lon: ne.lng,
+    });
+  }, [map]);
+
+  return null;
+}
+
 const TILE_LAYERS = {
   dark:    { url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',   label: 'Dark' },
   osm:     { url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',              label: 'Streets' },
@@ -55,7 +86,9 @@ const TILE_LAYERS = {
 const MapExplorer = () => {
   const [tenders, setTenders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [fetching, setFetching] = useState(false);
   const [error, setError] = useState(null);
+  const [bounds, setBounds] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterMode, setFilterMode] = useState('all'); // 'all' | 'single' | 'regular'
   const [portal, setPortal] = useState('all');
@@ -64,11 +97,19 @@ const MapExplorer = () => {
   const [layerOpen, setLayerOpen] = useState(false);
 
   useEffect(() => {
-    fetchMapTenders()
-      .then(d => setTenders(d || []))
+    if (!bounds) return;
+    setFetching(true);
+    fetchMapTenders(bounds)
+      .then(d => {
+        setTenders(d || []);
+        setError(null);
+      })
       .catch(() => setError('Failed to load map data.'))
-      .finally(() => setLoading(false));
-  }, []);
+      .finally(() => {
+        setLoading(false);
+        setFetching(false);
+      });
+  }, [bounds]);
 
   const filtered = useMemo(() => {
     return tenders.filter(t => {
@@ -104,7 +145,7 @@ const MapExplorer = () => {
     </div>
   );
 
-  if (error) return (
+  if (error && tenders.length === 0) return (
     <div className="map-fullscreen-loader">
       <div className="map-error-card">
         <p>{error}</p>
@@ -128,6 +169,7 @@ const MapExplorer = () => {
         <TileLayer key={tileKey} url={tileLayer.url} />
         <ZoomControl position="bottomright" />
         <FitIndia />
+        <MapBoundsHandler onBoundsChange={setBounds} />
 
         <MarkerClusterGroup
           chunkedLoading
@@ -196,7 +238,10 @@ const MapExplorer = () => {
         <div className="map-panel">
           <div className="panel-header">
             <div>
-              <div className="panel-title">Procurement Map</div>
+              <div className="panel-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                Procurement Map
+                {fetching && <Loader2 size={13} className="spin" style={{ color: '#6366f1', animation: 'spin 1s linear infinite' }} />}
+              </div>
               <div className="panel-sub">India · Geocoded Tenders</div>
             </div>
             <button onClick={() => setPanelOpen(false)} className="panel-close"><X size={14} /></button>

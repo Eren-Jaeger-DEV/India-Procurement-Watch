@@ -182,8 +182,8 @@ export const fetchTenderDetail = async (internalId) => {
   return res.data;
 };
 
-export const fetchMapTenders = async () => {
-  const res = await api.get('/map-tenders');
+export const fetchMapTenders = async (params = {}) => {
+  const res = await api.get('/map-tenders', { params });
   return res.data;
 };
 

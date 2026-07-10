@@ -1,7 +1,7 @@
-import { useEffect, useState, useMemo } from 'react';
-import { MapContainer, TileLayer, GeoJSON, Tooltip } from 'react-leaflet';
+import { useEffect, useState, useMemo, useCallback } from 'react';
+import Map, { Source, Layer, Popup } from 'react-map-gl/maplibre';
+import 'maplibre-gl/dist/maplibre-gl.css';
 import { fetchStateStats } from '../lib/api';
-import 'leaflet/dist/leaflet.css';
 
 // Maps GeoJSON ST_NM spellings → DB state_name spellings
 const GEO_TO_DB = {
@@ -13,11 +13,14 @@ const GEO_TO_DB = {
   'NCT of Delhi': 'NCT of Delhi',
 };
 
+const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
+
 const Geographical = () => {
   const [geoData, setGeoData] = useState(null);
   const [stats, setStats] = useState({});
   const [mode, setMode] = useState('count'); // 'count' or 'value'
   const [loading, setLoading] = useState(true);
+  const [hoverInfo, setHoverInfo] = useState(null);
 
   useEffect(() => {
     const loadMapAndData = async () => {
@@ -26,8 +29,6 @@ const Geographical = () => {
           fetch('/india-states.json?v=2').then(res => res.json()),
           fetchStateStats()
         ]);
-        
-        setGeoData(geoRes);
         
         // Convert array [{state_name, total_contracts, total_value_crore}] → dict keyed by state_name
         const statsDict = {};
@@ -38,6 +39,20 @@ const Geographical = () => {
           };
         });
         setStats(statsDict);
+
+        // Inject metric values into GeoJSON properties for data-driven styling
+        if (geoRes && geoRes.features) {
+          geoRes.features = geoRes.features.map(f => {
+            const geoName = f.properties.ST_NM;
+            const dbName = GEO_TO_DB[geoName] || geoName;
+            const stateData = statsDict[dbName];
+            f.properties.count = stateData ? stateData.count : 0;
+            f.properties.value = stateData ? stateData.value : 0;
+            return f;
+          });
+        }
+        setGeoData(geoRes);
+
       } catch (e) {
         console.error("Failed to load map data:", e);
       } finally {
@@ -48,42 +63,40 @@ const Geographical = () => {
     loadMapAndData();
   }, []);
 
-  // Find max value to calculate color intensity
   const maxStat = useMemo(() => {
     if (!stats || Object.keys(stats).length === 0) return 1;
     const values = Object.values(stats).map(s => s[mode] || 0);
     return Math.max(...values, 1);
   }, [stats, mode]);
 
-  const getColor = (val) => {
-    // Generate a heat map from light blue to dark blue based on intensity
-    if (!val) return '#f8fafc';
-    const intensity = val / maxStat;
-    
-    // Example gradient from very light blue to very dark blue
-    if (intensity > 0.8) return '#1e3a8a'; // blue-900
-    if (intensity > 0.6) return '#1d4ed8'; // blue-700
-    if (intensity > 0.4) return '#2563eb'; // blue-600
-    if (intensity > 0.2) return '#3b82f6'; // blue-500
-    if (intensity > 0.05) return '#60a5fa'; // blue-400
-    return '#bfdbfe'; // blue-200
-  };
-
-  const style = (feature) => {
-    // GeoJSON uses "ST_NM" (uppercase) — apply normalization map for mismatched names
-    const geoName  = feature.properties.ST_NM;
-    const dbName   = GEO_TO_DB[geoName] || geoName;
-    const stateData = stats[dbName];
-    const val = stateData ? stateData[mode] : 0;
-    
+  const fillLayerStyle = useMemo(() => {
     return {
-      fillColor: getColor(val),
-      weight: 1,
-      opacity: 1,
-      color: 'white',
-      dashArray: '3',
-      fillOpacity: 0.8
+      id: 'state-fills',
+      type: 'fill',
+      paint: {
+        'fill-color': [
+          'case',
+          ['==', ['get', mode], 0], '#f8fafc',
+          ['>', ['get', mode], maxStat * 0.8], '#1e3a8a',
+          ['>', ['get', mode], maxStat * 0.6], '#1d4ed8',
+          ['>', ['get', mode], maxStat * 0.4], '#2563eb',
+          ['>', ['get', mode], maxStat * 0.2], '#3b82f6',
+          ['>', ['get', mode], maxStat * 0.05], '#60a5fa',
+          '#bfdbfe'
+        ],
+        'fill-opacity': 0.8
+      }
     };
+  }, [maxStat, mode]);
+
+  const lineLayerStyle = {
+    id: 'state-borders',
+    type: 'line',
+    paint: {
+      'line-color': '#ffffff',
+      'line-width': 1,
+      'line-dasharray': [3, 3]
+    }
   };
 
   const formatValue = (val) => {
@@ -92,19 +105,23 @@ const Geographical = () => {
     return new Intl.NumberFormat('en-IN').format(val);
   };
 
-  const onEachFeature = (feature, layer) => {
-    const geoName  = feature.properties.ST_NM;
-    const dbName   = GEO_TO_DB[geoName] || geoName;
-    const stateData = stats[dbName];
-    const val = stateData ? stateData[mode] : 0;
-    
-    layer.bindTooltip(`
-      <div style="font-family: 'Inter', sans-serif;">
-        <strong>${geoName}</strong><br/>
-        ${mode === 'count' ? 'Contracts' : 'Value'}: ${formatValue(val)}
-      </div>
-    `, { sticky: true });
-  };
+  const onHover = useCallback(event => {
+    const {
+      features,
+      point: { x, y }
+    } = event;
+    const hoveredFeature = features && features[0];
+
+    setHoverInfo(
+      hoveredFeature
+        ? {
+            feature: hoveredFeature,
+            x,
+            y
+          }
+        : null
+    );
+  }, []);
 
   if (loading) {
     return <div className="loading-state">Loading Geographical Data...</div>;
@@ -141,25 +158,50 @@ const Geographical = () => {
           </div>
         </div>
         
-        <div style={{ height: 750, width: '100%', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
-          <MapContainer 
-            center={[22.5937, 78.9629]} // Center of India
-            zoom={5} 
-            style={{ height: '100%', width: '100%' }}
-            scrollWheelZoom={false}
+        <div style={{ height: 750, width: '100%', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border-color)', position: 'relative' }}>
+          <Map
+            initialViewState={{
+              longitude: 78.9629,
+              latitude: 22.5937,
+              zoom: 4
+            }}
+            mapStyle={MAP_STYLE}
+            interactiveLayerIds={['state-fills']}
+            onMouseMove={onHover}
+            onMouseLeave={() => setHoverInfo(null)}
           >
-            <TileLayer
-              attribution='&copy; OpenStreetMap contributors'
-              url="https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png"
-            />
             {geoData && (
-              <GeoJSON 
-                data={geoData} 
-                style={style} 
-                onEachFeature={onEachFeature} 
-              />
+              <Source type="geojson" data={geoData}>
+                <Layer {...fillLayerStyle} />
+                <Layer {...lineLayerStyle} />
+              </Source>
             )}
-          </MapContainer>
+
+            {hoverInfo && (
+              <div
+                style={{
+                  position: 'absolute',
+                  left: hoverInfo.x,
+                  top: hoverInfo.y,
+                  transform: 'translate(-50%, -100%)',
+                  marginTop: '-15px',
+                  background: 'rgba(255,255,255,0.95)',
+                  padding: '8px 12px',
+                  borderRadius: '6px',
+                  pointerEvents: 'none',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                  fontFamily: 'Inter, sans-serif',
+                  fontSize: '13px',
+                  border: '1px solid #e2e8f0',
+                  color: '#1e293b',
+                  zIndex: 9999
+                }}
+              >
+                <strong>{hoverInfo.feature.properties.ST_NM}</strong><br/>
+                {mode === 'count' ? 'Contracts' : 'Value'}: {formatValue(hoverInfo.feature.properties[mode])}
+              </div>
+            )}
+          </Map>
         </div>
       </div>
     </div>

@@ -13,32 +13,7 @@ const GEO_TO_DB = {
   'NCT of Delhi': 'NCT of Delhi',
 };
 
-const getRasterStyle = (url) => ({
-  version: 8,
-  sources: {
-    'raster-tiles': {
-      type: 'raster',
-      tiles: [
-        url.replace('{s}', 'a'),
-        url.replace('{s}', 'b'),
-        url.replace('{s}', 'c')
-      ],
-      tileSize: 256,
-      attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
-    }
-  },
-  layers: [
-    {
-      id: 'simple-tiles',
-      type: 'raster',
-      source: 'raster-tiles',
-      minzoom: 0,
-      maxzoom: 22
-    }
-  ]
-});
-
-const MAP_STYLE = getRasterStyle('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png');
+const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
 
 const Geographical = () => {
   const [geoData, setGeoData] = useState(null);

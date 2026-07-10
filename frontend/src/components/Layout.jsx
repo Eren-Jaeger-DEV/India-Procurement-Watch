@@ -16,7 +16,7 @@ const NAV_ITEMS = [
 const Layout = () => {
   const [isDark, setIsDark]           = useState(true);
   const [isCollapsed, setIsCollapsed] = useState(window.innerWidth < 1200);
-  const [isHovered, setIsHovered]     = useState(false);
+
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [modalOpen, setModalOpen]     = useState(false);
   const [modalData, setModalData]     = useState(null);
@@ -40,8 +40,8 @@ const Layout = () => {
     setMobileMenuOpen(false);
     if (window.innerWidth < 1200) {
       setIsCollapsed(true);
-      setIsHovered(false);
     }
+
   }, [location]);
 
   useEffect(() => {
@@ -59,12 +59,11 @@ const Layout = () => {
   }, []);
 
   // Compute visual collapsed state (collapsed only if state is collapsed and not hovered)
-  const isVisuallyCollapsed = isCollapsed && !isHovered;
+  const isVisuallyCollapsed = isCollapsed;
 
   const handleNavItemClick = () => {
     if (window.innerWidth < 1200) {
       setIsCollapsed(true);
-      setIsHovered(false);
     }
   };
 
@@ -72,8 +71,6 @@ const Layout = () => {
     <div className="app-container">
       <aside 
         className={`sidebar ${isVisuallyCollapsed ? 'collapsed' : ''}`}
-        onMouseEnter={() => { if (isCollapsed) setIsHovered(true); }}
-        onMouseLeave={() => setIsHovered(false)}
       >
         <div className="sidebar-header" style={{ justifyContent: isVisuallyCollapsed ? 'center' : 'flex-start' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, overflow: 'hidden' }}>
@@ -158,7 +155,8 @@ const Layout = () => {
         <div className="sidebar-footer" style={{ flexDirection: isVisuallyCollapsed ? 'column' : 'row', gap: isVisuallyCollapsed ? '6px' : '8px' }}>
           <button 
             className="nav-item collapse-toggle-btn" 
-            onClick={() => { setIsCollapsed(!isCollapsed); setIsHovered(false); }} 
+            onClick={() => { setIsCollapsed(!isCollapsed); }} 
+
             style={{ flex: isVisuallyCollapsed ? 'none' : 1, margin: 0, justifyContent: 'center', padding: '8px', minHeight: '36px' }}
             title={isVisuallyCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
           >

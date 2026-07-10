@@ -53,9 +53,35 @@ const STATE_COORDS = {
   "West Bengal": { center: [87.8550, 22.9868], zoom: 6 }
 };
 
+const getRasterStyle = (url) => ({
+  version: 8,
+  glyphs: "https://tiles.basemaps.cartocdn.com/fonts/{fontstack}/{range}.pbf",
+  sources: {
+    'raster-tiles': {
+      type: 'raster',
+      tiles: [
+        url.replace('{s}', 'a'),
+        url.replace('{s}', 'b'),
+        url.replace('{s}', 'c')
+      ],
+      tileSize: 256,
+      attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+    }
+  },
+  layers: [
+    {
+      id: 'simple-tiles',
+      type: 'raster',
+      source: 'raster-tiles',
+      minzoom: 0,
+      maxzoom: 22
+    }
+  ]
+});
+
 const MAP_STYLES = {
-  dark: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
-  light: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json'
+  dark: getRasterStyle('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'),
+  light: getRasterStyle('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png')
 };
 
 export default function MapExplorer() {

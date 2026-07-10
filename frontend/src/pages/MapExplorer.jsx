@@ -5,8 +5,6 @@ import L from 'leaflet';
 import { fetchMapTenders } from '../lib/api';
 import { Search, AlertTriangle, ShieldAlert, Building, Loader2, Layers, X, Info, TrendingUp } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
-import 'react-leaflet-cluster/lib/assets/MarkerCluster.css';
-import 'react-leaflet-cluster/lib/assets/MarkerCluster.Default.css';
 import './MapExplorer.css';
 
 // Fix leaflet icon paths

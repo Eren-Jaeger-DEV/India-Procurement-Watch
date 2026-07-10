@@ -124,9 +124,9 @@ export default function MapExplorer() {
   }, []);
 
   useEffect(() => {
-    if (!bounds) return;
     setFetching(true);
-    fetchMapTenders(bounds)
+    // Fetch a massive chunk of data ONCE on mount to ensure 0 lag during panning
+    fetchMapTenders(INDIA_DEFAULT_BOUNDS)
       .then(d => {
         setTenders(d || []);
         setError(null);
@@ -136,7 +136,7 @@ export default function MapExplorer() {
         setLoading(false);
         setFetching(false);
       });
-  }, [bounds]);
+  }, []);
 
   const filtered = useMemo(() => {
     return tenders.filter(t => {
@@ -187,20 +187,8 @@ export default function MapExplorer() {
     }
   };
 
-  // Debounce API calls on map pan/zoom to avoid main thread freeze
-  const handleMoveEnd = useCallback(
-    debounce((e) => {
-      if (!e.viewState) return;
-      const mapBounds = e.target.getBounds();
-      setBounds({
-        min_lon: mapBounds.getWest(),
-        max_lon: mapBounds.getEast(),
-        min_lat: mapBounds.getSouth(),
-        max_lat: mapBounds.getNorth()
-      });
-    }, 800),
-    []
-  );
+  // No-op to prevent re-fetching on pan (massive performance boost)
+  const handleMoveEnd = useCallback(() => {}, []);
 
   const onClick = useCallback((event) => {
     const feature = event.features[0];

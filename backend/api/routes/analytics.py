@@ -329,8 +329,8 @@ def api_map_tenders():
             """, (float(min_lat), float(max_lat), float(min_lon), float(max_lon), limit))
         else:
             # Zoomed out (National level / initial load) -> Fast UNION query
-            # We cap at 15000 for national level to prevent browser crashing while showing a very dense map
-            national_limit = min(limit, 15000)
+            # We cap at 100000 for national level to prevent browser crashing while showing a very dense map
+            national_limit = min(limit, 100000)
             cur.execute("""
                 (
                     SELECT g.internal_id, g.lat, g.lon, g.resolved_address,

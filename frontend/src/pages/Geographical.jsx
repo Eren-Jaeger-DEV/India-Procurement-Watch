@@ -19,13 +19,9 @@ const getRasterStyle = (url) => ({
   sources: {
     'raster-tiles': {
       type: 'raster',
-      tiles: [
-        url.replace('{s}', 'a'),
-        url.replace('{s}', 'b'),
-        url.replace('{s}', 'c')
-      ],
+      tiles: [url],
       tileSize: 256,
-      attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+      attribution: '&copy; Esri &mdash; Esri, DeLorme, NAVTEQ'
     }
   },
   layers: [
@@ -39,7 +35,7 @@ const getRasterStyle = (url) => ({
   ]
 });
 
-const MAP_STYLE = getRasterStyle('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png');
+const MAP_STYLE = getRasterStyle('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}');
 
 const Geographical = () => {
   const [geoData, setGeoData] = useState(null);

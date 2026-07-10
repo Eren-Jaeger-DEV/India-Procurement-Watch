@@ -338,6 +338,7 @@ def api_map_tenders():
                            1 AS is_single_bid
                     FROM single_bid_contracts s
                     JOIN aoc_geocoded g ON s.internal_id = g.internal_id
+                    WHERE g.lat IS NOT NULL AND g.lon IS NOT NULL
                     LIMIT %s
                 )
                 UNION ALL
@@ -349,6 +350,7 @@ def api_map_tenders():
                         SELECT internal_id, lat, lon, resolved_address
                         FROM aoc_geocoded
                         WHERE internal_id NOT IN (SELECT internal_id FROM single_bid_contracts)
+                          AND lat IS NOT NULL AND lon IS NOT NULL
                         LIMIT %s
                     ) g
                     JOIN aoc_tenders t ON g.internal_id = t.internal_id

@@ -287,11 +287,11 @@ def api_red_flag_explorer():
 @analytics_bp.route("/api/map-tenders")
 @cache.cached(timeout=300, query_string=True)
 def api_map_tenders():
-    """Fetch geocoded points — capped at 1000, single-bid first for fast load."""
+    """Fetch geocoded points — all tenders, highest value first."""
     conn = get_pg_conn()
     cur  = conn.cursor(cursor_factory=RealDictCursor)
     try:
-        limit = min(int(request.args.get('limit', 1000)), 5000)
+        limit = min(int(request.args.get('limit', 3000)), 10000)
         cur.execute("""
             SELECT g.internal_id, g.lat, g.lon, g.resolved_address,
                    COALESCE(s.title, t.title) AS title,
@@ -303,9 +303,7 @@ def api_map_tenders():
             FROM aoc_geocoded g
             LEFT JOIN single_bid_contracts s ON g.internal_id = s.internal_id
             LEFT JOIN aoc_tenders t ON g.internal_id = t.internal_id
-            ORDER BY
-                (CASE WHEN s.internal_id IS NOT NULL THEN 0 ELSE 1 END),
-                COALESCE(s.contract_value, 0) DESC NULLS LAST
+            ORDER BY COALESCE(s.contract_value, 0) DESC NULLS LAST
             LIMIT %s
         """, (limit,))
         rows = [dict(r) for r in cur.fetchall()]
@@ -313,5 +311,6 @@ def api_map_tenders():
     except Exception as e:
         conn.rollback()
         return jsonify({"error": str(e)}), 500
+
 
 

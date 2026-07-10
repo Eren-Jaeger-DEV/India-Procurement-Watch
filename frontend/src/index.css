@@ -88,6 +88,7 @@ body *::after {
   overflow-y: auto;   /* ONLY this panel scrolls */
   overflow-x: hidden;
   height: 100vh;
+  position: relative; /* needed for absolute children like map */
   scrollbar-gutter: stable;  /* prevents layout shift */
 }
 

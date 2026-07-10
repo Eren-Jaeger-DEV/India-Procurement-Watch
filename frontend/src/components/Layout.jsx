@@ -1,5 +1,5 @@
 import { Outlet, NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, FileText, Search, FileSearch, Bot, Sun, Moon, X, PanelLeftClose, PanelLeftOpen, Map, Network, Menu, Activity, Flag, TrendingUp, ShieldAlert, Building2, MapPin } from 'lucide-react';
+import { LayoutDashboard, FileText, Search, FileSearch, Bot, Sun, Moon, X, PanelLeftClose, PanelLeftOpen, Map, Network, Menu, Activity, Flag, TrendingUp, ShieldAlert, Building2, MapPin, GitBranch } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import QuickAiBar from './QuickAiBar';
 import TenderModal from './TenderModal';
@@ -147,6 +147,10 @@ const Layout = () => {
             <NavLink to="/import" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isVisuallyCollapsed ? "System Status" : ""}>
               <Activity size={18} />
               {!isVisuallyCollapsed && <span>System Status</span>}
+            </NavLink>
+            <NavLink to="/data-sources" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isVisuallyCollapsed ? "Data Sources" : ""}>
+              <GitBranch size={18} />
+              {!isVisuallyCollapsed && <span>Data Sources</span>}
             </NavLink>
           </div>
         </div>

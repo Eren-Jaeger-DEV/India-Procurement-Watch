@@ -1,9 +1,13 @@
-import { useEffect, useState, useMemo } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, ZoomControl } from 'react-leaflet';
+import { useEffect, useState, useMemo, useRef } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, ZoomControl, useMap } from 'react-leaflet';
+import MarkerClusterGroup from 'react-leaflet-cluster';
 import L from 'leaflet';
 import { fetchMapTenders } from '../lib/api';
-import { MapPin, Search, AlertTriangle, Building, ShieldAlert, Loader2, Info } from 'lucide-react';
+import { Search, AlertTriangle, ShieldAlert, Building, Loader2, Layers, X, Info, TrendingUp } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
+import 'react-leaflet-cluster/lib/assets/MarkerCluster.css';
+import 'react-leaflet-cluster/lib/assets/MarkerCluster.Default.css';
+import './MapExplorer.css';
 
 // Fix leaflet icon paths
 delete L.Icon.Default.prototype._getIconUrl;
@@ -13,225 +17,256 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 });
 
-// Custom pin icons
-const createPinIcon = (color) => {
+// Custom dot icons
+const createPinIcon = (color, size = 10) => new L.DivIcon({
+  html: `<div class="map-pin" style="background:${color};width:${size}px;height:${size}px;border-radius:50%;border:2px solid rgba(255,255,255,0.8);box-shadow:0 0 6px ${color}88;"></div>`,
+  className: '',
+  iconSize: [size, size],
+  iconAnchor: [size / 2, size / 2],
+});
+
+// Custom cluster icon
+const createClusterIcon = (cluster) => {
+  const count = cluster.getChildCount();
+  const size = count > 1000 ? 48 : count > 100 ? 40 : 32;
+  const color = '#6366f1';
   return new L.DivIcon({
-    html: `<div style="background-color: ${color}; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 4px rgba(0,0,0,0.5);"></div>`,
-    className: 'custom-map-pin',
-    iconSize: [14, 14],
-    iconAnchor: [7, 7]
+    html: `<div class="cluster-icon" style="width:${size}px;height:${size}px;line-height:${size}px;background:${color};border:2px solid rgba(255,255,255,0.3);border-radius:50%;text-align:center;font-size:${size > 40 ? 13 : 11}px;font-weight:700;color:white;box-shadow:0 0 12px ${color}66;">${count > 999 ? Math.round(count / 1000) + 'k' : count}</div>`,
+    className: '',
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
   });
+};
+
+const fmtCr = (v) => v ? `₹${(v / 1e7).toFixed(1)}Cr` : '—';
+const fmtBig = (n) => n >= 1e7 ? `₹${(n / 1e7).toFixed(0)}Cr` : n >= 1e5 ? `₹${(n / 1e5).toFixed(0)}L` : `₹${n?.toLocaleString()}`;
+
+// Fit India bounds on load
+function FitIndia() {
+  const map = useMap();
+  useEffect(() => { map.setView([22.5, 82], 5); }, [map]);
+  return null;
+}
+
+const TILE_LAYERS = {
+  dark:    { url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',   label: 'Dark' },
+  osm:     { url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',              label: 'Streets' },
+  hybrid:  { url: 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',             label: 'Satellite' },
 };
 
 const MapExplorer = () => {
   const [tenders, setTenders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
-  // Filters state
   const [searchQuery, setSearchQuery] = useState('');
-  const [portal, setPortal] = useState('All');
-  const [singleBidOnly, setSingleBidOnly] = useState(false);
-  const [minValCr, setMinValCr] = useState(0);
-  const [mapStyle, setMapStyle] = useState('google-streets');
+  const [filterMode, setFilterMode] = useState('all'); // 'all' | 'single' | 'regular'
+  const [portal, setPortal] = useState('all');
+  const [tileKey, setTileKey] = useState('dark');
+  const [panelOpen, setPanelOpen] = useState(true);
+  const [layerOpen, setLayerOpen] = useState(false);
 
   useEffect(() => {
-    const loadTenders = async () => {
-      try {
-        const data = await fetchMapTenders();
-        setTenders(data || []);
-      } catch (err) {
-        console.error(err);
-        setError("Failed to load geocoded tender coordinates.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadTenders();
+    fetchMapTenders()
+      .then(d => setTenders(d || []))
+      .catch(() => setError('Failed to load map data.'))
+      .finally(() => setLoading(false));
   }, []);
 
-  // Filtered tenders
-  const filteredTenders = useMemo(() => {
+  const filtered = useMemo(() => {
     return tenders.filter(t => {
-      const matchSearch = !searchQuery || 
-        t.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-        t.org_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        t.resolved_address.toLowerCase().includes(searchQuery.toLowerCase());
-      
-      const matchPortal = portal === 'All' || t.portal_type === portal;
-      const matchSingleBid = !singleBidOnly || t.is_single_bid === 1;
-      const matchValue = (t.contract_value / 1e7) >= minValCr;
-
-      return matchSearch && matchPortal && matchSingleBid && matchValue;
+      if (filterMode === 'single' && t.is_single_bid !== 1) return false;
+      if (filterMode === 'regular' && t.is_single_bid === 1) return false;
+      if (portal !== 'all' && t.portal_type !== portal) return false;
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        return (t.title || '').toLowerCase().includes(q) ||
+               (t.org_name || '').toLowerCase().includes(q) ||
+               (t.resolved_address || '').toLowerCase().includes(q);
+      }
+      return true;
     });
-  }, [tenders, searchQuery, portal, singleBidOnly, minValCr]);
+  }, [tenders, filterMode, portal, searchQuery]);
+
+  const stats = useMemo(() => ({
+    total: filtered.length,
+    singleBid: filtered.filter(t => t.is_single_bid === 1).length,
+    totalValue: filtered.reduce((s, t) => s + (t.contract_value || 0), 0),
+  }), [filtered]);
 
   const handleInspect = (item) => {
     window.dispatchEvent(new CustomEvent('openTenderModal', { detail: item }));
   };
 
-  const fmtCr = (v) => v ? `₹${(v / 1e7).toFixed(2)} Cr` : '—';
-
   if (loading) return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '70vh' }}>
-      <div style={{ textAlign: 'center' }}>
-        <Loader2 size={36} style={{ animation: 'spin 1s linear infinite', color: 'var(--accent-primary)', marginBottom: 16 }} />
-        <p style={{ color: 'var(--text-secondary)' }}>Loading geocoded map markers…</p>
-        <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+    <div className="map-fullscreen-loader">
+      <div className="map-loader-inner">
+        <Loader2 size={32} className="spin" />
+        <span>Loading procurement map…</span>
       </div>
     </div>
   );
 
   if (error) return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '70vh' }}>
-      <div className="card" style={{ maxWidth: 500, padding: 32, textAlign: 'center', borderLeft: '4px solid #ef4444' }}>
-        <p style={{ color: '#ef4444', fontWeight: 600, marginBottom: 12 }}>{error}</p>
-        <button onClick={() => window.location.reload()} style={{ padding: '8px 20px', background: 'var(--accent-primary)', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer' }}>Retry</button>
+    <div className="map-fullscreen-loader">
+      <div className="map-error-card">
+        <p>{error}</p>
+        <button onClick={() => window.location.reload()}>Retry</button>
       </div>
     </div>
   );
 
+  const tileLayer = TILE_LAYERS[tileKey];
+
   return (
-    <div className="dashboard-page" style={{ height: 'calc(100vh - 100px)', display: 'flex', flexDirection: 'column' }}>
-      {/* Header */}
-      <div style={{ borderBottom: '2px solid var(--border-color)', paddingBottom: 12, marginBottom: 16, flexShrink: 0 }}>
-        <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: 10, margin: 0 }}>
-          <MapPin size={28} style={{ color: 'var(--accent-primary)' }} /> Geocoded Tender Map Explorer
-        </h1>
-        <p className="page-subtitle" style={{ margin: '4px 0 0' }}>Spatial rendering of high-risk and high-value single-bid procurement awards across India</p>
-      </div>
+    <div className="map-fullscreen-root">
+      {/* Full-viewport map */}
+      <MapContainer
+        center={[22.5, 82]}
+        zoom={5}
+        zoomControl={false}
+        className="map-leaflet-container"
+        preferCanvas
+      >
+        <TileLayer key={tileKey} url={tileLayer.url} />
+        <ZoomControl position="bottomright" />
+        <FitIndia />
 
-      {/* Main split dashboard layout */}
-      <div style={{ display: 'flex', gap: 16, flex: 1, minHeight: 0 }}>
-        {/* Left Filters Sidebar */}
-        <div className="card" style={{ width: 280, padding: 18, display: 'flex', flexDirection: 'column', gap: 16, flexShrink: 0 }}>
-          <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
-            Map Filters
-          </h3>
-
-          <div style={{ position: 'relative' }}>
-            <Search size={16} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-            <input 
-              type="text" 
-              value={searchQuery} 
-              onChange={(e) => setSearchQuery(e.target.value)} 
-              placeholder="Search title or location…" 
-              style={{ width: '100%', padding: '6px 10px 6px 32px', borderRadius: 8, border: '1px solid var(--border-color)', background: 'var(--bg-main)', color: 'var(--text-primary)', fontSize: 12.5, outline: 'none', boxSizing: 'border-box' }}
-            />
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>Portal Type:</span>
-            <select value={portal} onChange={(e) => setPortal(e.target.value)} style={{ padding: '6px', borderRadius: 8, border: '1px solid var(--border-color)', background: 'var(--bg-main)', color: 'var(--text-primary)', fontSize: 12.5 }}>
-              <option value="All">All Portals</option>
-              <option value="central">Central Portal</option>
-              <option value="state">State Portal</option>
-            </select>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>Map Layer:</span>
-            <select value={mapStyle} onChange={(e) => setMapStyle(e.target.value)} style={{ padding: '6px', borderRadius: 8, border: '1px solid var(--border-color)', background: 'var(--bg-main)', color: 'var(--text-primary)', fontSize: 12.5 }}>
-              <option value="google-streets">Google Maps (Standard)</option>
-              <option value="google-hybrid">Google Maps (Satellite/Hybrid)</option>
-              <option value="osm">OpenStreetMap (Free Streets)</option>
-              <option value="dark">Sleek Dark Mode (Default)</option>
-            </select>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>
-              <span>Min Value:</span>
-              <span style={{ color: 'var(--accent-primary)' }}>≥ ₹{minValCr} Cr</span>
-            </div>
-            <input 
-              type="range" 
-              min="0" 
-              max="20" 
-              value={minValCr} 
-              onChange={(e) => setMinValCr(Number(e.target.value))} 
-              style={{ width: '100%', accentColor: 'var(--accent-primary)' }}
-            />
-          </div>
-
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, cursor: 'pointer', userSelect: 'none', color: singleBidOnly ? '#ef4444' : 'var(--text-secondary)' }}>
-            <input type="checkbox" checked={singleBidOnly} onChange={(e) => setSingleBidOnly(e.target.checked)} />
-            <AlertTriangle size={15} style={{ color: '#ef4444' }} /> Single-Bid Only
-          </label>
-
-          <div style={{ marginTop: 'auto', borderTop: '1px solid var(--border-color)', paddingTop: 12, fontSize: 12, color: 'var(--text-muted)' }}>
-            <div>Markers plotted: <strong>{filteredTenders.length}</strong></div>
-            <div style={{ display: 'flex', gap: 12, marginTop: 8, alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: '#ef4444' }}></span> Single-Bid</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: '#2563eb' }}></span> Regular</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Right Map Canvas Container */}
-        <div className="card" style={{ flex: 1, padding: 0, overflow: 'hidden', position: 'relative' }}>
-          <MapContainer 
-            center={[20.5937, 78.9629]} 
-            zoom={5} 
-            zoomControl={false}
-            style={{ width: '100%', height: '100%', background: 'var(--bg-main)' }}
-          >
-            <TileLayer
-              key={mapStyle}
-              attribution={
-                mapStyle.includes('google')
-                  ? '&copy; Google Maps'
-                  : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-              }
-              url={
-                mapStyle === 'google-streets' ? 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}' :
-                mapStyle === 'google-hybrid' ? 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}' :
-                mapStyle === 'osm' ? 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png' :
-                'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-              }
-            />
-            <ZoomControl position="bottomright" />
-            
-            {filteredTenders.map((item, idx) => (
-              <Marker 
-                key={idx} 
-                position={[item.lat, item.lon]} 
-                icon={createPinIcon(item.is_single_bid === 1 ? '#ef4444' : '#2563eb')}
-              >
-                <Popup>
-                  <div style={{ fontFamily: 'Inter, system-ui, sans-serif', width: 230, color: '#1e293b' }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: item.is_single_bid === 1 ? '#dc2626' : '#2563eb', display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}>
-                      {item.is_single_bid === 1 ? <ShieldAlert size={12} /> : <Building size={12} />}
-                      {item.is_single_bid === 1 ? 'High-Risk Single-Bid' : 'Regular Procurement'}
-                    </div>
-                    <div style={{ fontWeight: 600, fontSize: 12.5, color: '#0f172a', marginBottom: 6, lineHeight: 1.3 }}>
-                      {item.title}
-                    </div>
-                    <div style={{ fontSize: 11, color: '#475569', marginBottom: 2 }}>
-                      <strong>Department:</strong> {item.org_name}
-                    </div>
-                    <div style={{ fontSize: 11, color: '#475569', marginBottom: 2 }}>
-                      <strong>Winner:</strong> {item.bidder_name || '—'}
-                    </div>
-                    <div style={{ fontSize: 11, color: '#475569', marginBottom: 6 }}>
-                      <strong>Resolved Address:</strong> {item.resolved_address}
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #e2e8f0', paddingTop: 6, marginTop: 4 }}>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: '#059669' }}>{fmtCr(item.contract_value)}</span>
-                      <button 
-                        onClick={() => handleInspect(item)} 
-                        style={{ padding: '3px 8px', fontSize: 11, background: '#2563eb', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', fontWeight: 600 }}
-                      >
-                        Inspect details
-                      </button>
-                    </div>
+        <MarkerClusterGroup
+          chunkedLoading
+          iconCreateFunction={createClusterIcon}
+          maxClusterRadius={60}
+          spiderfyOnMaxZoom
+          showCoverageOnHover={false}
+          zoomToBoundsOnClick
+        >
+          {filtered.map((item, idx) => (
+            <Marker
+              key={`${item.internal_id || idx}`}
+              position={[item.lat, item.lon]}
+              icon={createPinIcon(item.is_single_bid === 1 ? '#ef4444' : '#6366f1')}
+            >
+              <Popup className="map-popup" maxWidth={260}>
+                <div className="popup-inner">
+                  <div className={`popup-badge ${item.is_single_bid === 1 ? 'badge-red' : 'badge-blue'}`}>
+                    {item.is_single_bid === 1 ? <><ShieldAlert size={11} /> Single-Bid Risk</> : <><Building size={11} /> Regular</>}
                   </div>
-                </Popup>
-              </Marker>
-            ))}
-          </MapContainer>
-        </div>
+                  <div className="popup-title">{item.title || '—'}</div>
+                  <div className="popup-row"><span>Dept</span><span>{(item.org_name || '').split('||')[0]}</span></div>
+                  {item.bidder_name && <div className="popup-row"><span>Winner</span><span>{item.bidder_name}</span></div>}
+                  <div className="popup-row"><span>Location</span><span>{(item.resolved_address || '').split(',').slice(0, 3).join(',')}</span></div>
+                  <div className="popup-footer">
+                    <span className="popup-value">{fmtCr(item.contract_value)}</span>
+                    <button onClick={() => handleInspect(item)} className="popup-btn">Inspect →</button>
+                  </div>
+                </div>
+              </Popup>
+            </Marker>
+          ))}
+        </MarkerClusterGroup>
+      </MapContainer>
+
+      {/* Floating filter pills - top center */}
+      <div className="map-top-pills">
+        {['all', 'single', 'regular'].map(m => (
+          <button key={m} onClick={() => setFilterMode(m)} className={`pill ${filterMode === m ? 'pill-active' : ''}`}>
+            {m === 'all' ? 'All Tenders' : m === 'single' ? '🔴 Single-Bid Only' : '🔵 Regular Only'}
+          </button>
+        ))}
+        <button onClick={() => setPortal(p => p === 'all' ? 'central' : p === 'central' ? 'state' : 'all')} className={`pill ${portal !== 'all' ? 'pill-active' : ''}`}>
+          {portal === 'all' ? 'All Portals' : portal === 'central' ? 'Central Portal' : 'State Portal'}
+        </button>
       </div>
+
+      {/* Layer switcher - top right */}
+      <div className="map-layer-switcher">
+        <button onClick={() => setLayerOpen(o => !o)} className="layer-btn" title="Switch map layer">
+          <Layers size={18} />
+        </button>
+        {layerOpen && (
+          <div className="layer-menu">
+            {Object.entries(TILE_LAYERS).map(([k, v]) => (
+              <button key={k} onClick={() => { setTileKey(k); setLayerOpen(false); }} className={`layer-option ${tileKey === k ? 'layer-active' : ''}`}>
+                {v.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Floating intelligence panel */}
+      {panelOpen ? (
+        <div className="map-panel">
+          <div className="panel-header">
+            <div>
+              <div className="panel-title">Procurement Map</div>
+              <div className="panel-sub">India · Geocoded Tenders</div>
+            </div>
+            <button onClick={() => setPanelOpen(false)} className="panel-close"><X size={14} /></button>
+          </div>
+
+          {/* Stats */}
+          <div className="panel-stats">
+            <div className="stat-block">
+              <div className="stat-val">{stats.total.toLocaleString()}</div>
+              <div className="stat-lbl">Visible</div>
+            </div>
+            <div className="stat-block">
+              <div className="stat-val" style={{ color: '#ef4444' }}>{stats.singleBid.toLocaleString()}</div>
+              <div className="stat-lbl">Single-Bid</div>
+            </div>
+            <div className="stat-block">
+              <div className="stat-val" style={{ color: '#10b981' }}>{fmtBig(stats.totalValue)}</div>
+              <div className="stat-lbl">Total Value</div>
+            </div>
+          </div>
+
+          {/* Search */}
+          <div className="panel-search">
+            <Search size={14} className="search-icon" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Search org, title, location…"
+              className="search-input"
+            />
+            {searchQuery && <button onClick={() => setSearchQuery('')} className="search-clear"><X size={13} /></button>}
+          </div>
+
+          {/* Legend */}
+          <div className="panel-legend">
+            <div className="legend-item"><span className="dot dot-red" /><span>Single-Bid (High Risk)</span></div>
+            <div className="legend-item"><span className="dot dot-blue" /><span>Regular Procurement</span></div>
+          </div>
+
+          {/* Recent results preview */}
+          <div className="panel-results">
+            <div className="results-header">
+              <TrendingUp size={13} />
+              <span>Top by value</span>
+            </div>
+            {filtered.slice(0, 6).map((t, i) => (
+              <div key={i} className="result-row" onClick={() => handleInspect(t)}>
+                <span className={`result-dot ${t.is_single_bid === 1 ? 'dot-red' : 'dot-blue'}`} />
+                <div className="result-info">
+                  <div className="result-title">{(t.title || '').slice(0, 48)}{t.title?.length > 48 ? '…' : ''}</div>
+                  <div className="result-meta">{(t.org_name || '').split('||')[0].slice(0, 30)}</div>
+                </div>
+                <div className="result-val">{fmtCr(t.contract_value)}</div>
+              </div>
+            ))}
+          </div>
+
+          <div className="panel-footer">
+            <Info size={11} />
+            <span>Geocoded via Nominatim · OSM Data</span>
+          </div>
+        </div>
+      ) : (
+        <button onClick={() => setPanelOpen(true)} className="panel-reopen">
+          Area Intelligence
+        </button>
+      )}
     </div>
   );
 };

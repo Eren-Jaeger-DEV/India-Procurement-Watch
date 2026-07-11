@@ -4,6 +4,16 @@ import time
 
 DB_URL = os.getenv("DATABASE_URL", "postgresql://darshi2026:srwo4ubGB3EQeaxy26hi05Nj@100.112.20.56:5432/darshi")
 
+STATES = [
+    "Andaman and Nicobar Islands", "Andhra Pradesh", "Arunachal Pradesh", "Assam", 
+    "Bihar", "Chandigarh", "Chhattisgarh", "Dadra and Nagar Haveli and Daman and Diu", 
+    "Delhi", "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jammu and Kashmir", 
+    "Jharkhand", "Karnataka", "Kerala", "Ladakh", "Lakshadweep", "Madhya Pradesh", 
+    "Maharashtra", "Manipur", "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Puducherry", 
+    "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura", 
+    "Uttar Pradesh", "Uttarakhand", "West Bengal"
+]
+
 def extract_location(address_str):
     if not address_str:
         return None, None
@@ -16,18 +26,29 @@ def extract_location(address_str):
     if country.lower() != "india":
         return None, None
         
-    state = parts[-2]
-    
-    # State District is sometimes present, sometimes not.
-    # We take the part before state as the city/district.
-    city = parts[-3]
-    if " district" in city.lower() and len(parts) >= 4:
-        # If it says "Pune District", the actual city might be the one before it.
-        city = parts[-4]
+    # Check if second to last is a postal code
+    offset = 2
+    if parts[-2].isdigit():
+        offset = 3
         
-    # Clean up common suffixes
-    city = city.replace(" Division", "").replace(" District", "")
+    if len(parts) < offset + 1:
+        return None, None
+        
+    state = parts[-offset]
+    city = parts[-(offset + 1)] if len(parts) >= offset + 1 else None
     
+    if city and " district" in city.lower() and len(parts) >= offset + 2:
+        city = parts[-(offset + 2)]
+        
+    if city:
+        city = city.replace(" Division", "").replace(" District", "")
+        
+    # Normalize state name if possible
+    for s in STATES:
+        if s.lower() in state.lower():
+            state = s
+            break
+            
     return state, city
 
 def run_backfill():
@@ -43,8 +64,8 @@ def run_backfill():
         conn.commit()
         
         # 2. Fetch records that need backfilling
-        print("Fetching records to update...")
-        cur.execute("SELECT internal_id, resolved_address FROM aoc_geocoded WHERE state IS NULL AND resolved_address IS NOT NULL")
+        print("Fetching records to update (RE-RUN)...")
+        cur.execute("SELECT internal_id, resolved_address FROM aoc_geocoded WHERE resolved_address IS NOT NULL")
         rows = cur.fetchall()
         print(f"Found {len(rows)} records to update.")
         

@@ -76,8 +76,8 @@ const getRasterStyle = (url) => ({
 });
 
 const MAP_STYLES = {
-  dark: getRasterStyle('https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'),
-  light: getRasterStyle('https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png')
+  dark: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+  light: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json'
 };
 
 export default function MapExplorer() {

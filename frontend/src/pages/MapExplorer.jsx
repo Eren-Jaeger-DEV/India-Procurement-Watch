@@ -427,8 +427,8 @@ export default function MapExplorer() {
           type="geojson"
           data={geojsonData}
           cluster={true}
-          clusterMaxZoom={13}
-          clusterRadius={50}
+          clusterMaxZoom={14}
+          clusterRadius={75}
         >
           <Layer
             id="clusters"

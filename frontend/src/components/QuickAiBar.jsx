@@ -65,17 +65,59 @@ const QuickAiBar = () => {
     navigate('/chat');
   };
 
+  const [position, setPosition] = useState({ right: 24, bottom: 80 });
+  const [isDragged, setIsDragged] = useState(false);
+  const isDragging = useRef(false);
+  const dragStartPos = useRef({ x: 0, y: 0 });
+  const initialPos = useRef({ right: 0, bottom: 0 });
+
+  const handlePointerDown = (e) => {
+    isDragging.current = true;
+    setIsDragged(false);
+    dragStartPos.current = { x: e.clientX, y: e.clientY };
+    initialPos.current = { ...position };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = (e) => {
+    if (!isDragging.current) return;
+    const dx = e.clientX - dragStartPos.current.x;
+    const dy = e.clientY - dragStartPos.current.y;
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+      setIsDragged(true);
+    }
+    setPosition({
+      right: initialPos.current.right - dx,
+      bottom: initialPos.current.bottom - dy
+    });
+  };
+
+  const handlePointerUp = (e) => {
+    isDragging.current = false;
+    e.currentTarget.releasePointerCapture(e.pointerId);
+  };
+
   return (
     <>
       {/* Floating trigger button — bottom right of main content */}
       {!open && (
         <button
-          onClick={() => setOpen(true)}
+          onClick={(e) => {
+            if (isDragged) {
+              e.preventDefault();
+              setIsDragged(false);
+              return;
+            }
+            setOpen(true);
+          }}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
           title="Ask AI about procurement data"
           style={{
             position: 'fixed',
-            bottom: 80,
-            right: 24,
+            bottom: position.bottom,
+            right: position.right,
             zIndex: 900,
             width: 52,
             height: 52,
@@ -83,12 +125,12 @@ const QuickAiBar = () => {
             background: 'linear-gradient(135deg, var(--accent-primary), #8b5cf6)',
             color: '#fff',
             border: 'none',
-            cursor: 'pointer',
+            cursor: isDragged ? 'grabbing' : 'grab',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
-            transition: 'transform 0.2s, box-shadow 0.2s',
+            transition: isDragging.current ? 'none' : 'box-shadow 0.2s',
           }}
           onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.1)'; e.currentTarget.style.boxShadow = '0 6px 28px rgba(0,0,0,0.5)'; }}
           onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.4)'; }}

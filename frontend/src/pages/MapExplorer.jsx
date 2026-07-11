@@ -11,10 +11,27 @@ const INDIA_DEFAULT_BOUNDS = {
   max_lon: 98.0
 };
 
-const MAP_STYLES = {
-  dark: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
-  light: 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json'
-};
+const getRasterStyle = (url) => ({
+  version: 8,
+  glyphs: "https://fonts.openmaptiles.org/{fontstack}/{range}.pbf",
+  sources: {
+    'raster-tiles': {
+      type: 'raster',
+      tiles: [url],
+      tileSize: 256,
+      attribution: '&copy; Esri &mdash; Esri, DeLorme, NAVTEQ'
+    }
+  },
+  layers: [
+    {
+      id: 'simple-tiles',
+      type: 'raster',
+      source: 'raster-tiles',
+      minzoom: 0,
+      maxzoom: 22
+    }
+  ]
+});
 
 const NOMINATIM_BASE = 'https://nominatim.satviks.dev';
 const API_KEY = '4ec7ecc992cbd862b27fae04790e6796c97c91d64158f57f';
@@ -157,7 +174,9 @@ export default function MapExplorer() {
           ],
           fitBoundsOptions: { padding: 40 }
         }}
-        mapStyle={isDark ? MAP_STYLES.dark : MAP_STYLES.light}
+        mapStyle={isDark 
+          ? getRasterStyle('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}') 
+          : getRasterStyle('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}')}
         onClick={onMapClick}
         interactiveLayerIds={[]}
         cursor="crosshair"

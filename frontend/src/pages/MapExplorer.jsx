@@ -115,6 +115,7 @@ export default function MapExplorer() {
   const [isGeoLoading, setIsGeoLoading] = useState(false);
   const [contextLocation, setContextLocation] = useState('India');
   const [showContextDropdown, setShowContextDropdown] = useState(false);
+  const [viewBounds, setViewBounds] = useState(null);
 
   const PREDEFINED_LOCATIONS = [
     { name: 'India', center: [78.9629, 20.5937], zoom: 4 },
@@ -200,19 +201,42 @@ export default function MapExplorer() {
   }, []);
 
   const filtered = useMemo(() => {
-    return tenders.filter(t => {
-      if (filterMode === 'single' && t.is_single_bid !== 1) return false;
-      if (filterMode === 'regular' && t.is_single_bid === 1) return false;
-      if (portal !== 'all' && t.portal_type !== portal) return false;
-      if (searchQuery) {
-        const q = searchQuery.toLowerCase();
-        return (t.title || '').toLowerCase().includes(q) ||
-               (t.org_name || '').toLowerCase().includes(q) ||
-               (t.resolved_address || '').toLowerCase().includes(q);
-      }
-      return true;
+    let res = tenders;
+    if (filterMode === 'single') res = res.filter(t => t.is_single_bid === 1);
+    if (filterMode === 'regular') res = res.filter(t => t.is_single_bid === 0);
+    if (portal !== 'all') res = res.filter(t => t.portal === portal);
+    
+    if (searchQuery) {
+      const sq = searchQuery.toLowerCase();
+      res = res.filter(t => 
+        (t.title || '').toLowerCase().includes(sq) || 
+        (t.org_name || '').toLowerCase().includes(sq) ||
+        (t.resolved_address || '').toLowerCase().includes(sq)
+      );
+    }
+    
+    if (viewBounds) {
+      res = res.filter(t => {
+        const lng = Number(t.lon);
+        const lat = Number(t.lat);
+        if (isNaN(lng) || isNaN(lat)) return false;
+        return lat >= viewBounds.minLat && lat <= viewBounds.maxLat &&
+               lng >= viewBounds.minLng && lng <= viewBounds.maxLng;
+      });
+    }
+    return res;
+  }, [tenders, filterMode, portal, searchQuery, viewBounds]);
+
+  const handleMapChange = () => {
+    if (!mapRef.current) return;
+    const bounds = mapRef.current.getBounds();
+    setViewBounds({
+      minLng: bounds.getWest(),
+      minLat: bounds.getSouth(),
+      maxLng: bounds.getEast(),
+      maxLat: bounds.getNorth()
     });
-  }, [tenders, filterMode, portal, searchQuery]);
+  };
 
   const geojsonData = useMemo(() => {
     return {
@@ -220,7 +244,7 @@ export default function MapExplorer() {
       features: filtered.map(t => ({
         type: 'Feature',
         geometry: { type: 'Point', coordinates: [t.lon, t.lat] },
-        properties: t // pass reference directly to avoid slow object spread
+        properties: t
       }))
     };
   }, [filtered]);
@@ -235,13 +259,6 @@ export default function MapExplorer() {
     }
     return { total: filtered.length, singleBid, totalValue };
   }, [filtered]);
-
-  const handleStateChange = (e) => {
-    // Legacy fallback (removed from UI but kept in case needed)
-  };
-
-  // No-op to prevent re-fetching on pan (massive performance boost)
-  const handleMoveEnd = useCallback(() => {}, []);
 
   const onClick = useCallback((event) => {
     const feature = event.features[0];
@@ -311,7 +328,8 @@ export default function MapExplorer() {
           zoom: 4
         }}
         mapStyle={isDark ? MAP_STYLES.dark : MAP_STYLES.light}
-        onMoveEnd={handleMoveEnd}
+        onMoveEnd={handleMapChange}
+        onLoad={handleMapChange}
         onClick={onClick}
         interactiveLayerIds={['clusters', 'unclustered-point']}
         className="map-container"

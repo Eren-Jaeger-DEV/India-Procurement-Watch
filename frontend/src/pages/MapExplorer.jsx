@@ -196,6 +196,56 @@ export default function MapExplorer() {
     setShowGeoDropdown(false);
   };
 
+  const handleDropdownSelect = (type, value, state = null) => {
+    setShowLocationDropdown(false);
+    
+    if (type === 'all') {
+      setContextLocation(null);
+      fetchFilteredTenders(INDIA_DEFAULT_BOUNDS);
+      setBounds(INDIA_DEFAULT_BOUNDS);
+      if (mapRef.current) {
+        mapRef.current.fitBounds([
+          [INDIA_DEFAULT_BOUNDS.min_lon, INDIA_DEFAULT_BOUNDS.min_lat],
+          [INDIA_DEFAULT_BOUNDS.max_lon, INDIA_DEFAULT_BOUNDS.max_lat]
+        ], { padding: 40, duration: 2000 });
+      }
+      return;
+    }
+
+    setContextLocation({ type, value, state });
+    
+    const query = type === 'state' ? `${value}, India` : `${value}, ${state}, India`;
+    
+    fetch(`https://nominatim.satviks.dev/search?q=${encodeURIComponent(query)}&format=jsonv2&limit=1&key=4ec7ecc992cbd862b27fae04790e6796c97c91d64158f57f`)
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.length > 0 && mapRef.current) {
+          const place = data[0];
+          const [latS, latN, lonW, lonE] = place.boundingbox;
+          
+          const boundsParams = {
+            min_lat: Number(latS),
+            max_lat: Number(latN),
+            min_lon: Number(lonW),
+            max_lon: Number(lonE)
+          };
+          
+          mapRef.current.fitBounds([
+            [Number(lonW), Number(latS)],
+            [Number(lonE), Number(latN)]
+          ], { padding: 40, duration: 2000 });
+          
+          fetchFilteredTenders(boundsParams);
+          setBounds(boundsParams);
+        } else {
+          fetchFilteredTenders({state, city: type === 'city' ? value : undefined});
+        }
+      })
+      .catch(() => {
+        fetchFilteredTenders({state, city: type === 'city' ? value : undefined});
+      });
+  };
+
   // Layout fix: completely remove parent padding to prevent cutoff and scrollbars
   useEffect(() => {
     const mainContent = document.querySelector('.main-content');
@@ -460,7 +510,7 @@ export default function MapExplorer() {
               <div className="context-dropdown" onWheel={(e) => e.stopPropagation()}>
                 <div 
                   className="context-item"
-                  onClick={(e) => { e.stopPropagation(); setContextLocation(null); setShowLocationDropdown(false); fetchFilteredTenders(null); }}
+                  onClick={(e) => { e.stopPropagation(); handleDropdownSelect('all', null); }}
                   style={{ fontWeight: !contextLocation ? 700 : 400 }}
                 >
                   <MapPin size={14} style={{ color: '#64748b' }} />
@@ -473,7 +523,7 @@ export default function MapExplorer() {
                     <div 
                       className="context-item" 
                       style={{ fontWeight: 600, color: 'var(--accent-primary)', marginTop: 4, background: 'rgba(99, 102, 241, 0.05)' }} 
-                      onClick={(e) => { e.stopPropagation(); setContextLocation({type: 'state', value: state}); setShowLocationDropdown(false); fetchFilteredTenders({state}); }}
+                      onClick={(e) => { e.stopPropagation(); handleDropdownSelect('state', state); }}
                     >
                       {state} {contextLocation?.value === state && <Check size={14} color="#10b981" style={{marginLeft:'auto'}}/>}
                     </div>
@@ -482,7 +532,7 @@ export default function MapExplorer() {
                         className="context-item" 
                         key={`${state}-${city}`} 
                         style={{ paddingLeft: '32px', fontSize: '12px' }} 
-                        onClick={(e) => { e.stopPropagation(); setContextLocation({type: 'city', value: city, state}); setShowLocationDropdown(false); fetchFilteredTenders({state, city}); }}
+                        onClick={(e) => { e.stopPropagation(); handleDropdownSelect('city', city, state); }}
                       >
                         {city} {contextLocation?.value === city && <Check size={14} color="#10b981" style={{marginLeft:'auto'}}/>}
                       </div>

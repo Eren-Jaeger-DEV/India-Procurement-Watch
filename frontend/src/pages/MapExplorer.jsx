@@ -3,7 +3,7 @@ import debounce from 'lodash.debounce';
 import Map, { Source, Layer, NavigationControl, Popup } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { fetchMapTenders } from '../lib/api';
-import { Search, AlertTriangle, ShieldAlert, Building, Loader2, Layers, X, Info, TrendingUp, MapPin } from 'lucide-react';
+import { Search, AlertTriangle, ShieldAlert, Building, Loader2, Layers, X, Info, TrendingUp, MapPin, ChevronDown, Check } from 'lucide-react';
 import './MapExplorer.css';
 
 const fmtCr = (v) => v ? `₹${(v / 1e7).toFixed(1)}Cr` : '—';

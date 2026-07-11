@@ -70,8 +70,8 @@ const Layout = () => {
     return () => window.removeEventListener('openTenderModal', handleOpenModal);
   }, []);
 
-  // Compute visual collapsed state (collapsed only if state is collapsed and not hovered)
-  const isVisuallyCollapsed = isCollapsed && !isHovered;
+  // Compute visual collapsed state (collapsed only if state is collapsed)
+  const isVisuallyCollapsed = isCollapsed;
 
   const handleNavItemClick = () => {
     if (window.innerWidth < 1200) {

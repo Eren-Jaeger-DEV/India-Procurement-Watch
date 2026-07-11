@@ -187,4 +187,9 @@ export const fetchMapTenders = async (params = {}) => {
   return res.data;
 };
 
+export const fetchLocations = async () => {
+  const res = await api.get('/locations');
+  return res.data;
+};
+
 export default api;

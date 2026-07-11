@@ -284,6 +284,34 @@ def api_red_flag_explorer():
         return jsonify({"error": str(e), "total": 0, "results": []}), 500
 
 
+@analytics_bp.route("/api/locations")
+@cache.cached(timeout=3600)
+def api_locations():
+    conn = get_pg_conn()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute("""
+            SELECT DISTINCT state, city 
+            FROM aoc_geocoded 
+            WHERE state IS NOT NULL 
+            ORDER BY state, city
+        """)
+        rows = cur.fetchall()
+        
+        # Group cities by state
+        locations = {}
+        for row in rows:
+            st = row['state'].strip()
+            ct = row['city'].strip() if row['city'] else None
+            if st not in locations:
+                locations[st] = []
+            if ct and ct not in locations[st]:
+                locations[st].append(ct)
+                
+        return jsonify(locations)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 @analytics_bp.route("/api/map-tenders")
 @cache.cached(timeout=300, query_string=True)
 def api_map_tenders():
@@ -297,8 +325,24 @@ def api_map_tenders():
         min_lat = request.args.get('min_lat')
         max_lat = request.args.get('max_lat')
         min_lon = request.args.get('min_lon')
+        min_lon = request.args.get('min_lon')
         max_lon = request.args.get('max_lon')
+        state = request.args.get('state')
+        city = request.args.get('city')
         limit = int(request.args.get('limit', 200000)) # Increased default limit significantly
+
+        # Build dynamic where clause for geocoded base
+        geo_where = ["lat IS NOT NULL", "lon IS NOT NULL"]
+        geo_params = []
+        
+        if state:
+            geo_where.append("state = %s")
+            geo_params.append(state)
+        if city:
+            geo_where.append("city = %s")
+            geo_params.append(city)
+
+        geo_where_sql = " AND ".join(geo_where)
 
         # Check if the bounding box covers the entire country (large bbox)
         is_large_bbox = False
@@ -310,7 +354,7 @@ def api_map_tenders():
 
         if min_lat and max_lat and min_lon and max_lon and not is_large_bbox:
             # Zoomed in (State/District level) -> spatial query with deferred join
-            cur.execute("""
+            query = """
                 SELECT g.internal_id, g.lat, g.lon, g.resolved_address,
                        COALESCE(s.title, t.title) AS title,
                        COALESCE(s.org_name, t.org_name) AS org_name,
@@ -321,24 +365,25 @@ def api_map_tenders():
                 FROM (
                     SELECT internal_id, lat, lon, resolved_address
                     FROM aoc_geocoded
-                    WHERE lat BETWEEN %s AND %s AND lon BETWEEN %s AND %s
+                    WHERE lat BETWEEN %s AND %s AND lon BETWEEN %s AND %s AND {geo_where_sql}
                     LIMIT %s
                 ) g
                 LEFT JOIN single_bid_contracts s ON g.internal_id = s.internal_id
                 LEFT JOIN aoc_tenders t ON g.internal_id = t.internal_id
-            """, (float(min_lat), float(max_lat), float(min_lon), float(max_lon), limit))
+            """
+            params = [float(min_lat), float(max_lat), float(min_lon), float(max_lon)] + geo_params + [limit]
+            cur.execute(query.format(geo_where_sql=geo_where_sql), tuple(params))
         else:
             # Zoomed out (National level / initial load) -> Fast UNION query
             # We cap at 30000 for national level to prevent browser crashing while showing a very dense map
             national_limit = min(limit, 30000)
-            cur.execute("""
+            query = """
                 (
                     SELECT g.internal_id, g.lat, g.lon, g.resolved_address,
                            s.title, s.org_name, s.contract_value, s.bidder_name, s.portal_type,
                            1 AS is_single_bid
                     FROM single_bid_contracts s
-                    JOIN aoc_geocoded g ON s.internal_id = g.internal_id
-                    WHERE g.lat IS NOT NULL AND g.lon IS NOT NULL
+                    JOIN (SELECT internal_id, lat, lon, resolved_address FROM aoc_geocoded WHERE {geo_where_sql}) g ON s.internal_id = g.internal_id
                     LIMIT %s
                 )
                 UNION ALL
@@ -350,12 +395,15 @@ def api_map_tenders():
                         SELECT internal_id, lat, lon, resolved_address
                         FROM aoc_geocoded
                         WHERE internal_id NOT IN (SELECT internal_id FROM single_bid_contracts)
-                          AND lat IS NOT NULL AND lon IS NOT NULL
+                          AND {geo_where_sql}
                         LIMIT %s
                     ) g
                     JOIN aoc_tenders t ON g.internal_id = t.internal_id
                 )
-            """, (national_limit // 2, national_limit // 2))
+            """
+            
+            params = geo_params + [national_limit // 2] + geo_params + [national_limit // 2]
+            cur.execute(query.format(geo_where_sql=geo_where_sql), tuple(params))
             
         rows = [dict(r) for r in cur.fetchall()]
         return jsonify(rows)

@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import debounce from 'lodash.debounce';
 import Map, { Source, Layer, NavigationControl, Popup } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { fetchMapTenders } from '../lib/api';
+import { fetchMapTenders, fetchLocations } from '../lib/api';
 import { Search, AlertTriangle, ShieldAlert, Building, Loader2, Layers, X, Info, TrendingUp, MapPin, ChevronDown, Check } from 'lucide-react';
 import './MapExplorer.css';
 
@@ -113,26 +113,28 @@ export default function MapExplorer() {
   const [geoResults, setGeoResults] = useState([]);
   const [showGeoDropdown, setShowGeoDropdown] = useState(false);
   const [isGeoLoading, setIsGeoLoading] = useState(false);
-  const [contextLocation, setContextLocation] = useState('India');
-  const [showContextDropdown, setShowContextDropdown] = useState(false);
+  const [contextLocation, setContextLocation] = useState(null);
+  const [locationsData, setLocationsData] = useState({});
+  const [showLocationDropdown, setShowLocationDropdown] = useState(false);
   const [viewBounds, setViewBounds] = useState(null);
 
-  const PREDEFINED_LOCATIONS = [
-    { name: 'India', center: [78.9629, 20.5937], zoom: 4 },
-    { name: 'Bangalore', center: [77.5946, 12.9716], zoom: 10 },
-    { name: 'Mumbai', center: [72.8777, 19.0760], zoom: 10 },
-    { name: 'Delhi', center: [77.2090, 28.6139], zoom: 10 },
-    { name: 'Chennai', center: [80.2707, 13.0827], zoom: 10 },
-    { name: 'Maharashtra', center: [75.7139, 19.7515], zoom: 6 }
-  ];
-
-  const handleContextSelect = (loc) => {
-    setContextLocation(loc.name);
-    setShowContextDropdown(false);
-    if (mapRef.current) {
-      mapRef.current.flyTo({ center: loc.center, zoom: loc.zoom, duration: 2500 });
-    }
+  const fetchFilteredTenders = (params = {}) => {
+    setFetching(true);
+    fetchMapTenders(params)
+      .then(d => {
+        setTenders(d || []);
+        setError(null);
+      })
+      .catch(() => setError('Failed to load map data.'))
+      .finally(() => {
+        setFetching(false);
+      });
   };
+
+  useEffect(() => {
+    fetchLocations().then(data => setLocationsData(data || {})).catch(() => {});
+    fetchFilteredTenders();
+  }, []);
 
   useEffect(() => {
     if (!geoQuery.trim() || geoQuery.length < 3) {
@@ -187,21 +189,6 @@ export default function MapExplorer() {
         mainContent.style.position = '';
       }
     };
-  }, []);
-
-  useEffect(() => {
-    setFetching(true);
-    // Fetch a massive chunk of data ONCE on mount to ensure 0 lag during panning
-    fetchMapTenders(INDIA_DEFAULT_BOUNDS)
-      .then(d => {
-        setTenders(d || []);
-        setError(null);
-      })
-      .catch(() => setError('Failed to load map data.'))
-      .finally(() => {
-        setLoading(false);
-        setFetching(false);
-      });
   }, []);
 
   const filtered = useMemo(() => {
@@ -430,25 +417,46 @@ export default function MapExplorer() {
           <div className="search-context-wrapper" style={{ position: 'relative' }}>
             <div 
               className="search-location-pill" 
-              onClick={() => setShowContextDropdown(!showContextDropdown)}
+              onClick={() => setShowLocationDropdown(!showLocationDropdown)}
               style={{ cursor: 'pointer' }}
             >
               <MapPin size={14} style={{ color: '#94a3b8' }} />
-              <span>{contextLocation}</span>
+              <span>{contextLocation ? contextLocation.value : 'India'}</span>
               <ChevronDown size={14} style={{ color: '#64748b', marginLeft: '4px' }} />
             </div>
             
-            {showContextDropdown && (
+            {showLocationDropdown && (
               <div className="context-dropdown">
-                {PREDEFINED_LOCATIONS.map(loc => (
-                  <div 
-                    key={loc.name} 
-                    className="context-item"
-                    onClick={() => handleContextSelect(loc)}
-                  >
-                    <span>{loc.name}</span>
-                    {contextLocation === loc.name && <Check size={14} style={{ color: '#10b981' }} />}
-                  </div>
+                <div 
+                  className="context-item"
+                  onClick={(e) => { e.stopPropagation(); setContextLocation(null); setShowLocationDropdown(false); fetchFilteredTenders(null); }}
+                  style={{ fontWeight: !contextLocation ? 700 : 400 }}
+                >
+                  <MapPin size={14} style={{ color: '#64748b' }} />
+                  <span>All India</span>
+                  {!contextLocation && <Check size={14} style={{ color: '#10b981', marginLeft: 'auto' }} />}
+                </div>
+
+                {Object.keys(locationsData).map(state => (
+                  <React.Fragment key={state}>
+                    <div 
+                      className="context-item" 
+                      style={{ fontWeight: 600, color: 'var(--accent-primary)', marginTop: 4, background: 'rgba(99, 102, 241, 0.05)' }} 
+                      onClick={(e) => { e.stopPropagation(); setContextLocation({type: 'state', value: state}); setShowLocationDropdown(false); fetchFilteredTenders({state}); }}
+                    >
+                      {state} {contextLocation?.value === state && <Check size={14} color="#10b981" style={{marginLeft:'auto'}}/>}
+                    </div>
+                    {(locationsData[state] || []).map(city => (
+                      <div 
+                        className="context-item" 
+                        key={`${state}-${city}`} 
+                        style={{ paddingLeft: '32px', fontSize: '12px' }} 
+                        onClick={(e) => { e.stopPropagation(); setContextLocation({type: 'city', value: city, state}); setShowLocationDropdown(false); fetchFilteredTenders({state, city}); }}
+                      >
+                        {city} {contextLocation?.value === city && <Check size={14} color="#10b981" style={{marginLeft:'auto'}}/>}
+                      </div>
+                    ))}
+                  </React.Fragment>
                 ))}
               </div>
             )}

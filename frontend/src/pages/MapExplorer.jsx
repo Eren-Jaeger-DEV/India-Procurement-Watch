@@ -284,6 +284,14 @@ export default function MapExplorer() {
     }
   }, []);
 
+  const onMouseEnter = useCallback(() => {
+    if (mapRef.current) mapRef.current.getCanvas().style.cursor = 'pointer';
+  }, []);
+  
+  const onMouseLeave = useCallback(() => {
+    if (mapRef.current) mapRef.current.getCanvas().style.cursor = '';
+  }, []);
+
   const handleInspect = (item) => {
     window.dispatchEvent(new CustomEvent('openTenderModal', { detail: item }));
   };
@@ -331,6 +339,8 @@ export default function MapExplorer() {
         onMoveEnd={handleMapChange}
         onLoad={handleMapChange}
         onClick={onClick}
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
         interactiveLayerIds={['clusters', 'unclustered-point']}
         className="map-container"
         minZoom={3}

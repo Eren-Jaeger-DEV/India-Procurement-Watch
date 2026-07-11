@@ -105,9 +105,47 @@ export default function MapExplorer() {
 
   const [layerOpen, setLayerOpen] = useState(false);
   const [panelOpen, setPanelOpen] = useState(true);
-  const [selectedState, setSelectedState] = useState('');
   
   const [popupInfo, setPopupInfo] = useState(null);
+
+  // Geocoding States
+  const [geoQuery, setGeoQuery] = useState('');
+  const [geoResults, setGeoResults] = useState([]);
+  const [isGeoLoading, setIsGeoLoading] = useState(false);
+  const [showGeoDropdown, setShowGeoDropdown] = useState(false);
+
+  useEffect(() => {
+    if (!geoQuery.trim() || geoQuery.length < 3) {
+      setGeoResults([]);
+      return;
+    }
+    const timer = setTimeout(() => {
+      setIsGeoLoading(true);
+      fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(geoQuery)}&countrycodes=in&format=json&limit=5`)
+        .then(res => res.json())
+        .then(data => {
+          setGeoResults(data || []);
+          setIsGeoLoading(false);
+        })
+        .catch(err => {
+          console.error("Geocoding failed", err);
+          setIsGeoLoading(false);
+        });
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [geoQuery]);
+
+  const handleGeoSelect = (place) => {
+    setGeoQuery(place.display_name);
+    setShowGeoDropdown(false);
+    if (mapRef.current) {
+      mapRef.current.flyTo({
+        center: [parseFloat(place.lon), parseFloat(place.lat)],
+        zoom: 11,
+        duration: 2500
+      });
+    }
+  };
 
   // Layout fix: completely remove parent padding to prevent cutoff and scrollbars
   useEffect(() => {
@@ -179,15 +217,7 @@ export default function MapExplorer() {
   }, [filtered]);
 
   const handleStateChange = (e) => {
-    const val = e.target.value;
-    setSelectedState(val);
-    if (val && STATE_COORDS[val] && mapRef.current) {
-      mapRef.current.flyTo({
-        center: STATE_COORDS[val].center,
-        zoom: STATE_COORDS[val].zoom,
-        duration: 1500
-      });
-    }
+    // Legacy fallback (removed from UI but kept in case needed)
   };
 
   // No-op to prevent re-fetching on pan (massive performance boost)
@@ -393,29 +423,67 @@ export default function MapExplorer() {
             </div>
           </div>
 
-          <div className="panel-state-select" style={{ padding: '12px 18px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-            <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '6px' }}>Focus State</div>
-            <select
-              value={selectedState}
-              onChange={handleStateChange}
-              style={{
-                width: '100%',
-                padding: '8px',
-                background: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.08)',
-                borderRadius: '8px',
-                color: '#e2e8f0',
-                fontSize: '12.5px',
-                outline: 'none',
-                cursor: 'pointer',
-                fontFamily: 'inherit'
-              }}
-            >
-              <option value="" style={{ background: 'transparent' }}>All India</option>
-              {Object.keys(STATE_COORDS).sort().map(s => (
-                <option key={s} value={s} style={{ background: '#0a0c14' }}>{s}</option>
-              ))}
-            </select>
+          <div className="panel-geosearch" style={{ padding: '12px 18px', borderBottom: '1px solid rgba(255,255,255,0.07)', position: 'relative' }}>
+            <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '6px', display: 'flex', justifyContent: 'space-between' }}>
+              <span>Fly to Location</span>
+              {isGeoLoading && <Loader2 size={12} className="spin" style={{ color: '#6366f1' }} />}
+            </div>
+            <div style={{ position: 'relative' }}>
+              <input
+                type="text"
+                placeholder="Search city, state, or district..."
+                value={geoQuery}
+                onChange={(e) => {
+                  setGeoQuery(e.target.value);
+                  setShowGeoDropdown(true);
+                }}
+                onFocus={() => setShowGeoDropdown(true)}
+                onBlur={() => setTimeout(() => setShowGeoDropdown(false), 200)}
+                style={{
+                  width: '100%',
+                  padding: '8px 10px',
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: '8px',
+                  color: '#e2e8f0',
+                  fontSize: '12.5px',
+                  outline: 'none',
+                  fontFamily: 'inherit',
+                  boxSizing: 'border-box',
+                  transition: 'border-color 0.15s'
+                }}
+                onMouseOver={(e) => e.target.style.borderColor = 'rgba(99,102,241,0.5)'}
+                onMouseOut={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.08)'}
+              />
+              {showGeoDropdown && geoResults.length > 0 && (
+                <div style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  right: 0,
+                  marginTop: '4px',
+                  background: 'rgba(13, 17, 23, 0.95)',
+                  backdropFilter: 'blur(16px)',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: '8px',
+                  zIndex: 1000,
+                  maxHeight: '200px',
+                  overflowY: 'auto',
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.5)'
+                }}>
+                  {geoResults.map((place, idx) => (
+                    <div 
+                      key={idx}
+                      onClick={() => handleGeoSelect(place)}
+                      className="geo-result-item"
+                    >
+                      <MapPin size={12} style={{ flexShrink: 0, marginTop: '3px', color: '#6366f1' }} />
+                      <span style={{ fontSize: '11.5px', color: '#cbd5e1', lineHeight: '1.3' }}>{place.display_name}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="panel-search">

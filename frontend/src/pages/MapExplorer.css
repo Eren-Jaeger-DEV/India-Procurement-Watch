@@ -357,6 +357,21 @@
   line-height: 1;
 }
 
+.geo-result-item {
+  display: flex;
+  gap: 8px;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: background 0.15s;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.geo-result-item:last-child {
+  border-bottom: none;
+}
+.geo-result-item:hover {
+  background: rgba(99,102,241,0.15);
+}
+
 .panel-legend {
   display: flex;
   gap: 16px;

@@ -435,10 +435,10 @@ export default function MapExplorer() {
             type="circle"
             filter={['has', 'point_count']}
             paint={{
-              'circle-color': ['step', ['get', 'point_count'], '#6366f1', 100, '#4f46e5', 750, '#4338ca'],
-              'circle-radius': ['step', ['get', 'point_count'], 16, 100, 22, 750, 28],
-              'circle-stroke-width': 2,
-              'circle-stroke-color': 'rgba(255,255,255,0.4)'
+              'circle-color': ['step', ['get', 'point_count'], 'rgba(15, 17, 26, 0.9)', 100, 'rgba(15, 17, 26, 0.95)', 750, '#0f111a'],
+              'circle-radius': ['step', ['get', 'point_count'], 18, 100, 24, 750, 30],
+              'circle-stroke-width': 1.5,
+              'circle-stroke-color': 'rgba(255,255,255,0.2)'
             }}
           />
           <Layer
@@ -448,19 +448,19 @@ export default function MapExplorer() {
             layout={{
               'text-field': '{point_count_abbreviated}',
               'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
-              'text-size': 11
+              'text-size': 11.5
             }}
-            paint={{ 'text-color': '#ffffff' }}
+            paint={{ 'text-color': '#e2e8f0' }}
           />
           <Layer
             id="unclustered-point"
             type="circle"
             filter={['!', ['has', 'point_count']]}
             paint={{
-              'circle-color': ['case', ['==', ['get', 'is_single_bid'], 1], '#ef4444', '#6366f1'],
-              'circle-radius': 5,
-              'circle-stroke-width': 2,
-              'circle-stroke-color': 'rgba(255,255,255,0.8)'
+              'circle-color': ['case', ['==', ['get', 'is_single_bid'], 1], 'rgba(239, 68, 68, 0.3)', 'rgba(99, 102, 241, 0.3)'],
+              'circle-radius': 6,
+              'circle-stroke-width': 1.5,
+              'circle-stroke-color': ['case', ['==', ['get', 'is_single_bid'], 1], '#ef4444', '#6366f1']
             }}
           />
         </Source>

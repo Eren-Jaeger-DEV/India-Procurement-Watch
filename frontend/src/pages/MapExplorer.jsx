@@ -334,14 +334,26 @@ export default function MapExplorer() {
       const clusterId = feature.properties.cluster_id;
       const mapboxSource = mapRef.current.getMap().getSource('tenders');
       
-      mapboxSource.getClusterExpansionZoom(clusterId, (err, zoom) => {
-        if (err) return;
-        mapRef.current.easeTo({
-          center: feature.geometry.coordinates,
-          zoom: zoom,
-          duration: 500
+      const zoomPromise = mapboxSource.getClusterExpansionZoom(clusterId);
+      if (zoomPromise && typeof zoomPromise.then === 'function') {
+        zoomPromise.then(zoom => {
+          mapRef.current.easeTo({
+            center: feature.geometry.coordinates,
+            zoom: zoom,
+            duration: 500
+          });
+        }).catch(err => console.error(err));
+      } else {
+        // Fallback for older versions
+        mapboxSource.getClusterExpansionZoom(clusterId, (err, zoom) => {
+          if (err) return;
+          mapRef.current.easeTo({
+            center: feature.geometry.coordinates,
+            zoom: zoom,
+            duration: 500
+          });
         });
-      });
+      }
     } else if (feature.layer.id === 'unclustered-point') {
       setPopupInfo(feature.properties);
     }

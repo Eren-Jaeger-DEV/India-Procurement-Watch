@@ -99,6 +99,14 @@
   white-space: nowrap;
 }
 
+button.nav-item {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  width: 100%;
+}
+
 .sidebar.collapsed .nav-item {
   justify-content: center;
   padding: 6px 0;

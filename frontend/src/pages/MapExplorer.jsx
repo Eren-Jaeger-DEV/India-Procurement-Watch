@@ -221,11 +221,44 @@ export default function MapExplorer() {
     window.dispatchEvent(new CustomEvent('openTenderModal', { detail: item }));
   };
 
+  const [loadingText, setLoadingText] = useState('Establishing secure connection...');
+  useEffect(() => {
+    if (!loading) return;
+    const texts = [
+      'Establishing secure connection...',
+      'Fetching procurement records...',
+      'Geocoding tender locations...',
+      'Initializing hardware-accelerated map...'
+    ];
+    let i = 0;
+    const interval = setInterval(() => {
+      i = (i + 1) % texts.length;
+      setLoadingText(texts[i]);
+    }, 800);
+    return () => clearInterval(interval);
+  }, [loading]);
+
   if (loading) return (
     <div className="map-fullscreen-loader">
-      <div className="map-loader-inner">
-        <Loader2 size={32} className="spin" />
-        <span>Initializing hardware-accelerated map…</span>
+      <div className="premium-loader-container">
+        {/* Radar Effect */}
+        <div className="radar">
+          <div className="radar-beam"></div>
+          <div className="radar-blip"></div>
+          <div className="radar-blip blip-2"></div>
+        </div>
+        
+        {/* Loading Text */}
+        <div className="loader-text-section">
+          <div className="loader-title">IPW Map Intelligence</div>
+          <div className="loader-subtitle">
+            <Loader2 size={14} className="spin loader-spinner" />
+            <span className="typing-text">{loadingText}</span>
+          </div>
+        </div>
+
+        {/* Decorative Grid */}
+        <div className="loader-grid-overlay"></div>
       </div>
     </div>
   );

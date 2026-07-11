@@ -21,7 +21,7 @@ def api_agentic_search():
         "constraints": constraints
     })
 
-@limiter.limit("10 per minute")
+
 @ai_search_bp.route("/api/ai-chat", methods=["POST"])
 def api_ai_chat():
     from analysis.ai_chat import ask_database

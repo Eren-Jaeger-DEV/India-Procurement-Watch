@@ -128,12 +128,13 @@ export default function MapExplorer() {
       .catch(() => setError('Failed to load map data.'))
       .finally(() => {
         setFetching(false);
+        setLoading(false);
       });
   };
 
   useEffect(() => {
     fetchLocations().then(data => setLocationsData(data || {})).catch(() => {});
-    fetchFilteredTenders();
+    fetchFilteredTenders(INDIA_DEFAULT_BOUNDS);
   }, []);
 
   useEffect(() => {

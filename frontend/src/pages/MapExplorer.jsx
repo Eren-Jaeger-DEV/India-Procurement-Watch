@@ -149,6 +149,7 @@ export default function MapExplorer() {
     <div className="map-explorer-container">
       <Map
         ref={mapRef}
+        style={{ width: '100%', height: '100%' }}
         initialViewState={{
           bounds: [
             [INDIA_DEFAULT_BOUNDS.min_lon, INDIA_DEFAULT_BOUNDS.min_lat],

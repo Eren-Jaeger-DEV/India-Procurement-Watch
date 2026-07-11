@@ -330,15 +330,15 @@ export default function MapExplorer() {
       return;
     }
 
-    if (feature.layer.id === 'clusters') {
+    if (feature.layer.id === 'clusters' || feature.layer.id === 'cluster-count') {
       const clusterId = feature.properties.cluster_id;
-      const mapboxSource = mapRef.current.getSource('tenders');
+      const mapboxSource = mapRef.current.getMap().getSource('tenders');
       
       mapboxSource.getClusterExpansionZoom(clusterId, (err, zoom) => {
         if (err) return;
         mapRef.current.easeTo({
           center: feature.geometry.coordinates,
-          zoom: zoom + 1,
+          zoom: zoom,
           duration: 500
         });
       });
@@ -404,7 +404,7 @@ export default function MapExplorer() {
         onClick={onClick}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
-        interactiveLayerIds={['clusters', 'unclustered-point']}
+        interactiveLayerIds={['clusters', 'cluster-count', 'unclustered-point']}
         className="map-container"
         minZoom={3}
       >

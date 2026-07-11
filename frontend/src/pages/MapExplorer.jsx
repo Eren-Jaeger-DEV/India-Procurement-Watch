@@ -112,9 +112,7 @@ export default function MapExplorer() {
   useEffect(() => {
     if (popupInfo) {
       setPopupReverseData(null);
-      fetch(`https://nominatim.satviks.dev/reverse?lat=${popupInfo.lat}&lon=${popupInfo.lon}&format=jsonv2&addressdetails=1`, {
-        headers: { 'X-API-Key': '4ec7ecc992cbd862b27fae04790e6796c97c91d64158f57f' }
-      })
+      fetch(`https://nominatim.satviks.dev/reverse?lat=${popupInfo.lat}&lon=${popupInfo.lon}&format=jsonv2&addressdetails=1&key=4ec7ecc992cbd862b27fae04790e6796c97c91d64158f57f`)
         .then(res => res.json())
         .then(data => {
           if (!data.error) setPopupReverseData(data);
@@ -159,11 +157,7 @@ export default function MapExplorer() {
     }
     const timer = setTimeout(() => {
       setIsGeoLoading(true);
-      fetch(`https://nominatim.satviks.dev/search?q=${encodeURIComponent(geoQuery)}&countrycodes=in&format=json&limit=5`, {
-        headers: {
-          'X-API-Key': '4ec7ecc992cbd862b27fae04790e6796c97c91d64158f57f'
-        }
-      })
+      fetch(`https://nominatim.satviks.dev/search?q=${encodeURIComponent(geoQuery)}&countrycodes=in&format=jsonv2&limit=5&key=4ec7ecc992cbd862b27fae04790e6796c97c91d64158f57f`)
         .then(res => res.json())
         .then(data => {
           setGeoResults(data || []);

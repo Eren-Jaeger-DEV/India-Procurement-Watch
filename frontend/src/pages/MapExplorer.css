@@ -381,10 +381,114 @@
 .legend-item {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 11.5px;
+  gap: 8px;
+  font-size: 11px;
   color: #94a3b8;
+  font-weight: 500;
 }
+
+/* ── Top Header Search Bar ── */
+.map-top-search-container {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 500px;
+  max-width: 90vw;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+}
+
+.map-top-search-bar {
+  display: flex;
+  align-items: center;
+  background: #111827;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  height: 44px;
+  padding: 0 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  transition: border-color 0.2s;
+}
+
+.map-top-search-bar:focus-within {
+  border-color: rgba(99, 102, 241, 0.6);
+}
+
+.search-location-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-right: 12px;
+  color: #cbd5e1;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.search-divider {
+  width: 1px;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  margin-right: 12px;
+}
+
+.search-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.search-input-wrapper input {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #f8fafc;
+  font-size: 13.5px;
+  font-family: 'Inter', sans-serif;
+  width: 100%;
+}
+.search-input-wrapper input::placeholder {
+  color: #64748b;
+}
+
+.map-top-autocomplete {
+  background: #111827;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  margin-top: 6px;
+  max-height: 350px;
+  overflow-y: auto;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+}
+
+.autocomplete-item {
+  padding: 12px 16px;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  transition: background 0.15s;
+}
+.autocomplete-item:last-child {
+  border-bottom: none;
+}
+.autocomplete-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.ac-title {
+  color: #f8fafc;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 3px;
+}
+
+.ac-subtitle {
+  color: #64748b;
+  font-size: 12px;
+}
+
 .dot {
   width: 8px;
   height: 8px;

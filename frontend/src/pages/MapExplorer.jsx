@@ -382,6 +382,53 @@ export default function MapExplorer() {
         )}
       </Map>
 
+      {/* Top Global Search Engine */}
+      <div className="map-top-search-container">
+        <div className="map-top-search-bar">
+          <div className="search-location-pill">
+            <MapPin size={14} style={{ color: '#94a3b8' }} />
+            <span>India</span>
+          </div>
+          <div className="search-divider"></div>
+          <div className="search-input-wrapper">
+            <Search size={14} style={{ color: '#94a3b8' }} />
+            <input
+              type="text"
+              placeholder="Search cities, states, districts..."
+              value={geoQuery}
+              onChange={(e) => {
+                setGeoQuery(e.target.value);
+                setShowGeoDropdown(true);
+              }}
+              onFocus={() => setShowGeoDropdown(true)}
+              onBlur={() => setTimeout(() => setShowGeoDropdown(false), 200)}
+            />
+            {isGeoLoading && <Loader2 size={14} className="spin" style={{ color: '#6366f1' }} />}
+          </div>
+        </div>
+
+        {/* Rich Autocomplete Dropdown */}
+        {showGeoDropdown && geoResults.length > 0 && (
+          <div className="map-top-autocomplete">
+            {geoResults.map((place, idx) => {
+              const parts = place.display_name.split(',');
+              const title = parts[0].trim();
+              const subtitle = parts.slice(1).join(',').trim();
+              return (
+                <div 
+                  key={idx}
+                  onClick={() => handleGeoSelect(place)}
+                  className="autocomplete-item"
+                >
+                  <div className="ac-title">{title}</div>
+                  <div className="ac-subtitle">{subtitle}</div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
       {/* Floating filter pills - top center */}
       <div className="map-top-pills">
         {['all', 'single', 'regular'].map(m => (
@@ -420,69 +467,6 @@ export default function MapExplorer() {
             <div className="stat-block">
               <div className="stat-val" style={{ color: '#10b981' }}>{fmtBig(stats.totalValue)}</div>
               <div className="stat-lbl">Total Value</div>
-            </div>
-          </div>
-
-          <div className="panel-geosearch" style={{ padding: '12px 18px', borderBottom: '1px solid rgba(255,255,255,0.07)', position: 'relative' }}>
-            <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '6px', display: 'flex', justifyContent: 'space-between' }}>
-              <span>Fly to Location</span>
-              {isGeoLoading && <Loader2 size={12} className="spin" style={{ color: '#6366f1' }} />}
-            </div>
-            <div style={{ position: 'relative' }}>
-              <input
-                type="text"
-                placeholder="Search city, state, or district..."
-                value={geoQuery}
-                onChange={(e) => {
-                  setGeoQuery(e.target.value);
-                  setShowGeoDropdown(true);
-                }}
-                onFocus={() => setShowGeoDropdown(true)}
-                onBlur={() => setTimeout(() => setShowGeoDropdown(false), 200)}
-                style={{
-                  width: '100%',
-                  padding: '8px 10px',
-                  background: 'rgba(255,255,255,0.05)',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  borderRadius: '8px',
-                  color: '#e2e8f0',
-                  fontSize: '12.5px',
-                  outline: 'none',
-                  fontFamily: 'inherit',
-                  boxSizing: 'border-box',
-                  transition: 'border-color 0.15s'
-                }}
-                onMouseOver={(e) => e.target.style.borderColor = 'rgba(99,102,241,0.5)'}
-                onMouseOut={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.08)'}
-              />
-              {showGeoDropdown && geoResults.length > 0 && (
-                <div style={{
-                  position: 'absolute',
-                  top: '100%',
-                  left: 0,
-                  right: 0,
-                  marginTop: '4px',
-                  background: 'rgba(13, 17, 23, 0.95)',
-                  backdropFilter: 'blur(16px)',
-                  border: '1px solid rgba(255,255,255,0.1)',
-                  borderRadius: '8px',
-                  zIndex: 1000,
-                  maxHeight: '200px',
-                  overflowY: 'auto',
-                  boxShadow: '0 8px 32px rgba(0,0,0,0.5)'
-                }}>
-                  {geoResults.map((place, idx) => (
-                    <div 
-                      key={idx}
-                      onClick={() => handleGeoSelect(place)}
-                      className="geo-result-item"
-                    >
-                      <MapPin size={12} style={{ flexShrink: 0, marginTop: '3px', color: '#6366f1' }} />
-                      <span style={{ fontSize: '11.5px', color: '#cbd5e1', lineHeight: '1.3' }}>{place.display_name}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
           </div>
 

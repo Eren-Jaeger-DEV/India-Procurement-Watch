@@ -22,6 +22,8 @@ const Layout = () => {
   const [modalData, setModalData]     = useState(null);
   const location = useLocation();
 
+  const [isHovered, setIsHovered] = useState(false);
+
   // Auto-collapse based on screen resize
   useEffect(() => {
     const handleResize = () => {
@@ -34,6 +36,16 @@ const Layout = () => {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // Auto collapse after 3 seconds of inactivity (not hovered) when open
+  useEffect(() => {
+    if (!isCollapsed && !isHovered) {
+      const timer = setTimeout(() => {
+        setIsCollapsed(true);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [isCollapsed, isHovered]);
 
   // Collapse sidebar when a route changes (navigation) if screen is small
   useEffect(() => {
@@ -59,7 +71,7 @@ const Layout = () => {
   }, []);
 
   // Compute visual collapsed state (collapsed only if state is collapsed and not hovered)
-  const isVisuallyCollapsed = isCollapsed;
+  const isVisuallyCollapsed = isCollapsed && !isHovered;
 
   const handleNavItemClick = () => {
     if (window.innerWidth < 1200) {
@@ -71,6 +83,8 @@ const Layout = () => {
     <div className="app-container">
       <aside 
         className={`sidebar ${isVisuallyCollapsed ? 'collapsed' : ''}`}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
       >
         <div className="sidebar-header" style={{ justifyContent: isVisuallyCollapsed ? 'center' : 'flex-start' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, overflow: 'hidden' }}>

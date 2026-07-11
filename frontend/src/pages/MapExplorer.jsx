@@ -111,8 +111,27 @@ export default function MapExplorer() {
   // Geocoding States
   const [geoQuery, setGeoQuery] = useState('');
   const [geoResults, setGeoResults] = useState([]);
-  const [isGeoLoading, setIsGeoLoading] = useState(false);
   const [showGeoDropdown, setShowGeoDropdown] = useState(false);
+  const [isGeoLoading, setIsGeoLoading] = useState(false);
+  const [contextLocation, setContextLocation] = useState('India');
+  const [showContextDropdown, setShowContextDropdown] = useState(false);
+
+  const PREDEFINED_LOCATIONS = [
+    { name: 'India', center: [78.9629, 20.5937], zoom: 4 },
+    { name: 'Bangalore', center: [77.5946, 12.9716], zoom: 10 },
+    { name: 'Mumbai', center: [72.8777, 19.0760], zoom: 10 },
+    { name: 'Delhi', center: [77.2090, 28.6139], zoom: 10 },
+    { name: 'Chennai', center: [80.2707, 13.0827], zoom: 10 },
+    { name: 'Maharashtra', center: [75.7139, 19.7515], zoom: 6 }
+  ];
+
+  const handleContextSelect = (loc) => {
+    setContextLocation(loc.name);
+    setShowContextDropdown(false);
+    if (mapRef.current) {
+      mapRef.current.flyTo({ center: loc.center, zoom: loc.zoom, duration: 2500 });
+    }
+  };
 
   useEffect(() => {
     if (!geoQuery.trim() || geoQuery.length < 3) {
@@ -136,15 +155,16 @@ export default function MapExplorer() {
   }, [geoQuery]);
 
   const handleGeoSelect = (place) => {
-    setGeoQuery(place.display_name);
-    setShowGeoDropdown(false);
-    if (mapRef.current) {
-      mapRef.current.flyTo({
-        center: [parseFloat(place.lon), parseFloat(place.lat)],
-        zoom: 11,
-        duration: 2500
-      });
+    if (mapRef.current && place.boundingbox) {
+      const [latS, latN, lonW, lonE] = place.boundingbox;
+      mapRef.current.fitBounds([
+        [Number(lonW), Number(latS)],
+        [Number(lonE), Number(latN)]
+      ], { padding: 40, duration: 2000 });
     }
+    const title = place.display_name.split(',')[0].trim();
+    setGeoQuery(title);
+    setShowGeoDropdown(false);
   };
 
   // Layout fix: completely remove parent padding to prevent cutoff and scrollbars
@@ -373,10 +393,35 @@ export default function MapExplorer() {
       {/* Top Global Search Engine */}
       <div className="map-top-search-container">
         <div className="map-top-search-bar">
-          <div className="search-location-pill">
-            <MapPin size={14} style={{ color: '#94a3b8' }} />
-            <span>India</span>
+          
+          {/* Location Context Dropdown */}
+          <div className="search-context-wrapper" style={{ position: 'relative' }}>
+            <div 
+              className="search-location-pill" 
+              onClick={() => setShowContextDropdown(!showContextDropdown)}
+              style={{ cursor: 'pointer' }}
+            >
+              <MapPin size={14} style={{ color: '#94a3b8' }} />
+              <span>{contextLocation}</span>
+              <ChevronDown size={14} style={{ color: '#64748b', marginLeft: '4px' }} />
+            </div>
+            
+            {showContextDropdown && (
+              <div className="context-dropdown">
+                {PREDEFINED_LOCATIONS.map(loc => (
+                  <div 
+                    key={loc.name} 
+                    className="context-item"
+                    onClick={() => handleContextSelect(loc)}
+                  >
+                    <span>{loc.name}</span>
+                    {contextLocation === loc.name && <Check size={14} style={{ color: '#10b981' }} />}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
+
           <div className="search-divider"></div>
           <div className="search-input-wrapper">
             <Search size={14} style={{ color: '#94a3b8' }} />

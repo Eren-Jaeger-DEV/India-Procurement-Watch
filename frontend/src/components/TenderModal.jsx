@@ -53,13 +53,13 @@ const TenderModal = ({ isOpen, onClose, initialData }) => {
       <div 
         className="modal-backdrop" 
         onClick={onClose} 
-        style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(3px)', zIndex: 998 }} 
+        style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(3px)', zIndex: 9998 }} 
       />
       <div 
         className="modal" 
         style={{ 
           position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', 
-          background: 'var(--bg-card)', borderRadius: 'var(--radius-lg)', zIndex: 999, 
+          background: 'var(--bg-card)', borderRadius: 'var(--radius-lg)', zIndex: 9999, 
           width: '92%', maxWidth: 750, maxHeight: '88vh', display: 'flex', flexDirection: 'column',
           border: '1px solid var(--border-color)', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.3)'
         }}

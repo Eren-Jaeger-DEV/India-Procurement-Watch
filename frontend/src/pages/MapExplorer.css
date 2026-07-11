@@ -403,17 +403,17 @@
 .map-top-search-bar {
   display: flex;
   align-items: center;
-  background: #111827;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #0a0a0a;
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 8px;
   height: 44px;
   padding: 0 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
   transition: border-color 0.2s;
 }
 
 .map-top-search-bar:focus-within {
-  border-color: rgba(99, 102, 241, 0.6);
+  border-color: rgba(255, 255, 255, 0.4);
 }
 
 .search-location-pill {
@@ -421,7 +421,7 @@
   align-items: center;
   gap: 6px;
   padding-right: 12px;
-  color: #cbd5e1;
+  color: #e2e8f0;
   font-size: 13px;
   font-weight: 500;
   white-space: nowrap;
@@ -430,7 +430,7 @@
 .search-divider {
   width: 1px;
   height: 20px;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.15);
   margin-right: 12px;
 }
 
@@ -445,23 +445,23 @@
   background: transparent;
   border: none;
   outline: none;
-  color: #f8fafc;
+  color: #ffffff;
   font-size: 13.5px;
   font-family: 'Inter', sans-serif;
   width: 100%;
 }
 .search-input-wrapper input::placeholder {
-  color: #64748b;
+  color: #94a3b8;
 }
 
 .map-top-autocomplete {
-  background: #111827;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #0a0a0a;
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 8px;
   margin-top: 6px;
   max-height: 350px;
   overflow-y: auto;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
 }
 
 .autocomplete-item {

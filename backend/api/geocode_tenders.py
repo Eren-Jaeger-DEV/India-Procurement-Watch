@@ -110,29 +110,36 @@ def geocode_batch(conn, limit: int, batch_size: int):
     for i, row in enumerate(rows):
         raw_org = row["org_name"].strip()
         # org_name often has hierarchy like "Punjab||District||Sub-office"
-        # Use the first segment (state/top-level org) for best geocode results
+        # Reverse the hierarchy to get the deepest level address (Sub-office, District, Punjab)
         parts = [p.strip() for p in raw_org.split("||") if p.strip()]
-        org = parts[0] if parts else raw_org
+        org = ", ".join(reversed(parts)) if parts else raw_org
 
-        if org in org_cache:
-            cached_val = org_cache[org]
+        if raw_org in org_cache:
+            cached_val = org_cache[raw_org]
             if cached_val is None:
                 failed += 1
                 continue
             lat, lon, addr = cached_val
             source = "cache"
         else:
-            # 1. Try Nominatim API
-            result = nominatim_geocode(f"{org}, India")
+            # Progressive fallback: try deepest first, if fails drop the most specific part
+            result = None
+            for attempt_idx in range(len(parts)):
+                query_parts = parts[::-1][attempt_idx:]  # reversed parts, dropping front
+                attempt_str = ", ".join(query_parts)
+                result = nominatim_geocode(f"{attempt_str}, India")
+                if result:
+                    break
+                time.sleep(0.2) # be polite on misses too
+
             if result:
                 lat, lon, addr = result
                 source = "nominatim"
-                org_cache[org] = (lat, lon, addr)
-                time.sleep(0.2)  # be polite to the API
-                print(f"  [{i+1}/{len(rows)}] {org[:50]} → ({lat:.4f}, {lon:.4f}) [{source}]")
+                org_cache[raw_org] = (lat, lon, addr)
+                print(f"  [{i+1}/{len(rows)}] {raw_org[:50]} → ({lat:.4f}, {lon:.4f}) [{source}]")
             else:
-                print(f"  ❌ No coords for: {org}")
-                org_cache[org] = None
+                print(f"  ❌ No coords for: {raw_org}")
+                org_cache[raw_org] = None
                 failed += 1
                 continue
 
@@ -166,7 +173,7 @@ def _flush(conn, rows):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--limit",      type=int, default=5000,  help="Max tenders to geocode")
+    parser.add_argument("--limit",      type=int, default=500000,  help="Max tenders to geocode")
     parser.add_argument("--batch_size", type=int, default=100,   help="DB write batch size")
     args = parser.parse_args()
 

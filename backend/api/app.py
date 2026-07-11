@@ -84,7 +84,7 @@ def set_security_headers(response):
         "default-src 'self'; "
         "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
         "style-src 'self' 'unsafe-inline'; "
-        "connect-src 'self' https://tender.darshi.app https://server.arcgisonline.com https://services.arcgisonline.com https://fonts.openmaptiles.org https://demotiles.maplibre.org; "
+        "connect-src 'self' https://tender.darshi.app https://server.arcgisonline.com https://services.arcgisonline.com https://fonts.openmaptiles.org https://demotiles.maplibre.org https://basemaps.cartocdn.com https://a.basemaps.cartocdn.com https://b.basemaps.cartocdn.com https://c.basemaps.cartocdn.com https://d.basemaps.cartocdn.com; "
         "img-src 'self' data: https://*;"
     )
     response.headers['X-Content-Type-Options'] = 'nosniff'

@@ -2,13 +2,13 @@ import os
 from flask import Blueprint, jsonify, current_app
 from core.db import get_pg_conn
 from psycopg2.extras import RealDictCursor
-from app import limiter  # Import limiter from app
+# Remove circular import, use current_app or just omit if unused, or import inside function
 
 MCA_DB = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'databases', 'mca.db'))
 
 profiles_bp = Blueprint('profiles', __name__)
 
-@limiter.limit("30 per minute")
+
 @profiles_bp.route("/api/vendor-mca/<path:vendor_name>")
 def api_vendor_mca(vendor_name):
     """Fuzzy match a vendor name against the MCA dataset to fetch corporate identity."""

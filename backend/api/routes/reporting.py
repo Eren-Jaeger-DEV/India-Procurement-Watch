@@ -2,7 +2,7 @@ import os
 import json
 from flask import Blueprint, jsonify, send_file, request
 from core.db import get_pg_conn
-from app import ipw_logger
+
 
 REPORT_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'databases', 'narrative_report.json'))
 

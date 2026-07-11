@@ -3,7 +3,7 @@ from flask import Blueprint, jsonify, request, Response
 from core.db import get_pg_conn
 from psycopg2.extras import RealDictCursor
 from analysis.ai_chat import ask_database
-from app import limiter
+
 
 ai_search_bp = Blueprint('ai_search', __name__)
 

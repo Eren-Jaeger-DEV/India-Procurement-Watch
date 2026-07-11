@@ -141,7 +141,11 @@ export default function MapExplorer() {
     }
     const timer = setTimeout(() => {
       setIsGeoLoading(true);
-      fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(geoQuery)}&countrycodes=in&format=json&limit=5`)
+      fetch(`https://nominatim.satviks.dev/search?q=${encodeURIComponent(geoQuery)}&countrycodes=in&format=json&limit=5`, {
+        headers: {
+          'X-API-Key': '4ec7ecc992cbd862b27fae04790e6796c97c91d64158f57f'
+        }
+      })
         .then(res => res.json())
         .then(data => {
           setGeoResults(data || []);

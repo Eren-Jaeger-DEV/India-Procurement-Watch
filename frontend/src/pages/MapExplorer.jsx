@@ -76,8 +76,8 @@ const getRasterStyle = (url) => ({
 });
 
 const MAP_STYLES = {
-  dark: getRasterStyle('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}'),
-  light: getRasterStyle('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}')
+  dark: getRasterStyle('https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'),
+  light: getRasterStyle('https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png')
 };
 
 export default function MapExplorer() {
@@ -115,11 +115,13 @@ export default function MapExplorer() {
     if (mainContent) {
       mainContent.style.padding = '0';
       mainContent.style.overflow = 'hidden';
+      mainContent.style.position = 'relative';
     }
     return () => {
       if (mainContent) {
         mainContent.style.padding = '';
         mainContent.style.overflow = '';
+        mainContent.style.position = '';
       }
     };
   }, []);

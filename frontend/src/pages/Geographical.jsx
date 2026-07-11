@@ -35,7 +35,10 @@ const getRasterStyle = (url) => ({
   ]
 });
 
-const MAP_STYLE = getRasterStyle('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}');
+const MAP_STYLES = {
+  dark: getRasterStyle('https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'),
+  light: getRasterStyle('https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png')
+};
 
 const Geographical = () => {
   const [geoData, setGeoData] = useState(null);
@@ -43,6 +46,15 @@ const Geographical = () => {
   const [mode, setMode] = useState('count'); // 'count' or 'value'
   const [loading, setLoading] = useState(true);
   const [hoverInfo, setHoverInfo] = useState(null);
+  const [isDark, setIsDark] = useState(() => document.body.classList.contains('dark-theme'));
+  
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setIsDark(document.body.classList.contains('dark-theme'));
+    });
+    observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const loadMapAndData = async () => {
@@ -187,7 +199,7 @@ const Geographical = () => {
               latitude: 22.5937,
               zoom: 4
             }}
-            mapStyle={MAP_STYLE}
+            mapStyle={isDark ? MAP_STYLES.dark : MAP_STYLES.light}
             interactiveLayerIds={['state-fills']}
             onMouseMove={onHover}
             onMouseLeave={() => setHoverInfo(null)}

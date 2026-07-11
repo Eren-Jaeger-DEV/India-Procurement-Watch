@@ -1,9 +1,6 @@
 import os
 import psycopg2
 import time
-from dotenv import load_dotenv
-
-load_dotenv(os.path.join(os.path.dirname(__file__), '..', 'api', '.env'))
 
 DB_URL = os.getenv("DATABASE_URL", "postgresql://darshi2026:srwo4ubGB3EQeaxy26hi05Nj@100.112.20.56:5432/darshi")
 

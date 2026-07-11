@@ -270,25 +270,13 @@ export default function MapExplorer() {
 
   if (loading) return (
     <div className="map-fullscreen-loader">
-      <div className="premium-loader-container">
-        {/* Radar Effect */}
-        <div className="radar">
-          <div className="radar-beam"></div>
-          <div className="radar-blip"></div>
-          <div className="radar-blip blip-2"></div>
+      <div className="minimal-loader-container">
+        <div className="minimal-loader-brand">INDIA PROCUREMENT WATCH</div>
+        <div className="minimal-loader-title">Area Intelligence</div>
+        <div className="minimal-loader-bar">
+          <div className="minimal-loader-progress"></div>
         </div>
-        
-        {/* Loading Text */}
-        <div className="loader-text-section">
-          <div className="loader-title">IPW Map Intelligence</div>
-          <div className="loader-subtitle">
-            <Loader2 size={14} className="spin loader-spinner" />
-            <span className="typing-text">{loadingText}</span>
-          </div>
-        </div>
-
-        {/* Decorative Grid */}
-        <div className="loader-grid-overlay"></div>
+        <div className="minimal-loader-text">{loadingText}</div>
       </div>
     </div>
   );

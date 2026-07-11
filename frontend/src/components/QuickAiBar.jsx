@@ -144,8 +144,8 @@ const QuickAiBar = () => {
         <div
           style={{
             position: 'fixed',
-            bottom: 24,
-            right: 24,
+            bottom: position.bottom,
+            right: position.right,
             width: 400,
             maxHeight: 520,
             zIndex: 901,
@@ -159,12 +159,18 @@ const QuickAiBar = () => {
           }}
         >
           {/* Header */}
-          <div style={{
-            padding: '14px 16px',
-            background: 'linear-gradient(135deg, var(--accent-primary), #8b5cf6)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
+          <div 
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            style={{
+              padding: '14px 16px',
+              background: 'linear-gradient(135deg, var(--accent-primary), #8b5cf6)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              cursor: isDragged ? 'grabbing' : 'grab',
+              userSelect: 'none'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#fff' }}>
               <Sparkles size={18} />

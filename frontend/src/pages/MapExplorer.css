@@ -362,8 +362,12 @@
   overflow-y: auto;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
   z-index: 1001;
-  overflow: hidden;
 }
+
+.context-dropdown::-webkit-scrollbar { width: 6px; }
+.context-dropdown::-webkit-scrollbar-track { background: transparent; }
+.context-dropdown::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
+.context-dropdown::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.4); }
 
 .context-item {
   display: flex;
@@ -416,6 +420,11 @@
   overflow-y: auto;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
 }
+
+.map-top-autocomplete::-webkit-scrollbar { width: 6px; }
+.map-top-autocomplete::-webkit-scrollbar-track { background: transparent; }
+.map-top-autocomplete::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
+.map-top-autocomplete::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.4); }
 
 .autocomplete-item {
   padding: 12px 16px;

@@ -463,7 +463,7 @@ export default function MapExplorer() {
             </div>
             
             {showLocationDropdown && (
-              <div className="context-dropdown">
+              <div className="context-dropdown" onWheel={(e) => e.stopPropagation()}>
                 <div 
                   className="context-item"
                   onClick={(e) => { e.stopPropagation(); setContextLocation(null); setShowLocationDropdown(false); fetchFilteredTenders(null); }}
@@ -519,7 +519,7 @@ export default function MapExplorer() {
 
         {/* Rich Autocomplete Dropdown */}
         {showGeoDropdown && geoResults.length > 0 && (
-          <div className="map-top-autocomplete">
+          <div className="map-top-autocomplete" onWheel={(e) => e.stopPropagation()}>
             {geoResults.map((place, idx) => {
               const parts = place.display_name.split(',');
               const title = parts[0].trim();

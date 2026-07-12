@@ -1,12 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, ReferenceLine, ZAxis
+  ResponsiveContainer, ReferenceLine, ZAxis, Brush
 } from 'recharts';
 import {
   BarChart, Bar, LineChart, Line
 } from 'recharts';
-import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 import { Award, Building2, TrendingUp, AlertCircle, Search, Users, ChevronRight, Download, FileText } from 'lucide-react';
 import html2pdf from 'html2pdf.js';
 import './Insights.css';
@@ -79,7 +78,7 @@ const Insights = () => {
   const scatterFiltered = scatter.filter(d =>
     (portalFilter === 'All' || d.portal === portalFilter) &&
     d.total_awards >= minAwards
-  );
+  ).sort((a, b) => a.hhi - b.hhi);
 
   // Color by HHI band
   const dotColor = (hhi) =>
@@ -174,45 +173,37 @@ const Insights = () => {
             {scatterErr}
           </div>
         ) : (
-          <div style={{ position: 'relative', width: '100%', height: 540, border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', overflow: 'hidden', background: 'var(--bg-main)' }}>
-            <div style={{ position: 'absolute', top: 10, right: 10, zIndex: 10, fontSize: 11, color: 'var(--text-muted)', background: 'var(--bg-card)', padding: '4px 8px', borderRadius: 4, pointerEvents: 'none', border: '1px solid var(--border-color)' }}>
-              ✨ Scroll to zoom, drag to pan
-            </div>
-            <TransformWrapper initialScale={1} minScale={0.5} maxScale={8} wheel={{ step: 0.1 }} panning={{ velocityDisabled: true }}>
-              <TransformComponent wrapperStyle={{ width: '100%', height: '100%' }} contentStyle={{ width: '100%', height: '100%' }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <ScatterChart margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
-                    <XAxis
-                      type="number" dataKey="hhi" name="HHI"
-                      domain={[0, 10000]}
-                      label={{ value: 'HHI (vendor concentration →)', position: 'insideBottom', offset: -10, fill: 'var(--text-secondary)', fontSize: 12 }}
-                      tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} tickLine={false} axisLine={false}
-                    />
-                    <YAxis
-                      type="number" dataKey="single_bid_pct" name="Single-bid %"
-                      unit="%" domain={[0, 100]}
-                      label={{ value: 'Single-bid % ↑', angle: -90, position: 'insideLeft', fill: 'var(--text-secondary)', fontSize: 12 }}
-                      tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} tickLine={false} axisLine={false}
-                    />
-                    <ZAxis type="number" dataKey="total_awards" range={[30, 600]} name="Awards" />
-                    <Tooltip content={<ScatterTip />} cursor={{ strokeDasharray: '3 3' }} />
-                    {/* Reference lines at HHI thresholds */}
-                    <ReferenceLine x={1500} stroke="#f59e0b" strokeDasharray="4 2" strokeWidth={1.5} label={{ value: 'Moderate', fill: '#f59e0b', fontSize: 10, position: 'top' }} />
-                    <ReferenceLine x={2500} stroke="#ef4444" strokeDasharray="4 2" strokeWidth={1.5} label={{ value: 'High', fill: '#ef4444', fontSize: 10, position: 'top' }} />
-                    <Scatter
-                      data={scatterFiltered.map(d => ({ ...d, fill: dotColor(d.hhi) }))}
-                      fill="#8884d8"
-                      shape={(props) => {
-                        const { cx, cy, fill, payload } = props;
-                        return <circle cx={cx} cy={cy} r={Math.max(3, Math.min(10, payload.total_awards / 500))} fill={dotColor(payload.hhi)} fillOpacity={0.7} stroke={dotColor(payload.hhi)} strokeWidth={1} />;
-                      }}
-                    />
-                  </ScatterChart>
-                </ResponsiveContainer>
-              </TransformComponent>
-            </TransformWrapper>
-          </div>
+          <ResponsiveContainer width="100%" height={540}>
+            <ScatterChart margin={{ top: 20, right: 30, left: 20, bottom: 40 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
+              <XAxis
+                type="number" dataKey="hhi" name="HHI"
+                domain={[0, 10000]}
+                label={{ value: 'HHI (vendor concentration →)', position: 'insideBottom', offset: -10, fill: 'var(--text-secondary)', fontSize: 12 }}
+                tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} tickLine={false} axisLine={false}
+              />
+              <YAxis
+                type="number" dataKey="single_bid_pct" name="Single-bid %"
+                unit="%" domain={[0, 100]}
+                label={{ value: 'Single-bid % ↑', angle: -90, position: 'insideLeft', fill: 'var(--text-secondary)', fontSize: 12 }}
+                tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} tickLine={false} axisLine={false}
+              />
+              <ZAxis type="number" dataKey="total_awards" range={[30, 600]} name="Awards" />
+              <Tooltip content={<ScatterTip />} cursor={{ strokeDasharray: '3 3' }} />
+              {/* Reference lines at HHI thresholds */}
+              <ReferenceLine x={1500} stroke="#f59e0b" strokeDasharray="4 2" strokeWidth={1.5} label={{ value: 'Moderate', fill: '#f59e0b', fontSize: 10, position: 'top' }} />
+              <ReferenceLine x={2500} stroke="#ef4444" strokeDasharray="4 2" strokeWidth={1.5} label={{ value: 'High', fill: '#ef4444', fontSize: 10, position: 'top' }} />
+              <Scatter
+                data={scatterFiltered.map(d => ({ ...d, fill: dotColor(d.hhi) }))}
+                fill="#8884d8"
+                shape={(props) => {
+                  const { cx, cy, fill, payload } = props;
+                  return <circle cx={cx} cy={cy} r={Math.max(3, Math.min(10, payload.total_awards / 500))} fill={dotColor(payload.hhi)} fillOpacity={0.7} stroke={dotColor(payload.hhi)} strokeWidth={1} />;
+                }}
+              />
+              <Brush dataKey="hhi" height={30} stroke="#8884d8" tickFormatter={() => ''} data={scatterFiltered} />
+            </ScatterChart>
+          </ResponsiveContainer>
         )}
         <div style={{ padding: '10px 24px 14px', borderTop: '1px solid var(--border-color)', fontSize: 11, color: 'var(--text-muted)' }}>
           Dot size ∝ number of awards. HHI = Herfindahl-Hirschman Index (0–10,000 scale). Hover any dot for details. Top-right quadrant = most concerning.

@@ -41,16 +41,6 @@ const Layout = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Auto collapse after 3 seconds of inactivity (not hovered) when open
-  useEffect(() => {
-    if (!isCollapsed && !isHovered) {
-      const timer = setTimeout(() => {
-        setIsCollapsed(true);
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [isCollapsed, isHovered]);
-
   // Collapse sidebar when a route changes (navigation) if screen is small
   useEffect(() => {
     setMobileMenuOpen(false);
@@ -107,66 +97,66 @@ const Layout = () => {
         <div className="sidebar-nav">
           <div className="nav-section">
             {!isVisuallyCollapsed && <div className="nav-label">Main</div>}
-            <NavLink to="/dashboard" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isVisuallyCollapsed ? "Overview" : ""}>
+            <NavLink to="/dashboard" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} data-tooltip={"Overview"}>
               <LayoutDashboard size={18} />
               {!isVisuallyCollapsed && <span>Overview</span>}
             </NavLink>
-            <NavLink to="/search" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isVisuallyCollapsed ? "Search Database" : ""}>
+            <NavLink to="/search" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} data-tooltip={"Search Database"}>
               <Search size={18} />
               {!isVisuallyCollapsed && <span>Search Database</span>}
             </NavLink>
-            <NavLink to="/chat" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isVisuallyCollapsed ? "Ask AI" : ""}>
+            <NavLink to="/chat" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} data-tooltip={"Ask AI"}>
               <Bot size={18} />
               {!isVisuallyCollapsed && <span>Ask AI</span>}
             </NavLink>
-            <NavLink to="/report" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isVisuallyCollapsed ? "Analysis Report" : ""}>
+            <NavLink to="/report" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} data-tooltip={"Analysis Report"}>
               <FileText size={18} />
               {!isVisuallyCollapsed && <span>Analysis Report</span>}
             </NavLink>
           </div>
 
           <div className="nav-group">
-            <NavLink to="/geo" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isVisuallyCollapsed ? t('geo') : ""}>
+            <NavLink to="/geo" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} data-tooltip={t('geo')}>
               <Map size={18} />
               {!isVisuallyCollapsed && <span>{t('geo')}</span>}
             </NavLink>
-            <NavLink to="/tenders-map" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isVisuallyCollapsed ? t('map') : ""}>
+            <NavLink to="/tenders-map" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} data-tooltip={t('map')}>
               <MapPin size={18} />
               {!isVisuallyCollapsed && <span>{t('map')}</span>}
             </NavLink>
-            <NavLink to="/organizations" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isVisuallyCollapsed ? t('orgs') : ""}>
+            <NavLink to="/organizations" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} data-tooltip={t('orgs')}>
               <Building2 size={18} />
               {!isVisuallyCollapsed && <span>{t('orgs')}</span>}
             </NavLink>
-            <NavLink to="/tenders" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isVisuallyCollapsed ? t('tenders') : ""}>
+            <NavLink to="/tenders" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} data-tooltip={t('tenders')}>
               <FileText size={18} />
               {!isVisuallyCollapsed && <span>{t('tenders')}</span>}
             </NavLink>
-            <NavLink to="/redflag" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isVisuallyCollapsed ? t('redflag') : ""}>
+            <NavLink to="/redflag" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} data-tooltip={t('redflag')}>
               <ShieldAlert size={18} />
               {!isVisuallyCollapsed && <span>{t('redflag')}</span>}
             </NavLink>
-            <NavLink to="/network" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isVisuallyCollapsed ? t('network') : ""}>
+            <NavLink to="/network" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} data-tooltip={t('network')}>
               <Network size={18} />
               {!isVisuallyCollapsed && <span>{t('network')}</span>}
             </NavLink>
-            <NavLink to="/collusion" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isVisuallyCollapsed ? t('collusion') : ""}>
+            <NavLink to="/collusion" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} data-tooltip={t('collusion')}>
               <Activity size={18} />
               {!isVisuallyCollapsed && <span>{t('collusion')}</span>}
             </NavLink>
-            <NavLink to="/departments" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isVisuallyCollapsed ? t('departments') : ""}>
+            <NavLink to="/departments" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} data-tooltip={t('departments')}>
               <LayoutDashboard size={18} />
               {!isVisuallyCollapsed && <span>{t('departments')}</span>}
             </NavLink>
-            <NavLink to="/compare" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isVisuallyCollapsed ? t('compare') : ""}>
+            <NavLink to="/compare" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} data-tooltip={t('compare')}>
               <Scale size={18} />
               {!isVisuallyCollapsed && <span>{t('compare')}</span>}
             </NavLink>
-            <NavLink to="/insights" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isVisuallyCollapsed ? t('insights') : ""}>
+            <NavLink to="/insights" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} data-tooltip={t('insights')}>
               <TrendingUp size={18} />
               {!isVisuallyCollapsed && <span>{t('insights')}</span>}
             </NavLink>
-            <NavLink to="/data-sources" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isVisuallyCollapsed ? t('sources') : ""}>
+            <NavLink to="/data-sources" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} data-tooltip={t('sources')}>
               <GitBranch size={18} />
               {!isVisuallyCollapsed && <span>{t('sources')}</span>}
             </NavLink>

@@ -11,7 +11,7 @@ import html2pdf from 'html2pdf.js';
 import './Insights.css';
 
 const fmt   = (n) => new Intl.NumberFormat('en-IN').format(n || 0);
-const fmtCr = (v) => v ? `₹${Number(v).toFixed(1)} Cr` : '—';
+const fmtCr = (v) => v ? `₹${Number(v).toFixed(1)} Cr` : '-';
 
 // ── Custom scatter tooltip ─────────────────────────────────────────────────────
 const ScatterTip = ({ active, payload }) => {
@@ -28,7 +28,7 @@ const ScatterTip = ({ active, payload }) => {
       <p style={{ fontWeight: 700, marginBottom: 6, color: 'var(--text-primary)', fontSize: 13 }}>
         {d.org?.length > 40 ? d.org.substring(0, 40) + '…' : d.org}
       </p>
-      <p style={{ color: 'var(--text-secondary)', margin: '2px 0' }}>HHI: <strong>{fmt(Math.round(d.hhi))}</strong> — {hhiBand}</p>
+      <p style={{ color: 'var(--text-secondary)', margin: '2px 0' }}>HHI: <strong>{fmt(Math.round(d.hhi))}</strong> - {hhiBand}</p>
       <p style={{ color: '#ef4444', margin: '2px 0' }}>Single-bid: <strong>{d.single_bid_pct}%</strong></p>
       <p style={{ color: 'var(--text-muted)', margin: '2px 0' }}>Awards: {fmt(d.total_awards)}</p>
       <p style={{ color: 'var(--text-muted)', margin: '2px 0' }}>Vendors: {d.n_vendors}</p>
@@ -114,7 +114,7 @@ const Insights = () => {
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="page-header" style={{ borderBottom: '2px solid var(--border-color)', paddingBottom: 16, marginBottom: 24 }}>
         <h1 className="page-title">Insights</h1>
-        <p className="page-subtitle">Deep analytical views — concentration, competition, and vendor patterns</p>
+        <p className="page-subtitle">Deep analytical views - concentration, competition, and vendor patterns</p>
       </div>
 
       {/* ══ SECTION 1: HHI Scatter ═══════════════════════════════════════════ */}
@@ -122,7 +122,7 @@ const Insights = () => {
         <TrendingUp size={18} style={{ color: 'var(--accent-primary)' }} />
         <div>
           <h2>Vendor Concentration vs Competition</h2>
-          <p>Each dot is a government organization. <span style={{ color: '#ef4444' }}>Top-right</span> = highly concentrated & uncompetitive — worth investigating.</p>
+          <p>Each dot is a government organization. <span style={{ color: '#ef4444' }}>Top-right</span> = highly concentrated & uncompetitive - worth investigating.</p>
         </div>
       </div>
 
@@ -352,9 +352,9 @@ const Insights = () => {
                   {profile.contracts.map((c, i) => (
                     <tr key={i} style={{ borderBottom: '1px solid var(--border-color)' }}>
                       <td style={{ padding: '9px 14px', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.org_name}</td>
-                      <td style={{ padding: '9px 14px', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-secondary)' }}>{c.title || '—'}</td>
+                      <td style={{ padding: '9px 14px', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-secondary)' }}>{c.title || '-'}</td>
                       <td style={{ padding: '9px 14px', fontFamily: 'monospace', fontWeight: 600, color: '#10b981', whiteSpace: 'nowrap' }}>{fmtCr(c.contract_value ? c.contract_value / 1e7 : null)}</td>
-                      <td style={{ padding: '9px 14px', color: 'var(--text-muted)', whiteSpace: 'nowrap', fontSize: 11 }}>{c.aoc_date?.split('T')[0] || c.aoc_date || '—'}</td>
+                      <td style={{ padding: '9px 14px', color: 'var(--text-muted)', whiteSpace: 'nowrap', fontSize: 11 }}>{c.aoc_date?.split('T')[0] || c.aoc_date || '-'}</td>
                       <td style={{ padding: '9px 14px' }}>
                         <span style={{ padding: '2px 8px', borderRadius: 10, fontSize: 10, fontWeight: 500,
                           background: c.portal_type === 'central' ? '#3b82f618' : '#8b5cf618',

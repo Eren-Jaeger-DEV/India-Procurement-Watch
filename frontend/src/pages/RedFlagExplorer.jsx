@@ -5,7 +5,7 @@ import './RedFlagExplorer.css';
 const API_BASE = '/api';
 
 const FLAG_OPTIONS = [
-  { key: 'single_bid',   label: 'Single Bid',    color: '#ef4444', desc: 'Only one bidder — zero competition' },
+  { key: 'single_bid',   label: 'Single Bid',    color: '#ef4444', desc: 'Only one bidder - zero competition' },
   { key: 'high_value',   label: 'High Value',     color: '#f97316', desc: 'Contract > ₹10 Cr' },
   { key: 'repeat_win',   label: 'Repeat Winner',  color: '#8b5cf6', desc: 'Same vendor won from same org before' },
   { key: 'debarred',     label: 'Debarred (Sanctions)', color: '#dc2626', desc: 'Vendor matches World Bank sanctions list' },
@@ -15,8 +15,8 @@ const YEAR_OPTIONS = ['All', 2026, 2025, 2024, 2023, 2022, 2021, 2020, 2019, 201
 const PER_PAGE = 25;
 
 const fmt     = (n) => new Intl.NumberFormat('en-IN').format(n || 0);
-const fmtCr   = (n) => n ? `₹${(n / 1e7).toFixed(2)} Cr` : '—';
-const fmtDate = (d) => d ? d.split('T')[0] : '—';
+const fmtCr   = (n) => n ? `₹${(n / 1e7).toFixed(2)} Cr` : '-';
+const fmtDate = (d) => d ? d.split('T')[0] : '-';
 
 // ── risk badge ────────────────────────────────────────────────────────────────
 const RiskBadge = ({ score }) => {
@@ -71,7 +71,7 @@ const RedFlagExplorer = () => {
       setTotal(data.total    || 0);
       setPage(pageNum);
     } catch (e) {
-      setError('Query failed — please try again.');
+      setError('Query failed - please try again.');
     } finally {
       setLoading(false);
     }
@@ -103,7 +103,7 @@ const RedFlagExplorer = () => {
             <AlertTriangle size={22} style={{ color: '#ef4444' }} /> Red-Flag Explorer
           </h1>
           <p className="page-subtitle">
-            Filter 3.2M+ procurement records by risk indicators. Flags are statistical signals — not accusations.
+            Filter 3.2M+ procurement records by risk indicators. Flags are statistical signals - not accusations.
           </p>
         </div>
       </div>
@@ -219,7 +219,7 @@ const RedFlagExplorer = () => {
           <div className="rfe-results-header">
             <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
               <strong style={{ color: 'var(--text-primary)' }}>{fmt(total)}</strong> matching records
-              {total > PER_PAGE && ` — page ${page} of ${totalPages}`}
+              {total > PER_PAGE && ` - page ${page} of ${totalPages}`}
             </div>
             <button
               onClick={downloadCSV}
@@ -257,8 +257,8 @@ const RedFlagExplorer = () => {
                   {results.map((r, i) => (
                     <tr key={i} className={r.risk_score >= 3 ? 'high-risk' : r.risk_score >= 2 ? 'med-risk' : ''}>
                       <td className="cell-wrap" title={r.org_name}>{r.org_name}</td>
-                      <td className="cell-wrap" title={r.title}>{r.title || '—'}</td>
-                      <td className="cell-bidder" title={r.bidder_name}>{r.bidder_name || '—'}</td>
+                      <td className="cell-wrap" title={r.title}>{r.title || '-'}</td>
+                      <td className="cell-bidder" title={r.bidder_name}>{r.bidder_name || '-'}</td>
                       <td style={{ textAlign: 'right', fontFamily: 'monospace', fontWeight: 600, color: '#f97316', whiteSpace: 'nowrap' }}>
                         {fmtCr(r.contract_value)}
                       </td>

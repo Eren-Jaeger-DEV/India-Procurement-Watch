@@ -187,13 +187,13 @@ const Search = () => {
                       <span style={{ color: '#10b981', fontWeight: 700 }}>₹{(item.contract_value / 1e7).toFixed(2)} Cr</span>
                     ) : item.bidder_name ? (
                       <span style={{ color: '#8b5cf6' }}>{item.bidder_name}</span>
-                    ) : '—'}
+                    ) : '-'}
                   </td>
                   <td style={{ padding: '12px 16px', textAlign: 'center' }}>
                     <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 4, background: 'var(--bg-main)', border: '1px solid var(--border-color)', textTransform: 'uppercase', marginRight: 6 }}>
                       {item.portal_type || 'CPP'}
                     </span>
-                    <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{item.aoc_date || item.year || '—'}</span>
+                    <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{item.aoc_date || item.year || '-'}</span>
                   </td>
                   <td style={{ padding: '12px 16px', textAlign: 'center' }}>
                     <button onClick={(e) => { e.stopPropagation(); handleInspect(item); }} style={{ padding: '4px 10px', fontSize: 12, borderRadius: 6, border: '1px solid var(--border-color)', background: 'var(--accent-primary)', color: 'white', cursor: 'pointer', border: 'none' }}>

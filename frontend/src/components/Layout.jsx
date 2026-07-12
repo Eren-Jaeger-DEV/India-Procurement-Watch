@@ -206,7 +206,7 @@ const Layout = () => {
         </div>
       </aside>
 
-      {/* Mobile Top Header — hidden on desktop */}
+      {/* Mobile Top Header - hidden on desktop */}
       <header className="mobile-header">
         <div className="mobile-header-brand">
           <div style={{ width: 28, height: 28, borderRadius: '50%', overflow: 'hidden', minWidth: 28 }}>
@@ -255,7 +255,7 @@ const Layout = () => {
         <Outlet />
       </main>
 
-      {/* Mobile Bottom Nav — hidden on desktop */}
+      {/* Mobile Bottom Nav - hidden on desktop */}
       <nav className="mobile-bottom-nav">
         {NAV_ITEMS.map(({ to, icon: Icon, label }) => (
           <NavLink
@@ -272,7 +272,7 @@ const Layout = () => {
       {/* Global Tender Inspector Modal */}
       <TenderModal isOpen={modalOpen} onClose={() => setModalOpen(false)} initialData={modalData} />
 
-      {/* Persistent floating AI query bar — visible on all pages */}
+      {/* Persistent floating AI query bar - visible on all pages */}
       <QuickAiBar />
 
       {/* Accessibility Settings Modal */}

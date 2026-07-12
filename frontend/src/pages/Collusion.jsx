@@ -28,7 +28,7 @@ const Collusion = () => {
     loadCollusionData();
   }, []);
 
-  const fmtCr = (n) => n ? `₹${Number(n).toFixed(2)} Cr` : '—';
+  const fmtCr = (n) => n ? `₹${Number(n).toFixed(2)} Cr` : '-';
 
   const filteredDepts = (data?.suspicious_departments || []).filter(d => 
     !filter || d.org_name.toLowerCase().includes(filter.toLowerCase())

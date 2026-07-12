@@ -6,7 +6,7 @@ import { fetchMapTenders, fetchLocations } from '../lib/api';
 import { Search, AlertTriangle, ShieldAlert, Building, Loader2, Layers, X, Info, TrendingUp, MapPin, ChevronDown, Check } from 'lucide-react';
 import './MapExplorer.css';
 
-const fmtCr = (v) => v ? `₹${(v / 1e7).toFixed(1)}Cr` : '—';
+const fmtCr = (v) => v ? `₹${(v / 1e7).toFixed(1)}Cr` : '-';
 const fmtBig = (n) => n >= 1e7 ? `₹${(n / 1e7).toFixed(0)}Cr` : n >= 1e5 ? `₹${(n / 1e5).toFixed(0)}L` : `₹${n?.toLocaleString()}`;
 
 const INDIA_DEFAULT_BOUNDS = {
@@ -480,7 +480,7 @@ export default function MapExplorer() {
               <div className={`popup-badge ${popupInfo.is_single_bid === 1 ? 'badge-red' : 'badge-blue'}`}>
                 {popupInfo.is_single_bid === 1 ? <><ShieldAlert size={11} /> Single-Bid Risk</> : <><Building size={11} /> Regular</>}
               </div>
-              <div className="popup-title">{popupInfo.title || '—'}</div>
+              <div className="popup-title">{popupInfo.title || '-'}</div>
               <div className="popup-row"><span>Dept</span><span>{(popupInfo.org_name || '').split('||')[0]}</span></div>
               {popupInfo.bidder_name && <div className="popup-row"><span>Winner</span><span>{popupInfo.bidder_name}</span></div>}
                 <div className="popup-row">

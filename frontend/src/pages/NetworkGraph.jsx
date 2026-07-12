@@ -73,7 +73,7 @@ const NetworkGraph = () => {
     const focusId = egoData.focus;
 
     const fmtNetValue = (n) => {
-      if (n == null) return '—';
+      if (n == null) return '-';
       if (n >= 1000) return `₹${(n / 1000).toFixed(1)}K Cr`;
       return `₹${Number(n).toFixed(1)} Cr`;
     };

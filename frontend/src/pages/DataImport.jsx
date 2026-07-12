@@ -30,7 +30,7 @@ const SystemStatus = () => {
     return () => clearInterval(interval);
   }, [loadStatus]);
 
-  const formatNumber = (n) => n?.toLocaleString() ?? '—';
+  const formatNumber = (n) => n?.toLocaleString() ?? '-';
 
   const getStatusColor = (online) => online ? 'var(--success, #22c55e)' : 'var(--error, #ef4444)';
 
@@ -144,21 +144,21 @@ const SystemStatus = () => {
           <Zap size={22} color="var(--accent-primary)" style={{ marginBottom: 8 }} />
           <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 4 }}>Latency</div>
           <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-primary)' }}>
-            {status?.latency_ms != null ? `${status.latency_ms}ms` : '—'}
+            {status?.latency_ms != null ? `${status.latency_ms}ms` : '-'}
           </div>
         </div>
         <div className="card" style={{ padding: '20px', textAlign: 'center' }}>
           <HardDrive size={22} color="var(--accent-primary)" style={{ marginBottom: 8 }} />
           <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 4 }}>Database Size</div>
           <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-primary)' }}>
-            {status?.db_size_mb ?? '—'}
+            {status?.db_size_mb ?? '-'}
           </div>
         </div>
         <div className="card" style={{ padding: '20px', textAlign: 'center' }}>
           <Clock size={22} color="var(--accent-primary)" style={{ marginBottom: 8 }} />
           <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 4 }}>Server Uptime</div>
           <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-primary)' }}>
-            {status?.uptime ?? '—'}
+            {status?.uptime ?? '-'}
           </div>
         </div>
         <div className="card" style={{ padding: '20px', textAlign: 'center' }}>

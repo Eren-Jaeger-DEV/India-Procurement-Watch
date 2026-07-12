@@ -231,7 +231,7 @@ const Dashboard = () => {
       <div className="page-header" style={{ borderBottom: '2px solid var(--border-color)', paddingBottom: 16, marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h1 className="page-title">Overview</h1>
-          <p className="page-subtitle">Live procurement analytics — {fmt(kpis?.total_aoc_tenders)} tenders indexed</p>
+          <p className="page-subtitle">Live procurement analytics - {fmt(kpis?.total_aoc_tenders)} tenders indexed</p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {lastUpdated && <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Updated {lastUpdated.toLocaleTimeString()}</span>}
@@ -389,7 +389,7 @@ const Dashboard = () => {
       </div>
 
       {/* ── ROW 4: Red flag panels ────────────────────────────────────────────── */}
-      <SectionHeader title="🚩 Red Flag Panels" subtitle="Statistical indicators of procurement risk — not accusations" />
+      <SectionHeader title="🚩 Red Flag Panels" subtitle="Statistical indicators of procurement risk - not accusations" />
       <div className="dashboard-grid" style={{ marginBottom: 24 }}>
 
         {/* Single-bid contracts */}
@@ -399,7 +399,7 @@ const Dashboard = () => {
               <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444', display: 'inline-block' }} />
               Single-Bid Contracts (≥ ₹1 Cr)
             </div>
-            <div className="card-subtitle">High-value awards with zero competition — investigate further</div>
+            <div className="card-subtitle">High-value awards with zero competition - investigate further</div>
           </div>
           <div style={{ padding: '0 16px 16px', overflowX: 'auto' }}>
             {singleBids?.length > 0 ? (
@@ -416,11 +416,11 @@ const Dashboard = () => {
                   {singleBids.slice(0, 8).map((r, i) => (
                     <tr key={i} style={{ borderBottom: '1px solid var(--border-color)' }}>
                       <td style={{ padding: '8px 6px', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r.org_name}>{r.org_name}</td>
-                      <td style={{ padding: '8px 6px', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-secondary)' }} title={r.bidder_name}>{r.bidder_name || '—'}</td>
+                      <td style={{ padding: '8px 6px', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-secondary)' }} title={r.bidder_name}>{r.bidder_name || '-'}</td>
                       <td style={{ padding: '8px 6px', textAlign: 'right', fontFamily: 'monospace', color: '#ef4444', fontWeight: 600 }}>
-                        {r.contract_value ? (r.contract_value / 1e7).toFixed(2) : '—'}
+                        {r.contract_value ? (r.contract_value / 1e7).toFixed(2) : '-'}
                       </td>
-                      <td style={{ padding: '8px 6px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{r.aoc_date?.split('T')[0] || '—'}</td>
+                      <td style={{ padding: '8px 6px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{r.aoc_date?.split('T')[0] || '-'}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -436,7 +436,7 @@ const Dashboard = () => {
               <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#f97316', display: 'inline-block' }} />
               Repeat Winners
             </div>
-            <div className="card-subtitle">Vendors winning repeatedly — check for collusion patterns</div>
+            <div className="card-subtitle">Vendors winning repeatedly - check for collusion patterns</div>
           </div>
           <div style={{ padding: '0 16px 16px', overflowX: 'auto' }}>
             {repeatWin?.length > 0 ? (
@@ -455,7 +455,7 @@ const Dashboard = () => {
                       <td style={{ padding: '8px 6px', maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600 }} title={r.bidder_name}>{r.bidder_name}</td>
                       <td style={{ padding: '8px 6px', maxWidth: 130, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-secondary)' }} title={r.org_name}>{r.org_name}</td>
                       <td style={{ padding: '8px 6px', textAlign: 'right', fontFamily: 'monospace', color: '#f97316', fontWeight: 600 }}>{fmt(r.wins)}</td>
-                      <td style={{ padding: '8px 6px', textAlign: 'right', fontFamily: 'monospace', color: 'var(--text-secondary)' }}>{r.total_value_crore ? Number(r.total_value_crore).toFixed(1) : '—'}</td>
+                      <td style={{ padding: '8px 6px', textAlign: 'right', fontFamily: 'monospace', color: 'var(--text-secondary)' }}>{r.total_value_crore ? Number(r.total_value_crore).toFixed(1) : '-'}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -468,7 +468,7 @@ const Dashboard = () => {
       {/* ── ROW 5: State-wise breakdown ───────────────────────────────────────── */}
       <SectionHeader title="State-wise Procurement" subtitle="Top 15 states by number of contracts awarded" />
       <div style={{ marginBottom: 24 }}>
-        <ChartCard title="Contracts by State" subtitle="State portal awards only — Central portal contracts not state-attributed" height={450}>
+        <ChartCard title="Contracts by State" subtitle="State portal awards only - Central portal contracts not state-attributed" height={450}>
           {stateStats?.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={stateStats} layout="vertical" margin={{ top: 0, right: 60, left: 0, bottom: 0 }}>
@@ -493,7 +493,7 @@ const Dashboard = () => {
         <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }`}</style>
         <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: 0 }}>
           All data is live from the dedicated PostgreSQL database server over a secure Tailscale private network.
-          Showing <strong style={{ color: 'var(--text-primary)' }}>{fmt(kpis?.total_aoc_tenders)}</strong> tenders —
+          Showing <strong style={{ color: 'var(--text-primary)' }}>{fmt(kpis?.total_aoc_tenders)}</strong> tenders -
           data import is still in progress and counts will increase automatically.
         </p>
       </div>

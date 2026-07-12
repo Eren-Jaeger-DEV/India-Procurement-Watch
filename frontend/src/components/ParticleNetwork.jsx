@@ -1,9 +1,9 @@
 import { useEffect, useRef } from 'react';
 
 /**
- * ParticleNetwork — performant Canvas background animation
+ * ParticleNetwork - performant Canvas background animation
  * Uses spatial grid partitioning to keep connection checks O(n)
- * instead of O(n²) — no browser lockups.
+ * instead of O(n²) - no browser lockups.
  */
 export default function ParticleNetwork({ color = '#3b82f6', count = 60 }) {
   const canvasRef = useRef(null);
@@ -77,7 +77,7 @@ export default function ParticleNetwork({ color = '#3b82f6', count = 60 }) {
         }
       }
 
-      // Draw connections — only check nearby pairs using a fixed neighbour cap
+      // Draw connections - only check nearby pairs using a fixed neighbour cap
       // We sort by x and only compare adjacent particles within x-range to avoid O(n²)
       const sorted = [...particles].sort((a, b) => a.x - b.x);
       for (let i = 0; i < sorted.length; i++) {

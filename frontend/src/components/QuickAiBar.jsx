@@ -99,7 +99,7 @@ const QuickAiBar = () => {
 
   return (
     <>
-      {/* Floating trigger button — bottom right of main content */}
+      {/* Floating trigger button - bottom right of main content */}
       {!open && (
         <button
           onClick={(e) => {

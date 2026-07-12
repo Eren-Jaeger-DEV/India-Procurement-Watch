@@ -93,7 +93,7 @@ body.a11y-dyslexia, body.a11y-dyslexia * {
   padding: 0;
 }
 
-/* ─── Kill the body scrollbar — only .main-content scrolls ─── */
+/* ─── Kill the body scrollbar - only .main-content scrolls ─── */
 html {
   height: 100%;
   overflow: hidden;
@@ -124,7 +124,7 @@ body *::after {
 .app-container {
   display: flex;
   height: 100vh;      /* full viewport, not min-height */
-  overflow: hidden;   /* contain children — no body scroll */
+  overflow: hidden;   /* contain children - no body scroll */
 }
 
 .main-content {

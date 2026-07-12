@@ -9,7 +9,7 @@ const DataSources = () => {
     fetchKpis().then(setKpis).catch(() => {});
   }, []);
 
-  const fmtLakh = (n) => n ? `${(n / 1e5).toFixed(1)}L` : '—';
+  const fmtLakh = (n) => n ? `${(n / 1e5).toFixed(1)}L` : '-';
 
   const pipeline = [
     {
@@ -25,7 +25,7 @@ const DataSources = () => {
       icon: <Cpu size={22} />,
       title: 'Cleaning & Structuring',
       color: '#8b5cf6',
-      desc: 'Raw HTML scraped data is normalised — organisation hierarchy flattened, contract values parsed into numerics, dates standardised, and duplicate tenders de-duplicated via internal ID hashing.',
+      desc: 'Raw HTML scraped data is normalised - organisation hierarchy flattened, contract values parsed into numerics, dates standardised, and duplicate tenders de-duplicated via internal ID hashing.',
       sources: ['org_name hierarchy cleaning (|| separator)', 'Contract value normalisation (INR)', 'Duplicate detection via MD5 internal_id'],
     },
     {
@@ -55,7 +55,7 @@ const DataSources = () => {
   ];
 
   const sources = [
-    { name: 'GeM Portal', url: 'https://gem.gov.in', desc: 'Government e-Marketplace — primary AoC data source', icon: '🏛️' },
+    { name: 'GeM Portal', url: 'https://gem.gov.in', desc: 'Government e-Marketplace - primary AoC data source', icon: '🏛️' },
     { name: 'CPPP Portal', url: 'https://eprocure.gov.in', desc: 'Central Public Procurement Portal', icon: '📋' },
     { name: 'OpenStreetMap', url: 'https://openstreetmap.org', desc: 'Map tiles and geocoding base data', icon: '🗺️' },
     { name: 'Nominatim (satviks.dev)', url: 'https://nominatim.satviks.dev', desc: 'Private geocoding API by Sarthak Sidhant', icon: '📍' },

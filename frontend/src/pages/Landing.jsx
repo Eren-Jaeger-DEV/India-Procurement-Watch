@@ -9,11 +9,11 @@ import AnimatedHeroArtwork from '../components/AnimatedHeroArtwork';
 import './Landing.css';
 
 // =============================================
-// CONFIG — flip to true to show maintenance UI
+// CONFIG - flip to true to show maintenance UI
 const IS_MAINTENANCE = false;
 // =============================================
 
-// — Intersection Observer hook (fires once)
+// - Intersection Observer hook (fires once)
 function useReveal(threshold = 0.12) {
   const ref = useRef(null);
   const [visible, setVisible] = useState(false);
@@ -28,7 +28,7 @@ function useReveal(threshold = 0.12) {
   return [ref, visible];
 }
 
-// — Animated number counter
+// - Animated number counter
 function Counter({ end, suffix = '' }) {
   const [count, setCount] = useState(0);
   const [ref, visible] = useReveal(0.5);
@@ -147,7 +147,7 @@ export default function Landing() {
         </h1>
 
         <p className="lp-hero-sub">
-          India Procurement Watch turns hundreds of thousands of public tender records into actionable intelligence — surfacing anomalies, mapping vendor networks, and enabling investigative journalism at scale.
+          India Procurement Watch turns hundreds of thousands of public tender records into actionable intelligence - surfacing anomalies, mapping vendor networks, and enabling investigative journalism at scale.
         </p>
 
         <div className="lp-hero-actions">
@@ -259,7 +259,7 @@ export default function Landing() {
             Built on public records.<br />Open for public scrutiny.
           </h2>
           <p style={{ color: '#71717a', fontSize: '17px', lineHeight: 1.7, maxWidth: 560, margin: '0 auto 48px', }}>
-            All findings are derived exclusively from government procurement portals under the Right to Information Act. Anomaly scores are statistical indicators — not legal conclusions. Every methodology is documented and open.
+            All findings are derived exclusively from government procurement portals under the Right to Information Act. Anomaly scores are statistical indicators - not legal conclusions. Every methodology is documented and open.
           </p>
           {!IS_MAINTENANCE && (
             <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>

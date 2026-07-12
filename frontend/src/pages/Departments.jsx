@@ -29,7 +29,7 @@ const Departments = () => {
   }, []);
 
   const fmt = (n) => new Intl.NumberFormat('en-IN').format(n || 0);
-  const fmtCr = (n) => n ? `₹${Number(n).toFixed(2)} Cr` : '—';
+  const fmtCr = (n) => n ? `₹${Number(n).toFixed(2)} Cr` : '-';
 
   const filteredDepts = depts.filter(d => {
     const matchQ = !query || d.org_name.toLowerCase().includes(query.toLowerCase());

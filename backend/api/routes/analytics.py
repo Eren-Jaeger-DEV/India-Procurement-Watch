@@ -375,8 +375,8 @@ def api_map_tenders():
             cur.execute(query.format(geo_where_sql=geo_where_sql), tuple(params))
         else:
             # Zoomed out (National level / initial load) -> Fast UNION query
-            # We cap at 30000 for national level to prevent browser crashing while showing a very dense map
-            national_limit = min(limit, 30000)
+            # MapLibre hardware acceleration can handle 200k+ points easily, so we use the full limit (200,000 default)
+            national_limit = limit
             query = """
                 (
                     SELECT g.internal_id, g.lat, g.lon, g.resolved_address,

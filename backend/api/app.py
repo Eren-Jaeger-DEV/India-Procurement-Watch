@@ -57,7 +57,7 @@ limiter = Limiter(
     get_remote_address,
     app=app,
     storage_uri=limiter_storage,
-    default_limits=["1000 per day", "100 per hour"]
+    default_limits=["10000 per day", "2000 per hour", "100 per minute"]
 )
 
 from routes.system import system_bp

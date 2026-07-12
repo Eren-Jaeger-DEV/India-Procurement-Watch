@@ -143,10 +143,12 @@ const Dashboard = () => {
       setLastUpdated(new Date());
 
       if (trendData?.labels) {
-        setTrends(trendData.labels.map((label, i) => ({
+        const firstIdx = trendData.counts.findIndex(c => c > 0);
+        const start = firstIdx >= 0 ? firstIdx : 0;
+        setTrends(trendData.labels.slice(start).map((label, i) => ({
           name: label,
-          count: trendData.counts[i],
-          single_bid_pct: trendData.single_bid_pcts?.[i] ?? null,
+          count: trendData.counts[start + i],
+          single_bid_pct: trendData.single_bid_pcts?.[start + i] ?? null,
         })));
       }
       if (orgData?.labels) {
@@ -175,6 +177,8 @@ const Dashboard = () => {
           name: l, value: bcData.counts[i],
           color: BID_COLORS[i], pct: Math.round(100 * bcData.counts[i] / total)
         })));
+      } else {
+        setBidComp([]);
       }
       setSingleBids(sbData?.results || []);
       setRepeatWin(rwData?.results || []);
@@ -395,11 +399,11 @@ const Dashboard = () => {
         {/* Single-bid contracts */}
         <div className="card chart-card">
           <div className="card-header">
-            <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444', display: 'inline-block' }} />
+            <div className="card-title">
+              <span className="dot" style={{ background: '#ef4444', display: 'inline-block', width: 8, height: 8, borderRadius: '50%', marginRight: 8 }} />
               Single-Bid Contracts (≥ ₹1 Cr)
             </div>
-            <div className="card-subtitle">High-value awards with zero competition - investigate further</div>
+            <div className="card-subtitle">High-value awards with zero competition</div>
           </div>
           <div style={{ padding: '0 16px 16px', overflowX: 'auto' }}>
             {singleBids?.length > 0 ? (
@@ -432,11 +436,11 @@ const Dashboard = () => {
         {/* Repeat winners */}
         <div className="card chart-card">
           <div className="card-header">
-            <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#f97316', display: 'inline-block' }} />
+            <div className="card-title">
+              <span className="dot" style={{ background: '#f97316', display: 'inline-block', width: 8, height: 8, borderRadius: '50%', marginRight: 8 }} />
               Repeat Winners
             </div>
-            <div className="card-subtitle">Vendors winning repeatedly - check for collusion patterns</div>
+            <div className="card-subtitle">Vendors winning repeatedly</div>
           </div>
           <div style={{ padding: '0 16px 16px', overflowX: 'auto' }}>
             {repeatWin?.length > 0 ? (

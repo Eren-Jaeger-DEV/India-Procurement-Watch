@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, ReferenceLine, ZAxis, Brush
+  ResponsiveContainer, ReferenceLine, ZAxis
 } from 'recharts';
 import {
   BarChart, Bar, LineChart, Line
@@ -43,6 +43,7 @@ const Insights = () => {
   const [scatterErr,   setScatterErr]   = useState(null);
   const [portalFilter, setPortalFilter] = useState('All');
   const [minAwards,    setMinAwards]    = useState(50);
+  const [zoomDomain,   setZoomDomain]   = useState([0, 10000]);
 
   // Vendor search
   const [vendorQ,     setVendorQ]     = useState('');
@@ -150,6 +151,18 @@ const Insights = () => {
             }}>{n}+</button>
           ))}
         </div>
+          {/* Zoom Buttons */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 500 }}>Zoom HHI:</span>
+            {[[0, 10000, 'Full'], [0, 2500, 'Low-Mod'], [0, 1000, 'Ultra Low']].map(([min, max, label]) => (
+              <button key={label} onClick={() => setZoomDomain([min, max])} style={{
+                padding: '4px 12px', borderRadius: 16, fontSize: 12, cursor: 'pointer',
+                border: '1.5px solid var(--border-color)', fontWeight: 500,
+                background: zoomDomain[1] === max ? 'var(--accent-primary)' : 'transparent',
+                color: zoomDomain[1] === max ? '#fff' : 'var(--text-secondary)',
+              }}>{label}</button>
+            ))}
+          </div>
         <div style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-muted)' }}>
           Showing <strong style={{ color: 'var(--text-primary)' }}>{scatterFiltered.length}</strong> organizations
         </div>
@@ -178,7 +191,7 @@ const Insights = () => {
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
               <XAxis
                 type="number" dataKey="hhi" name="HHI"
-                domain={[0, 10000]}
+                domain={zoomDomain}
                 label={{ value: 'HHI (vendor concentration →)', position: 'insideBottom', offset: -10, fill: 'var(--text-secondary)', fontSize: 12 }}
                 tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} tickLine={false} axisLine={false}
               />
@@ -201,7 +214,6 @@ const Insights = () => {
                   return <circle cx={cx} cy={cy} r={Math.max(3, Math.min(10, payload.total_awards / 500))} fill={dotColor(payload.hhi)} fillOpacity={0.7} stroke={dotColor(payload.hhi)} strokeWidth={1} />;
                 }}
               />
-              <Brush dataKey="hhi" height={30} stroke="#8884d8" tickFormatter={() => ''} data={scatterFiltered} />
             </ScatterChart>
           </ResponsiveContainer>
         )}

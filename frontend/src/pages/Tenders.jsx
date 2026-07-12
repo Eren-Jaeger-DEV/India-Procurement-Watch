@@ -57,9 +57,9 @@ const Tenders = () => {
   const CustomTooltip = ({ active, payload }) => {
     if (active && payload && payload.length) {
       return (
-        <div className="recharts-default-tooltip">
-          <p className="recharts-tooltip-item">{payload[0].payload.name}</p>
-          <p style={{ color: 'var(--text-secondary)' }}>Count: <strong>{new Intl.NumberFormat('en-IN').format(payload[0].value || payload[0].payload.count)}</strong></p>
+        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', padding: '10px 14px', borderRadius: 'var(--radius-md)', fontSize: 13, boxShadow: 'var(--shadow-md)' }}>
+          <p style={{ fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 6px 0' }}>{payload[0].name || payload[0].payload?.name}</p>
+          <p style={{ color: 'var(--text-secondary)', margin: 0 }}>Count: <strong style={{ color: 'var(--text-primary)' }}>{new Intl.NumberFormat('en-IN').format(payload[0].value)}</strong></p>
         </div>
       );
     }

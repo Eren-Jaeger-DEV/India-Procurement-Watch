@@ -27,10 +27,12 @@
 .search-icon {
   color: var(--text-muted);
   margin-right: 12px;
+  flex-shrink: 0;
 }
 
 .search-input {
   flex: 1;
+  min-width: 0;
   border: none;
   background: transparent;
   padding: 12px 0;

@@ -24,6 +24,7 @@
     "react-map-gl": "^8.1.1",
     "react-markdown": "^10.1.0",
     "react-router-dom": "^7.18.1",
+    "react-zoom-pan-pinch": "^4.0.3",
     "recharts": "^3.9.1",
     "supercluster": "^8.0.1",
     "use-supercluster": "^1.2.0",

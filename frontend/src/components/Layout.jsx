@@ -207,7 +207,7 @@ const Layout = () => {
             className="nav-item collapse-toggle-btn" 
             onClick={() => { setIsCollapsed(!isCollapsed); }} 
             style={{ flex: isVisuallyCollapsed ? 'none' : 1, margin: 0, justifyContent: 'center', padding: '8px', minHeight: '36px' }}
-            title={isVisuallyCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+            data-tooltip={isVisuallyCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
           >
             {isVisuallyCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
             {!isVisuallyCollapsed && <span style={{ fontSize: 13, fontWeight: 600 }}>Collapse</span>}
@@ -217,7 +217,7 @@ const Layout = () => {
             className="nav-item theme-toggle-btn" 
             onClick={() => setA11yMenuOpen(true)} 
             style={{ width: isVisuallyCollapsed ? '100%' : '40px', margin: 0, justifyContent: 'center', padding: '8px', flexShrink: 0, minHeight: '36px' }}
-            title={t('accessibility_settings')}
+            data-tooltip={t('accessibility_settings')}
           >
             <Settings size={18} />
           </button>
@@ -226,7 +226,7 @@ const Layout = () => {
             className="nav-item theme-toggle-btn" 
             onClick={() => setIsDark(!isDark)} 
             style={{ width: isVisuallyCollapsed ? '100%' : '40px', margin: 0, justifyContent: 'center', padding: '8px', flexShrink: 0, minHeight: '36px' }}
-            title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+            data-tooltip={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
           >
             <div className={`theme-icon-wrapper ${isDark ? 'dark' : 'light'}`}>
               {isDark ? <Sun size={18} /> : <Moon size={18} />}

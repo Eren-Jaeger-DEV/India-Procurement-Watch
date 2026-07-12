@@ -125,7 +125,6 @@ const Layout = () => {
             </NavLink>
           </div>
 
-          <div className="nav-group-title">Analysis Tools</div>
           <div className="nav-group">
             <NavLink to="/geo" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isVisuallyCollapsed ? t('geo') : ""}>
               <Map size={18} />

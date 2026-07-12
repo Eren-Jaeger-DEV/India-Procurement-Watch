@@ -123,7 +123,7 @@ export default function Landing() {
       {/* ── Navbar ── */}
       <nav className="lp-nav">
         <div className="lp-logo">
-          <img src="/logo.jpg" alt="IPW Logo" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
+          <img src="/logo.png" alt="IPW Logo" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
         </div>
         <ul className="lp-nav-links">
           <li><a className="lp-nav-link" href="#features">Features</a></li>

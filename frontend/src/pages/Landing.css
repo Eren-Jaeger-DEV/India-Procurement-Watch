@@ -242,6 +242,8 @@
   text-align: center;
   padding: 140px 24px 100px;
   background: transparent;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .lp-badge {

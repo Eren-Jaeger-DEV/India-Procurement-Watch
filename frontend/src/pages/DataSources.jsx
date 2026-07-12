@@ -57,7 +57,8 @@ const DataSources = () => {
   const sources = [
     { name: 'GeM Portal', url: 'https://gem.gov.in', desc: 'Government e-Marketplace - primary AoC data source', icon: '🏛️' },
     { name: 'CPPP Portal', url: 'https://eprocure.gov.in', desc: 'Central Public Procurement Portal', icon: '📋' },
-    { name: 'OpenStreetMap', url: 'https://openstreetmap.org', desc: 'Map tiles and geocoding base data', icon: '🗺️' },
+    { name: 'MapLibre GL JS', url: 'https://maplibre.org', desc: 'Open-source interactive map rendering engine', icon: '🗺️' },
+    { name: 'OpenStreetMap', url: 'https://openstreetmap.org', desc: 'Map tiles and geocoding base data', icon: '🌍' },
     { name: 'Nominatim (satviks.dev)', url: 'https://nominatim.satviks.dev', desc: 'Private geocoding API by Sarthak Sidhant', icon: '📍' },
     { name: 'OFAC Sanctions', url: 'https://ofac.treasury.gov', desc: 'US Treasury sanctions list for entity matching', icon: '🚨' },
   ];
@@ -163,6 +164,14 @@ const DataSources = () => {
           legitimate single-source procurements. All monetary values are in Indian Rupees as reported in the source portals.
           Data is updated periodically via automated scrapers. For official procurement information, refer to the source portals directly.
         </p>
+        <div style={{ marginTop: 14, padding: '12px 16px', background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: 8 }}>
+          <h4 style={{ margin: '0 0 6px', fontSize: 13, color: '#ef4444', fontWeight: 700 }}>Map Boundaries Disclaimer</h4>
+          <p style={{ fontSize: 12.5, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.6 }}>
+            The maps presented on this platform are rendered using open-source, international map providers (OpenStreetMap / MapLibre). 
+            <strong> The boundaries, names, and designations used on these maps do not imply official endorsement or acceptance by the creators of this platform or the Government of India.</strong> 
+            Specifically, international boundaries (including Arunachal Pradesh and Jammu & Kashmir) may be depicted differently from the official Government of India survey maps due to the international nature of the open-source mapping data.
+          </p>
+        </div>
       </div>
     </div>
   );

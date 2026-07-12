@@ -135,11 +135,6 @@ export default function Landing() {
       </nav>
 
       <section className="lp-hero" style={{ background: 'transparent' }}>
-        <div className="lp-badge">
-          <span className="lp-badge-dot" />
-          Live &mdash; {new Date().getFullYear()} data pipeline active
-        </div>
-
         <h1 className="lp-hero-title">
           <span className="lp-gradient-text">Government Procurement</span>
           <br />

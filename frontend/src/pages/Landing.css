@@ -661,14 +661,15 @@
 }
 
 .lp-community-card:hover {
-  border-color: rgba(88, 101, 242, 0.45);
-  box-shadow: 0 8px 40px -8px rgba(88, 101, 242, 0.2);
+  border-color: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 8px 40px -8px rgba(0, 0, 0, 0.5);
 }
 
 .lp-community-icon {
   width: 60px; height: 60px;
   flex-shrink: 0;
-  background: rgba(88, 101, 242, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
   display: flex;
   align-items: center;

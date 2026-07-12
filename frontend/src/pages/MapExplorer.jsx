@@ -656,9 +656,9 @@ export default function MapExplorer() {
           <div className="panel-results">
             <div className="results-header">
               <TrendingUp size={13} />
-              <span>Top by value</span>
+              <span>Top by value (Max 1000)</span>
             </div>
-            {filtered.slice(0, 6).map((t, i) => (
+            {filtered.slice(0, 1000).map((t, i) => (
               <div key={i} className="result-row" onClick={() => handleInspect(t)}>
                 <span className={`result-dot ${t.is_single_bid === 1 ? 'dot-red' : 'dot-blue'}`} />
                 <div className="result-info">

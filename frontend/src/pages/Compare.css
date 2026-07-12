@@ -121,10 +121,12 @@
 .search-icon {
   color: var(--text-muted);
   margin-right: 8px;
+  flex-shrink: 0;
 }
 
 .select-input-container input {
   flex: 1;
+  min-width: 0;
   background: transparent;
   border: none;
   color: var(--text-primary);

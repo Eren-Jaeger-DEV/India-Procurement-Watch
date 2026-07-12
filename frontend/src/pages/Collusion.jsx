@@ -18,7 +18,7 @@ const Collusion = () => {
       setData(res);
     } catch (err) {
       console.error(err);
-      setError("Failed to load Cartel Radar data. Please refresh.");
+      setError("Failed to load Network Radar data. Please refresh.");
     } finally {
       setLoading(false);
     }
@@ -44,7 +44,7 @@ const Collusion = () => {
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
       <div style={{ textAlign: 'center' }}>
         <RefreshCw size={36} style={{ animation: 'spin 1s linear infinite', color: 'var(--accent-primary)', marginBottom: 16 }} />
-        <p style={{ color: 'var(--text-secondary)' }}>Scanning database for bidding syndicates and co-winning cartels…</p>
+        <p style={{ color: 'var(--text-secondary)' }}>Scanning database for frequent bidding networks and co-winning pairs…</p>
         <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
       </div>
     </div>
@@ -65,9 +65,9 @@ const Collusion = () => {
       <div className="page-header" style={{ borderBottom: '2px solid var(--border-color)', paddingBottom: 16, marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <ShieldAlert size={28} style={{ color: '#ef4444' }} /> Cartel & Collusion Detector
+            <ShieldAlert size={28} style={{ color: '#ef4444' }} /> Co-Bidding Network Analysis
           </h1>
-          <p className="page-subtitle">Algorithmic identification of co-bidding syndicates and market-sharing vendor pairs</p>
+          <p className="page-subtitle">Algorithmic identification of frequent co-bidding networks and market-sharing vendor pairs</p>
         </div>
         <button onClick={loadCollusionData} style={{ padding: '7px 14px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, background: 'var(--accent-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md, 8px)', fontWeight: 500, cursor: 'pointer' }}>
           <RefreshCw size={13} /> Re-scan Database
@@ -88,11 +88,10 @@ const Collusion = () => {
         )}
       </div>
 
-      {/* Grid 1: Co-winning Vendor Syndicates */}
       <div style={{ marginBottom: 32 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
           <Users size={20} style={{ color: '#8b5cf6' }} />
-          <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>Top Co-Winning Vendor Syndicates</h2>
+          <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>Top Co-Winning Vendor Networks</h2>
         </div>
 
         <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
@@ -146,8 +145,8 @@ const Collusion = () => {
                 <th style={{ padding: '12px 16px', textAlign: 'left' }}>Department Name</th>
                 <th style={{ padding: '12px 16px', textAlign: 'center' }}>Risk Grade</th>
                 <th style={{ padding: '12px 16px', textAlign: 'right' }}>Top Vendors</th>
-                <th style={{ padding: '12px 16px', textAlign: 'right' }}>Syndicate Wins</th>
-                <th style={{ padding: '12px 16px', textAlign: 'right' }}>Syndicate Value</th>
+                <th style={{ padding: '12px 16px', textAlign: 'right' }}>Network Wins</th>
+                <th style={{ padding: '12px 16px', textAlign: 'right' }}>Network Value</th>
                 <th style={{ padding: '12px 16px', textAlign: 'right' }}>Single-Bid %</th>
                 <th style={{ padding: '12px 16px', textAlign: 'right' }}>HHI Score</th>
               </tr>

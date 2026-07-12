@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { fetchDepartmentBenchmarks } from '../lib/api';
-import { Building2, Search, AlertTriangle, Download, RefreshCw, Award, Filter } from 'lucide-react';
+import { Building2, Search, AlertTriangle, Download, RefreshCw, Award, Filter, Info } from 'lucide-react';
 
 const Departments = () => {
   const [depts, setDepts] = useState([]);
@@ -80,7 +80,11 @@ const Departments = () => {
           <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <Building2 size={28} style={{ color: 'var(--accent-primary)' }} /> Department Integrity & Risk Leaderboard
           </h1>
-          <p className="page-subtitle">Comparative benchmarking of 4,788 government departments across competition & single-bid metrics</p>
+          <p className="page-subtitle" style={{ marginBottom: 8 }}>Comparative benchmarking of 4,788 government departments across competition & single-bid metrics</p>
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Info size={14} style={{ color: 'var(--accent-primary)' }} />
+            Grades (A-F) are algorithmic benchmarks determined by weighting single-bid percentages, HHI concentration, and ML risk scores.
+          </p>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
           <button onClick={exportCSV} style={{ padding: '7px 14px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, background: 'var(--bg-main)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md, 8px)', fontWeight: 500, cursor: 'pointer' }}>

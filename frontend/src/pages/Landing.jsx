@@ -284,7 +284,7 @@ export default function Landing() {
       {/* ── Footer ── */}
       <footer className="lp-footer">
         <div className="lp-logo" style={{ gap: 10 }}>
-          <img src="/logo.jpg" alt="IPW Logo" style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover' }} />
+          <img src="/logo.png" alt="IPW Logo" style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover' }} />
           <span className="lp-footer-copy">India Procurement Watch &copy; {new Date().getFullYear()}</span>
         </div>
         <nav className="lp-footer-links">

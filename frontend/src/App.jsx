@@ -2,6 +2,8 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import React, { Suspense, lazy } from 'react';
 import Layout from './components/Layout';
 import Landing from './pages/Landing';
+import './i18n'; // Import i18n initialization
+import { AccessibilityProvider } from './contexts/AccessibilityContext';
 
 // Lazy load pages for performance (code splitting)
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -22,6 +24,7 @@ const MapExplorer = lazy(() => import('./pages/MapExplorer'));
 const DataSources = lazy(() => import('./pages/DataSources'));
 
 class ErrorBoundary extends React.Component {
+
   constructor(props) {
     super(props);
     this.state = { hasError: false, error: null, errorInfo: null };
@@ -61,32 +64,34 @@ const FallbackLoader = () => (
 function App() {
   return (
     <ErrorBoundary>
-      <BrowserRouter>
-        <Suspense fallback={<FallbackLoader />}>
-          <Routes>
-            <Route path="/" element={<Landing />} />
-            <Route element={<Layout />}>
-              <Route path="import" element={<DataImport />} />
-              <Route path="report" element={<AnalysisReport />} />
-              <Route path="dashboard" element={<Dashboard />} />
-              <Route path="geo" element={<Geographical />} />
-              <Route path="organizations" element={<Organizations />} />
-              <Route path="tenders" element={<Tenders />} />
-              <Route path="investigation" element={<Investigation />} />
-              <Route path="search" element={<Search />} />
-              <Route path="network" element={<NetworkGraph />} />
-              <Route path="chat"        element={<AiChat />} />
-              <Route path="redflag"     element={<RedFlagExplorer />} />
-              <Route path="insights"    element={<Insights />} />
-              <Route path="collusion"   element={<Collusion />} />
-              <Route path="departments" element={<Departments />} />
-              <Route path="tenders-map" element={<MapExplorer />} />
-              <Route path="data-sources" element={<DataSources />} />
-            </Route>
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </Suspense>
-      </BrowserRouter>
+      <AccessibilityProvider>
+        <BrowserRouter>
+          <Suspense fallback={<FallbackLoader />}>
+            <Routes>
+              <Route path="/" element={<Landing />} />
+              <Route element={<Layout />}>
+                <Route path="import" element={<DataImport />} />
+                <Route path="report" element={<AnalysisReport />} />
+                <Route path="dashboard" element={<Dashboard />} />
+                <Route path="geo" element={<Geographical />} />
+                <Route path="organizations" element={<Organizations />} />
+                <Route path="tenders" element={<Tenders />} />
+                <Route path="investigation" element={<Investigation />} />
+                <Route path="search" element={<Search />} />
+                <Route path="network" element={<NetworkGraph />} />
+                <Route path="chat"        element={<AiChat />} />
+                <Route path="redflag"     element={<RedFlagExplorer />} />
+                <Route path="insights"    element={<Insights />} />
+                <Route path="collusion"   element={<Collusion />} />
+                <Route path="departments" element={<Departments />} />
+                <Route path="tenders-map" element={<MapExplorer />} />
+                <Route path="data-sources" element={<DataSources />} />
+              </Route>
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Suspense>
+        </BrowserRouter>
+      </AccessibilityProvider>
     </ErrorBoundary>
   );
 }

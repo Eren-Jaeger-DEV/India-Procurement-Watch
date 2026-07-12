@@ -1,25 +1,29 @@
 import { Outlet, NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, FileText, Search, FileSearch, Bot, Sun, Moon, X, PanelLeftClose, PanelLeftOpen, Map, Network, Menu, Activity, Flag, TrendingUp, ShieldAlert, Building2, MapPin, GitBranch } from 'lucide-react';
+import { LayoutDashboard, FileText, Search, FileSearch, Bot, Sun, Moon, X, PanelLeftClose, PanelLeftOpen, Map, Network, Menu, Activity, Flag, TrendingUp, ShieldAlert, Building2, MapPin, GitBranch, Settings } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import QuickAiBar from './QuickAiBar';
 import TenderModal from './TenderModal';
+import AccessibilityMenu from './AccessibilityMenu';
 import './Layout.css';
 
 const NAV_ITEMS = [
-  { to: '/dashboard', icon: LayoutDashboard, label: 'Overview' },
-  { to: '/search',    icon: Search,          label: 'Search'   },
-  { to: '/chat',      icon: Bot,             label: 'Ask AI'   },
-  { to: '/investigation', icon: FileSearch,  label: 'Investigate' },
-  { to: '/report',    icon: FileText,        label: 'Report'   },
+  { to: '/dashboard', icon: LayoutDashboard, label: 'dashboard' },
+  { to: '/search',    icon: Search,          label: 'search'   },
+  { to: '/chat',      icon: Bot,             label: 'chat'   },
+  { to: '/investigation', icon: FileSearch,  label: 'investigation' },
+  { to: '/report',    icon: FileText,        label: 'report'   },
 ];
 
 const Layout = () => {
+  const { t } = useTranslation();
   const [isDark, setIsDark]           = useState(true);
   const [isCollapsed, setIsCollapsed] = useState(window.innerWidth < 1200);
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [modalOpen, setModalOpen]     = useState(false);
   const [modalData, setModalData]     = useState(null);
+  const [a11yMenuOpen, setA11yMenuOpen] = useState(false);
   const location = useLocation();
 
   const [isHovered, setIsHovered] = useState(false);
@@ -121,47 +125,47 @@ const Layout = () => {
             </NavLink>
           </div>
 
-          <div className="nav-section">
-            {!isVisuallyCollapsed && <div className="nav-label">Analytics & Risk</div>}
-            <NavLink to="/geo" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isVisuallyCollapsed ? "Geographical" : ""}>
+          <div className="nav-group-title">Analysis Tools</div>
+          <div className="nav-group">
+            <NavLink to="/geo" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isVisuallyCollapsed ? t('geo') : ""}>
               <Map size={18} />
-              {!isVisuallyCollapsed && <span>Geographical</span>}
+              {!isVisuallyCollapsed && <span>{t('geo')}</span>}
             </NavLink>
-            <NavLink to="/tenders-map" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isVisuallyCollapsed ? "Tender Map" : ""}>
+            <NavLink to="/tenders-map" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isVisuallyCollapsed ? t('map') : ""}>
               <MapPin size={18} />
-              {!isVisuallyCollapsed && <span>Tender Map</span>}
+              {!isVisuallyCollapsed && <span>{t('map')}</span>}
             </NavLink>
-            <NavLink to="/insights" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isVisuallyCollapsed ? "Insights" : ""}>
-              <TrendingUp size={18} />
-              {!isVisuallyCollapsed && <span>Insights</span>}
-            </NavLink>
-            <NavLink to="/departments" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isVisuallyCollapsed ? "Department Radar" : ""}>
+            <NavLink to="/organizations" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isVisuallyCollapsed ? t('orgs') : ""}>
               <Building2 size={18} />
-              {!isVisuallyCollapsed && <span>Department Radar</span>}
+              {!isVisuallyCollapsed && <span>{t('orgs')}</span>}
             </NavLink>
-            <NavLink to="/collusion" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isVisuallyCollapsed ? "Cartel Radar" : ""}>
-              <ShieldAlert size={18} style={{ color: '#ef4444' }} />
-              {!isVisuallyCollapsed && <span>Cartel Radar</span>}
+            <NavLink to="/tenders" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isVisuallyCollapsed ? t('tenders') : ""}>
+              <FileText size={18} />
+              {!isVisuallyCollapsed && <span>{t('tenders')}</span>}
             </NavLink>
-            <NavLink to="/redflag" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isVisuallyCollapsed ? "Red-Flag Explorer" : ""}>
-              <Flag size={18} />
-              {!isVisuallyCollapsed && <span>Red-Flag Explorer</span>}
+            <NavLink to="/redflag" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isVisuallyCollapsed ? t('redflag') : ""}>
+              <ShieldAlert size={18} />
+              {!isVisuallyCollapsed && <span>{t('redflag')}</span>}
             </NavLink>
-            <NavLink to="/investigation" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isVisuallyCollapsed ? "Investigation Desk" : ""}>
-              <FileSearch size={18} />
-              {!isVisuallyCollapsed && <span>Investigation Desk</span>}
-            </NavLink>
-            <NavLink to="/network" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isVisuallyCollapsed ? "Director Networks" : ""}>
+            <NavLink to="/network" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isVisuallyCollapsed ? t('network') : ""}>
               <Network size={18} />
-              {!isVisuallyCollapsed && <span>Director Networks</span>}
+              {!isVisuallyCollapsed && <span>{t('network')}</span>}
             </NavLink>
-            <NavLink to="/import" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isVisuallyCollapsed ? "System Status" : ""}>
+            <NavLink to="/collusion" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isVisuallyCollapsed ? t('collusion') : ""}>
               <Activity size={18} />
-              {!isVisuallyCollapsed && <span>System Status</span>}
+              {!isVisuallyCollapsed && <span>{t('collusion')}</span>}
             </NavLink>
-            <NavLink to="/data-sources" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isVisuallyCollapsed ? "Data Sources" : ""}>
+            <NavLink to="/departments" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isVisuallyCollapsed ? t('departments') : ""}>
+              <LayoutDashboard size={18} />
+              {!isVisuallyCollapsed && <span>{t('departments')}</span>}
+            </NavLink>
+            <NavLink to="/insights" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isVisuallyCollapsed ? t('insights') : ""}>
+              <TrendingUp size={18} />
+              {!isVisuallyCollapsed && <span>{t('insights')}</span>}
+            </NavLink>
+            <NavLink to="/data-sources" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isVisuallyCollapsed ? t('sources') : ""}>
               <GitBranch size={18} />
-              {!isVisuallyCollapsed && <span>Data Sources</span>}
+              {!isVisuallyCollapsed && <span>{t('sources')}</span>}
             </NavLink>
           </div>
         </div>
@@ -170,13 +174,22 @@ const Layout = () => {
           <button 
             className="nav-item collapse-toggle-btn" 
             onClick={() => { setIsCollapsed(!isCollapsed); }} 
-
             style={{ flex: isVisuallyCollapsed ? 'none' : 1, margin: 0, justifyContent: 'center', padding: '8px', minHeight: '36px' }}
             title={isVisuallyCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
           >
             {isVisuallyCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
             {!isVisuallyCollapsed && <span style={{ fontSize: 13, fontWeight: 600 }}>Collapse</span>}
           </button>
+          
+          <button 
+            className="nav-item theme-toggle-btn" 
+            onClick={() => setA11yMenuOpen(true)} 
+            style={{ width: isVisuallyCollapsed ? '100%' : '40px', margin: 0, justifyContent: 'center', padding: '8px', flexShrink: 0, minHeight: '36px' }}
+            title={t('accessibility_settings')}
+          >
+            <Settings size={18} />
+          </button>
+
           <button 
             className="nav-item theme-toggle-btn" 
             onClick={() => setIsDark(!isDark)} 
@@ -258,6 +271,12 @@ const Layout = () => {
 
       {/* Persistent floating AI query bar — visible on all pages */}
       <QuickAiBar />
+
+      {/* Accessibility Settings Modal */}
+      <AccessibilityMenu 
+        isOpen={a11yMenuOpen} 
+        onClose={() => setA11yMenuOpen(false)} 
+      />
     </div>
   );
 };

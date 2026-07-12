@@ -47,6 +47,46 @@ body.dark-theme {
   --accent-hover: #2563eb;
 }
 
+/* Accessibility Modes */
+body.a11y-high-contrast {
+  --bg-main: #000000 !important;
+  --bg-card: #000000 !important;
+  --bg-sidebar: #000000 !important;
+  --text-primary: #ffffff !important;
+  --text-secondary: #ffffff !important;
+  --text-muted: #e5e7eb !important;
+  --border-color: #ffffff !important;
+  --accent-primary: #facc15 !important; /* High contrast yellow */
+  --accent-hover: #eab308 !important;
+  --success: #34d399 !important;
+  --warning: #fbbf24 !important;
+  --danger: #f87171 !important;
+}
+
+body.a11y-high-contrast:not(.dark-theme) {
+  --bg-main: #ffffff !important;
+  --bg-card: #ffffff !important;
+  --bg-sidebar: #ffffff !important;
+  --text-primary: #000000 !important;
+  --text-secondary: #000000 !important;
+  --text-muted: #1f2937 !important;
+  --border-color: #000000 !important;
+  --accent-primary: #0000ee !important; /* Standard high contrast blue */
+}
+
+/* Font Size Scaling */
+body[data-font-size="small"] { font-size: 14px; }
+body[data-font-size="normal"] { font-size: 16px; }
+body[data-font-size="large"] { font-size: 18px; }
+body[data-font-size="extra_large"] { font-size: 20px; }
+
+/* Dyslexia Font Override */
+body.a11y-dyslexia, body.a11y-dyslexia * {
+  font-family: 'Comic Sans MS', 'OpenDyslexic', 'Arial', sans-serif !important;
+  letter-spacing: 0.05em !important;
+  line-height: 1.6 !important;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;

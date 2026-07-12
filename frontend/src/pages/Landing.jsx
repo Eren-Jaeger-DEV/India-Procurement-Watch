@@ -4,6 +4,7 @@ import {
   Shield, ArrowRight, Activity, Globe, Bot,
   AlertTriangle, BarChart2, Network, ChevronDown, Users
 } from 'lucide-react';
+import { motion } from 'framer-motion';
 import AnimatedHeroArtwork from '../components/AnimatedHeroArtwork';
 import './Landing.css';
 
@@ -177,7 +178,13 @@ export default function Landing() {
       </section>
 
       {/* ── Stats ── */}
-      <div className="lp-stats">
+      <motion.div 
+        className="lp-stats"
+        initial={{ opacity: 0, y: 40 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-50px" }}
+        transition={{ duration: 0.7, ease: "easeOut" }}
+      >
         <div className="lp-stats-grid">
           {STATS.map((s) => (
             <div key={s.label} className="lp-stat">
@@ -188,12 +195,18 @@ export default function Landing() {
             </div>
           ))}
         </div>
-      </div>
+      </motion.div>
 
       <div className="lp-section-divider" />
 
       {/* ── Features ── */}
-      <section className="lp-features" id="features">
+      <motion.section 
+        className="lp-features" id="features"
+        initial={{ opacity: 0, y: 40 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-100px" }}
+        transition={{ duration: 0.7, ease: "easeOut" }}
+      >
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           <div style={{ textAlign: 'center', maxWidth: 600, margin: '0 auto 80px' }}>
             <span className="lp-section-label">Capabilities</span>
@@ -223,12 +236,18 @@ export default function Landing() {
             })}
           </div>
         </div>
-      </section>
+      </motion.section>
 
       <div className="lp-section-divider" />
 
       {/* ── CTA ── */}
-      <section className="lp-cta-section" id="methodology">
+      <motion.section 
+        className="lp-cta-section" id="methodology"
+        initial={{ opacity: 0, scale: 0.95 }}
+        whileInView={{ opacity: 1, scale: 1 }}
+        viewport={{ once: true, margin: "-100px" }}
+        transition={{ duration: 0.7, ease: "easeOut" }}
+      >
         <div
           ref={ctaRef}
           className={`lp-cta-card${ctaVisible ? ' lp-visible' : ''}`}
@@ -250,7 +269,7 @@ export default function Landing() {
             </div>
           )}
         </div>
-      </section>
+      </motion.section>
 
       {/* ── Community Section ── */}
       <section className="lp-community-section">

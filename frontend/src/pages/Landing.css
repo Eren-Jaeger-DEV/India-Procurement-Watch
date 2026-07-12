@@ -3,6 +3,15 @@
    Inspired by Vercel, Linear, Stripe
    ============================================ */
 
+/* Hide scrollbar for wrapper to maintain sleek app feel */
+.landing-page-wrapper::-webkit-scrollbar {
+  display: none;
+}
+.landing-page-wrapper {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 /* ---- Keyframes ---- */
 @keyframes gradient-shift {
   0% { background-position: 0% 50%; }

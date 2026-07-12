@@ -113,12 +113,27 @@ export default function Landing() {
   const goToDashboard = useCallback(() => navigate('/dashboard'), [navigate]);
 
   return (
-    <div style={{ background: '#000', color: '#fff', height: '100vh', overflowY: 'auto', overflowX: 'hidden', fontFamily: "'Inter', -apple-system, sans-serif" }}>
-
-      {/* CSS gradient background — drifting orbs */}
-      <div className="lp-bg-layer" />
-      {/* Canvas particle network on top of gradient */}
-      <ParticleNetwork color="#3b82f6" density={90} />
+    <div className="landing-page-wrapper" style={{ background: '#090a0f', color: '#fff', height: '100vh', overflowY: 'auto', overflowX: 'hidden', fontFamily: "'Inter', -apple-system, sans-serif", position: 'relative' }}>
+      
+      {/* Background Image Container */}
+      <div className="lp-custom-bg" style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: '100vh',
+        backgroundImage: 'url("/landing-hero.png")',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        opacity: 0.3, /* Dimmed so text remains readable */
+        zIndex: 0,
+        pointerEvents: 'none'
+      }}>
+        {/* Optional top/bottom gradient fade for blending */}
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '150px', background: 'linear-gradient(to bottom, #090a0f, transparent)' }} />
+        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '150px', background: 'linear-gradient(to top, #090a0f, transparent)' }} />
+      </div>
 
       {/* ── Navbar ── */}
       <nav className="lp-nav">

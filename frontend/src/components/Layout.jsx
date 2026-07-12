@@ -27,6 +27,7 @@ const Layout = () => {
   const location = useLocation();
 
   const [isHovered, setIsHovered] = useState(false);
+  const [tooltip, setTooltip] = useState({ visible: false, text: '', top: 0, left: 0 });
 
   // Auto-collapse based on screen resize
   useEffect(() => {
@@ -66,6 +67,44 @@ const Layout = () => {
 
   // Compute visual collapsed state (collapsed only if state is collapsed)
   const isVisuallyCollapsed = isCollapsed;
+
+  // Global tooltip listener to bypass sidebar overflow clipping
+  useEffect(() => {
+    if (!isVisuallyCollapsed) {
+      if (tooltip.visible) setTooltip(t => ({...t, visible: false}));
+      return;
+    }
+    
+    const handleMouseOver = (e) => {
+      const target = e.target.closest('[data-tooltip]');
+      if (!target) return;
+      const text = target.getAttribute('data-tooltip');
+      if (!text) return;
+      
+      const rect = target.getBoundingClientRect();
+      setTooltip({
+        visible: true,
+        text,
+        top: rect.top + (rect.height / 2),
+        left: rect.right + 14
+      });
+    };
+
+    const handleMouseOut = (e) => {
+      const target = e.target.closest('[data-tooltip]');
+      if (target) {
+        setTooltip(t => ({ ...t, visible: false }));
+      }
+    };
+
+    document.addEventListener('mouseover', handleMouseOver);
+    document.addEventListener('mouseout', handleMouseOut);
+    
+    return () => {
+      document.removeEventListener('mouseover', handleMouseOver);
+      document.removeEventListener('mouseout', handleMouseOut);
+    };
+  }, [isVisuallyCollapsed, tooltip.visible]);
 
   const handleNavItemClick = () => {
     if (window.innerWidth < 1200) {
@@ -264,6 +303,30 @@ const Layout = () => {
 
       {/* Persistent floating AI query bar - visible on all pages */}
       <QuickAiBar />
+
+      {/* Global Tooltip Portal (bypasses sidebar CSS overflow:hidden) */}
+      {tooltip.visible && (
+        <div style={{
+          position: 'fixed',
+          top: tooltip.top,
+          left: tooltip.left,
+          transform: 'translateY(-50%)',
+          background: 'var(--bg-card)',
+          color: 'var(--text-primary)',
+          padding: '6px 12px',
+          borderRadius: '6px',
+          fontSize: '13px',
+          fontWeight: 500,
+          whiteSpace: 'nowrap',
+          zIndex: 999999,
+          border: '1px solid var(--border-color)',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+          pointerEvents: 'none',
+          animation: 'tooltip-fade 0.2s ease forwards'
+        }}>
+          {tooltip.text}
+        </div>
+      )}
 
       {/* Accessibility Settings Modal */}
       <AccessibilityMenu 

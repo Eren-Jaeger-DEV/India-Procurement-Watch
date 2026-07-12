@@ -22,6 +22,7 @@ const Collusion = lazy(() => import('./pages/Collusion'));
 const Departments = lazy(() => import('./pages/Departments'));
 const MapExplorer = lazy(() => import('./pages/MapExplorer'));
 const DataSources = lazy(() => import('./pages/DataSources'));
+const Compare = lazy(() => import('./pages/Compare'));
 
 class ErrorBoundary extends React.Component {
 
@@ -86,6 +87,7 @@ function App() {
                 <Route path="departments" element={<Departments />} />
                 <Route path="tenders-map" element={<MapExplorer />} />
                 <Route path="data-sources" element={<DataSources />} />
+                <Route path="compare"     element={<Compare />} />
               </Route>
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

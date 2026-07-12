@@ -21,6 +21,7 @@ const resources = {
       "collusion": "Collusion Radar",
       "departments": "Departments",
       "sources": "Data Sources",
+      "compare": "Compare Orgs",
       
       // Accessibility Menu
       "accessibility_settings": "Accessibility Settings",
@@ -52,6 +53,7 @@ const resources = {
       "collusion": "मिलीभगत रडार",
       "departments": "विभाग",
       "sources": "डेटा स्रोत",
+      "compare": "तुलना करें",
       
       // Accessibility Menu
       "accessibility_settings": "पहुंच-योग्यता सेटिंग (Accessibility)",

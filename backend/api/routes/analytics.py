@@ -411,5 +411,49 @@ def api_map_tenders():
         conn.rollback()
         return jsonify({"error": str(e)}), 500
 
+@analytics_bp.route("/api/org-list")
+@cache.cached(timeout=3600)
+def api_org_list():
+    try:
+        conn = get_pg_conn()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        # Fetching all distinct organizations that have a report card
+        cur.execute("SELECT org_name FROM org_report_cards ORDER BY org_name ASC")
+        rows = cur.fetchall()
+        return jsonify([r["org_name"] for r in rows])
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@analytics_bp.route("/api/org-compare")
+def api_org_compare():
+    org1 = request.args.get("org1")
+    org2 = request.args.get("org2")
+    
+    if not org1 or not org2:
+        return jsonify({"error": "Missing org1 or org2 parameters"}), 400
+        
+    try:
+        conn = get_pg_conn()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
+        query = """
+            SELECT org_name, total_contracts, total_value_crore, 
+                   single_bid_pct, round_number_pct, hhi_score 
+            FROM org_report_cards 
+            WHERE org_name = %s OR org_name = %s
+        """
+        cur.execute(query, (org1, org2))
+        rows = cur.fetchall()
+        
+        # Organize response by organization name for easy frontend parsing
+        result = {}
+        for row in rows:
+            result[row["org_name"]] = dict(row)
+            
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 
 

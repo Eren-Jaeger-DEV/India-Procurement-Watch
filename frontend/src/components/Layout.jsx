@@ -1,5 +1,5 @@
 import { Outlet, NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, FileText, Search, FileSearch, Bot, Sun, Moon, X, PanelLeftClose, PanelLeftOpen, Map, Network, Menu, Activity, Flag, TrendingUp, ShieldAlert, Building2, MapPin, GitBranch, Settings } from 'lucide-react';
+import { LayoutDashboard, FileText, Search, FileSearch, Bot, Sun, Moon, X, PanelLeftClose, PanelLeftOpen, Map, Network, Menu, Activity, Flag, TrendingUp, ShieldAlert, Building2, MapPin, GitBranch, Settings, Scale } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import QuickAiBar from './QuickAiBar';
@@ -157,6 +157,10 @@ const Layout = () => {
             <NavLink to="/departments" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isVisuallyCollapsed ? t('departments') : ""}>
               <LayoutDashboard size={18} />
               {!isVisuallyCollapsed && <span>{t('departments')}</span>}
+            </NavLink>
+            <NavLink to="/compare" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isVisuallyCollapsed ? t('compare') : ""}>
+              <Scale size={18} />
+              {!isVisuallyCollapsed && <span>{t('compare')}</span>}
             </NavLink>
             <NavLink to="/insights" onClick={handleNavItemClick} className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'} title={isVisuallyCollapsed ? t('insights') : ""}>
               <TrendingUp size={18} />

@@ -92,12 +92,12 @@ const Layout = () => {
       
       document.documentElement.animate(
         {
-          clipPath: isDarkNew ? [...clipPath].reverse() : clipPath
+          clipPath: clipPath
         },
         {
           duration: 500,
           easing: "ease-in-out",
-          pseudoElement: isDarkNew ? "::view-transition-old(root)" : "::view-transition-new(root)"
+          pseudoElement: "::view-transition-new(root)"
         }
       );
     });

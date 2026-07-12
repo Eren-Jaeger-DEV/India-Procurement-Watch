@@ -109,16 +109,7 @@ body {
   overflow: hidden;
 }
 
-/* Smooth Global Theme Switch Transition */
-body, 
-body *, 
-body *::before, 
-body *::after {
-  transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-              color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-              border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-              box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-}
+
 
 /* Layout */
 .app-container {
@@ -201,3 +192,7 @@ body *::after {
   color: var(--text-primary) !important;
   font-weight: 500;
 }
+
+
+/* View Transitions API (Dark/Light Mode) */
+::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }

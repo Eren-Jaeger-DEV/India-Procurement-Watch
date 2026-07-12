@@ -65,6 +65,44 @@ const Layout = () => {
     return () => window.removeEventListener('openTenderModal', handleOpenModal);
   }, []);
 
+  const toggleTheme = (event) => {
+    const isDarkNew = !isDark;
+    
+    if (!document.startViewTransition) {
+      setIsDark(isDarkNew);
+      return;
+    }
+
+    const x = event.clientX;
+    const y = event.clientY;
+    const endRadius = Math.hypot(
+      Math.max(x, window.innerWidth - x),
+      Math.max(y, window.innerHeight - y)
+    );
+
+    const transition = document.startViewTransition(() => {
+      setIsDark(isDarkNew);
+    });
+
+    transition.ready.then(() => {
+      const clipPath = [
+        `circle(0px at ${x}px ${y}px)`,
+        `circle(${endRadius}px at ${x}px ${y}px)`
+      ];
+      
+      document.documentElement.animate(
+        {
+          clipPath: isDarkNew ? [...clipPath].reverse() : clipPath
+        },
+        {
+          duration: 500,
+          easing: "ease-in-out",
+          pseudoElement: isDarkNew ? "::view-transition-old(root)" : "::view-transition-new(root)"
+        }
+      );
+    });
+  };
+
   // Compute visual collapsed state (collapsed only if state is collapsed)
   const isVisuallyCollapsed = isCollapsed;
 
@@ -224,7 +262,7 @@ const Layout = () => {
 
           <button 
             className="nav-item theme-toggle-btn" 
-            onClick={() => setIsDark(!isDark)} 
+            onClick={toggleTheme} 
             style={{ width: isVisuallyCollapsed ? '100%' : '40px', margin: 0, justifyContent: 'center', padding: '8px', flexShrink: 0, minHeight: '36px' }}
             data-tooltip={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
           >

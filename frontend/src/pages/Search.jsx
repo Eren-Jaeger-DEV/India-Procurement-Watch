@@ -36,10 +36,8 @@ const Search = () => {
     }
   }, [query, year, portal, singleBid]);
 
-  // Execute initial search on mount
-  useEffect(() => {
-    runSearch(1);
-  }, [runSearch]);
+  // Removed execute initial search on mount
+
 
   const handleAiAsk = async (e) => {
     e?.preventDefault();
@@ -172,7 +170,9 @@ const Search = () => {
               </tr>
             </thead>
             <tbody>
-              {searchResults?.results?.length === 0 ? (
+              {!searchResults ? (
+                <tr><td colSpan="5" style={{ padding: 32, textAlign: 'center', color: 'var(--text-muted)' }}>Enter a search term and press Search.</td></tr>
+              ) : searchResults?.results?.length === 0 ? (
                 <tr><td colSpan="5" style={{ padding: 32, textAlign: 'center', color: 'var(--text-muted)' }}>No contracts found matching query.</td></tr>
               ) : searchResults?.results?.map((item, idx) => (
                 <tr key={idx} style={{ borderBottom: '1px solid var(--border-color)', cursor: 'pointer' }} onClick={() => handleInspect(item)}>

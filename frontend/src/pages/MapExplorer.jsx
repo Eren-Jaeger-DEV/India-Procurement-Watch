@@ -3,7 +3,7 @@ import debounce from 'lodash.debounce';
 import Map, { Source, Layer, NavigationControl, Popup } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { fetchMapTenders, fetchLocations } from '../lib/api';
-import { Search, AlertTriangle, ShieldAlert, Building, Loader2, Layers, X, Info, TrendingUp, MapPin, ChevronDown, Check } from 'lucide-react';
+import { Search, AlertTriangle, ShieldAlert, Building, Loader2, Layers, X, Info, TrendingUp, MapPin, ChevronDown, Check, ChevronLeft } from 'lucide-react';
 import './MapExplorer.css';
 
 const fmtCr = (v) => v ? `₹${(v / 1e7).toFixed(1)}Cr` : '-';
@@ -76,8 +76,8 @@ const getRasterStyle = (url) => ({
 });
 
 const MAP_STYLES = {
-  dark: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
-  light: 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json'
+  dark: getRasterStyle('https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'),
+  light: getRasterStyle('https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png')
 };
 
 export default function MapExplorer() {
@@ -618,7 +618,9 @@ export default function MapExplorer() {
               </div>
               <div className="panel-sub">India · Geocoded Tenders</div>
             </div>
-            <button onClick={() => setPanelOpen(false)} className="panel-close"><X size={14} /></button>
+            <button onClick={() => setPanelOpen(false)} className="panel-close" style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, background: 'rgba(255,255,255,0.08)', padding: '4px 8px', borderRadius: 6, color: '#cbd5e1' }}>
+              <ChevronLeft size={13} /> Collapse
+            </button>
           </div>
 
           <div className="panel-stats">

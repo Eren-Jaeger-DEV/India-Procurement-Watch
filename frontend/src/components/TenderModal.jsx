@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, ExternalLink, ShieldAlert, Building2, Calendar, IndianRupee, FileText, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { X, ExternalLink, ShieldAlert, Building2, Calendar, IndianRupee, FileText, CheckCircle2, AlertTriangle, Info } from 'lucide-react';
 import { fetchTenderDetail } from '../lib/api';
 
 const TenderModal = ({ isOpen, onClose, initialData }) => {
@@ -151,7 +151,7 @@ const TenderModal = ({ isOpen, onClose, initialData }) => {
               )}
 
               {portalUrl && (
-                <div style={{ marginTop: 8 }}>
+                <div style={{ marginTop: 12 }}>
                   <a 
                     href={portalUrl} 
                     target="_blank" 
@@ -159,11 +159,16 @@ const TenderModal = ({ isOpen, onClose, initialData }) => {
                     style={{ 
                       display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 18px', 
                       background: 'var(--accent-primary)', color: 'white', textDecoration: 'none', 
-                      borderRadius: 'var(--radius-md)', fontWeight: 600, fontSize: 13 
+                      borderRadius: 'var(--radius-md)', fontWeight: 600, fontSize: 13,
+                      marginBottom: 8
                     }}
                   >
                     Open Official Government Portal <ExternalLink size={15} />
                   </a>
+                  <div style={{ display: 'flex', gap: 6, fontSize: 12, color: 'var(--text-muted)', alignItems: 'flex-start', background: 'var(--bg-main)', padding: '8px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+                    <Info size={14} style={{ flexShrink: 0, marginTop: 2, color: 'var(--accent-primary)' }} />
+                    <span style={{ lineHeight: 1.4 }}>Government portal links may expire or fail to load directly due to their security policies or captchas. If the link fails, you can search manually using the Tender ID above.</span>
+                  </div>
                 </div>
               )}
             </div>

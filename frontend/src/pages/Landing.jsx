@@ -179,6 +179,7 @@ export default function Landing() {
 
       {/* ── Stats ── */}
       <motion.div 
+        id="data-sources"
         className="lp-stats"
         initial={{ opacity: 0, y: 40 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -225,9 +226,9 @@ export default function Landing() {
                   className={`lp-feature-card${featVisible ? ` lp-visible lp-d${Math.min(i + 1, 5)}` : ''}`}
                   style={{ opacity: featVisible ? undefined : 0 }}
                 >
+                  <span className="lp-feature-number">{f.number}</span>
                   <div className="lp-feature-icon" style={{ background: f.bg }}>
                     <Icon size={26} color={f.color} className="lp-feature-icon-inner" />
-                    <span className="lp-feature-number">{f.number}</span>
                   </div>
                   <h3 className="lp-feature-title">{f.title}</h3>
                   <p className="lp-feature-desc">{f.desc}</p>

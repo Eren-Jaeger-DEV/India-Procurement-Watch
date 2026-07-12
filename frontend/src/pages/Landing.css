@@ -203,6 +203,9 @@
 }
 
 .lp-nav-links {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
   align-items: center;
   gap: 32px;
@@ -306,7 +309,7 @@
 .lp-hero-sub {
   font-size: clamp(16px, 2.5vw, 20px);
   line-height: 1.65;
-  color: #71717a;
+  color: #d4d4d8; /* Brighter contrast against dark background */
   max-width: 640px;
   margin: 0 auto 48px;
   animation: fade-up 0.7s 0.2s ease both;
@@ -517,11 +520,13 @@
 
 .lp-feature-number {
   position: absolute;
-  top: -8px; right: -8px;
-  font-size: 10px;
+  top: 24px;
+  right: 28px;
+  font-size: 16px;
   font-weight: 700;
-  color: #52525b;
+  color: rgba(255, 255, 255, 0.15); /* Large elegant watermark in corner */
   font-variant-numeric: tabular-nums;
+  pointer-events: none;
 }
 
 .lp-feature-title {

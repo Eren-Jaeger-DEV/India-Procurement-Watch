@@ -113,7 +113,7 @@ export default function Landing() {
   const goToDashboard = useCallback(() => navigate('/dashboard'), [navigate]);
 
   return (
-    <div style={{ background: '#000', color: '#fff', minHeight: '100vh', fontFamily: "'Inter', -apple-system, sans-serif", overflowX: 'hidden' }}>
+    <div style={{ background: '#000', color: '#fff', height: '100vh', overflowY: 'auto', overflowX: 'hidden', fontFamily: "'Inter', -apple-system, sans-serif" }}>
 
       {/* CSS gradient background — drifting orbs */}
       <div className="lp-bg-layer" />
